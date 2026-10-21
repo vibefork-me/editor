@@ -1,3 +1,6 @@
+import { registerTrustedTypes } from "./security/registerTrustedTypes.ts";
+registerTrustedTypes();
+
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
@@ -11,5 +14,5 @@ if (!container) {
 createRoot(container).render(
   <StrictMode>
     <App />
-  </StrictMode>
+  </StrictMode>,
 );
