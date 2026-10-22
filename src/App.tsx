@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { routerBasename } from "./routerBasename.ts";
 import { AgentConnectionGate } from "./components/AgentConnectionGate.tsx";
@@ -5,22 +6,37 @@ import { HomePage } from "./pages/HomePage.tsx";
 import { OpenPage } from "./pages/OpenPage.tsx";
 import { ProjectPage } from "./pages/ProjectPage.tsx";
 
+function CenteredRoute({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex flex-1 items-center justify-center p-6">{children}</div>
+  );
+}
+
 export function App() {
   return (
     <BrowserRouter basename={routerBasename()}>
-      <div className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col">
-        <header className="border-b border-neutral-800 px-6 py-4 flex items-center justify-between">
-          <h1 className="text-lg font-semibold tracking-tight">Vibefork editor</h1>
-        </header>
-        <main className="flex-1 flex flex-col min-h-0">
+      <div className="flex min-h-screen flex-col bg-surface font-sans text-text">
+        <main className="flex min-h-0 flex-1 flex-col">
           <AgentConnectionGate>
-            <div className="flex flex-1 items-center justify-center p-6">
-              <Routes>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/open" element={<OpenPage />} />
-                <Route path="/:projectId" element={<ProjectPage />} />
-              </Routes>
-            </div>
+            <Routes>
+              <Route
+                path="/"
+                element={
+                  <CenteredRoute>
+                    <HomePage />
+                  </CenteredRoute>
+                }
+              />
+              <Route
+                path="/open"
+                element={
+                  <CenteredRoute>
+                    <OpenPage />
+                  </CenteredRoute>
+                }
+              />
+              <Route path="/:projectId" element={<ProjectPage />} />
+            </Routes>
           </AgentConnectionGate>
         </main>
       </div>

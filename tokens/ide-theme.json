@@ -1,1 +1,21 @@
-{}
+{
+  "colors": {
+    "surface": "var(--color-surface)",
+    "surfaceElevated": "var(--color-surface-elevated)",
+    "text": "var(--color-text)",
+    "textMuted": "var(--color-text-muted)",
+    "border": "var(--color-border)",
+    "accent": "var(--color-accent)",
+    "statusConnected": "var(--color-status-connected)",
+    "statusReconnecting": "var(--color-status-reconnecting)",
+    "statusOffline": "var(--color-status-offline)",
+    "phaseCurrent": "var(--color-phase-current)",
+    "phaseDone": "var(--color-phase-done)",
+    "phaseTodo": "var(--color-phase-todo)",
+    "statusProblem": "var(--color-status-problem)"
+  },
+  "fonts": {
+    "sans": "var(--font-sans)",
+    "mono": "var(--font-mono)"
+  }
+}

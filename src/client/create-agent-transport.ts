@@ -16,6 +16,7 @@ import type {
   TaskEvent,
   TaskStartParams,
 } from "./types.ts";
+import { notifyWsConnection } from "./ws-connection-bridge.ts";
 
 const MAX_TEXT_BYTES = 2 * 1024 * 1024;
 const SECRET_PATH_DENY = /(?:^|\/)(?:\.env|id_rsa|credentials\.json|\.pem)(?:$|\/)/i;
@@ -278,6 +279,7 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
           ws = new WS(url);
           ws.onopen = () => {
             reconnectAttempt = 0;
+            notifyWsConnection("open");
             wsAuth();
             for (const sub of projectSubs.values()) sendProjectSubscribe(sub);
             for (const sub of taskSubs.values()) sendTaskSubscribe(sub);
@@ -287,7 +289,10 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
           ws.onerror = () => reject(new Error("WebSocket error"));
           ws.onclose = () => {
             ws = null;
-            if (!intentionalClose) scheduleReconnect();
+            if (!intentionalClose) {
+              notifyWsConnection("closed-reconnecting");
+              scheduleReconnect();
+            }
           };
         })
         .catch(reject);

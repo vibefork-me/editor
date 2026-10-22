@@ -246,6 +246,46 @@ describe("agent-client transport", () => {
     expect(lastProjectSub?.afterCursor).toBeUndefined();
   });
 
+  it("notifies ws connection bridge when socket closes unexpectedly", async () => {
+    const events: string[] = [];
+    const { setWsConnectionListener } = await import("./ws-connection-bridge.ts");
+    setWsConnectionListener((event) => events.push(event));
+
+    let ws: MockWebSocket | null = null;
+    const client = createAgentTransport({
+      baseUrl: "http://127.0.0.1:47802",
+      fetch: vi.fn(async (input: RequestInfo) => {
+        const url = String(input);
+        if (url.endsWith("/v1/hello")) {
+          return jsonResponse({ agent: "vf", platform: "test", version: "0" });
+        }
+        if (url.endsWith("/v1/auth/challenge")) return jsonResponse({ nonce: "n" });
+        if (url.endsWith("/v1/auth/session")) return jsonResponse({ token: "t", expiresIn: 900 });
+        return new Response("not found", { status: 404 });
+      }) as typeof fetch,
+      WebSocket: class extends MockWebSocket {
+        constructor(url: string) {
+          super(url);
+          ws = this;
+        }
+      } as unknown as typeof WebSocket,
+      getKeyId: async () => "k",
+      signNonce: async () => "s",
+    });
+
+    await client.authenticateSession({} as CryptoKey);
+    client.subscribeProjectResearch({
+      projectId: "demo",
+      onSnapshot: () => {},
+      onGap: () => {},
+    });
+    await vi.waitFor(() => expect(ws).not.toBeNull());
+    events.length = 0;
+    ws!.close();
+    expect(events).toContain("closed-reconnecting");
+    setWsConnectionListener(null);
+  });
+
   it("schedules reconnect after health polling when socket drops", async () => {
     vi.useFakeTimers();
     let ws: MockWebSocket | null = null;
