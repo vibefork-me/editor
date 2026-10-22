@@ -2,10 +2,13 @@ import { useTranslation } from "../../i18n/i18nStore.ts";
 
 export interface DoneSummaryProps {
   onSave?: () => void;
+  isSaving?: boolean;
   onViewChanges?: () => void;
+  saveMessage?: string | null;
+  saveHref?: string | null;
 }
 
-export function DoneSummary({ onSave, onViewChanges }: DoneSummaryProps) {
+export function DoneSummary({ onSave, isSaving = false, onViewChanges, saveMessage, saveHref }: DoneSummaryProps) {
   const { t } = useTranslation();
 
   return (
@@ -39,11 +42,11 @@ export function DoneSummary({ onSave, onViewChanges }: DoneSummaryProps) {
           <div className="mt-3.5 flex items-center gap-2.5">
             <button
               type="button"
-              disabled={!onSave}
+              disabled={!onSave || isSaving}
               className="rounded-md bg-success px-3.5 py-1.5 text-xs font-semibold text-black hover:bg-success/90 transition-colors shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
               onClick={onSave}
             >
-              {t("canvas.saveAction")}
+              {isSaving ? t("canvas.savingAction") : t("canvas.saveAction")}
             </button>
 
             <button
@@ -54,6 +57,16 @@ export function DoneSummary({ onSave, onViewChanges }: DoneSummaryProps) {
               {t("canvas.viewChangesAction")}
             </button>
           </div>
+          {saveMessage && (
+            <p role="status" className="mt-2 text-xs text-text-muted">
+              {saveMessage}
+              {saveHref && (
+                <a href={saveHref} target="_blank" rel="noreferrer" className="ml-2 text-accent underline underline-offset-2">
+                  {t("canvas.saveFollowup")}
+                </a>
+              )}
+            </p>
+          )}
         </div>
       </div>
     </div>

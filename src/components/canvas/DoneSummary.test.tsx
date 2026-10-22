@@ -25,4 +25,9 @@ describe("DoneSummary", () => {
     fireEvent.click(viewBtn);
     expect(handleView).toHaveBeenCalledTimes(1);
   });
+
+  it("disables save until an action is available", () => {
+    render(<DoneSummary />);
+    expect((screen.getByRole("button", { name: /сохранить|save/i }) as HTMLButtonElement).disabled).toBe(true);
+  });
 });

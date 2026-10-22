@@ -36,6 +36,9 @@ export function CanvasPanel({ className = "", onAskAbout, onSave }: CanvasPanelP
   const openDiff = useViewerStore((s) => s.openDiff);
 
   const [activeFocusedNodeId, setActiveFocusedNodeId] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [saveHref, setSaveHref] = useState<string | null>(null);
   const nodePositions = useRef(new Map<string, { x: number; y: number }>());
 
   const rawNodes = useMemo(() => Array.from(rawNodesMap.values()), [rawNodesMap]);
@@ -119,6 +122,44 @@ export function CanvasPanel({ className = "", onAskAbout, onSave }: CanvasPanelP
     // Open diff viewer for project changes
     void openDiff("");
   }, [openDiff]);
+
+  const handleSave = useCallback(async () => {
+    setSaveMessage(null);
+    setSaveHref(null);
+    if (!currentProjectId) {
+      setSaveMessage(t("canvas.saveError"));
+      return;
+    }
+    const transport = getAgentTransport();
+    if (!transport) {
+      setSaveMessage(t("canvas.saveError"));
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const result = await transport.saveProject({ projectId: currentProjectId });
+      if (result.url) {
+        const url = new URL(result.url);
+        if (url.protocol === "https:" && url.hostname === "github.com") {
+          setSaveHref(url.href);
+        }
+      }
+      if (result.step === "saved") {
+        setSaveMessage(t("canvas.saveComplete"));
+      } else if (result.step === "unchanged") {
+        setSaveMessage(t("canvas.saveUnchanged"));
+      } else if (result.url && result.url.startsWith("https://github.com/")) {
+        setSaveMessage(t("canvas.saveNextStep"));
+      } else {
+        setSaveMessage(t("canvas.saveError"));
+      }
+    } catch {
+      setSaveMessage(t("canvas.saveError"));
+    } finally {
+      setIsSaving(false);
+    }
+  }, [currentProjectId, t]);
 
   return (
     <div
@@ -208,7 +249,13 @@ export function CanvasPanel({ className = "", onAskAbout, onSave }: CanvasPanelP
 
       {/* Done summary card on completion */}
       {isAllDone && (
-        <DoneSummary onSave={onSave} onViewChanges={handleViewChanges} />
+        <DoneSummary
+          onSave={onSave ?? handleSave}
+          isSaving={isSaving}
+          onViewChanges={handleViewChanges}
+          saveMessage={saveMessage}
+          saveHref={saveHref}
+        />
       )}
     </div>
   );

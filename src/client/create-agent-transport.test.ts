@@ -118,6 +118,30 @@ describe("agent-client transport", () => {
     expect(reconnectDelayMs(10)).toBe(30000);
   });
 
+  it("posts project saves to the protected save endpoint", async () => {
+    const fetchMock = vi.fn(async (_input: RequestInfo, _init?: RequestInit) =>
+      jsonResponse({
+        step: "saved",
+        url: "https://github.com/user/project",
+        copy: "user/project",
+        commit: "abc1234",
+      })
+    );
+    const client = createAgentTransport({
+      baseUrl: "http://127.0.0.1:47801",
+      fetch: fetchMock as typeof fetch,
+      WebSocket: MockWebSocket as unknown as typeof WebSocket,
+    });
+
+    const result = await client.saveProject({ projectId: "demo" });
+
+    expect(result.step).toBe("saved");
+    expect(String(fetchMock.mock.calls[0][0])).toBe("http://127.0.0.1:47801/v1/save");
+    const init = fetchMock.mock.calls[0][1] as RequestInit;
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(String(init.body))).toEqual({ project: "demo" });
+  });
+
   it("probes loopback ports 47801 through 47805", async () => {
     const tried: string[] = [];
     const fetchMock = vi.fn(async (input: RequestInfo) => {

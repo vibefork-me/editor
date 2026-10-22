@@ -13,6 +13,7 @@ import type {
   ModelInfo,
   PlanApproveParams,
   ProjectMetadata,
+  SaveProjectResult,
   Subscription,
   TaskAnswerParams,
   TaskEvent,
@@ -553,6 +554,15 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
       if (!res.ok) throw new Error("models failed");
       const body = (await res.json()) as { models: ModelInfo[] };
       return body.models;
+    },
+
+    async saveProject(params) {
+      const res = await apiFetch("/v1/save", {
+        method: "POST",
+        body: JSON.stringify({ project: params.projectId, copy: params.copy }),
+      });
+      if (!res.ok) throw new Error("save failed");
+      return (await res.json()) as SaveProjectResult;
     },
   };
 

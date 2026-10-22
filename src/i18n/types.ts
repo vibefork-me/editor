@@ -56,6 +56,12 @@ export interface TranslationSchema {
   project: {
     title: string;
     placeholder: string;
+    chatInputLabel: string;
+    chatPlaceholder: string;
+    sendMessage: string;
+    sendingMessage: string;
+    taskStarted: string;
+    chatStartFailed: string;
   };
   canvas: {
     agentHere: string;
@@ -71,6 +77,12 @@ export interface TranslationSchema {
     doneSummaryTitle: string;
     doneSummarySubtitle: string;
     saveAction: string;
+    savingAction: string;
+    saveComplete: string;
+    saveUnchanged: string;
+    saveNextStep: string;
+    saveFollowup: string;
+    saveError: string;
     viewChangesAction: string;
     reconnectingNotice: string;
     emptyCanvasTitle: string;
