@@ -318,8 +318,12 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
   const transport: AgentTransport = {
     async getHealth() {
       try {
-        const base = await ensureBaseUrl();
-        const ok = await probeAgentBaseUrl(fetchFn, base);
+        if (!baseUrl && deps.discover !== false) {
+          const found = await discoverAgentBaseUrl(fetchFn);
+          if (found) baseUrl = found;
+        }
+        if (!baseUrl) return { ok: false };
+        const ok = await probeAgentBaseUrl(fetchFn, baseUrl);
         return { ok };
       } catch {
         return { ok: false };
