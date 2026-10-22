@@ -16,6 +16,9 @@
   --color-phase-done: var(--color-success);
   --color-phase-todo: var(--color-text-muted);
   --color-status-problem: var(--color-danger);
+  --color-status-changing: var(--color-warning);
+  --color-status-done: var(--color-success);
+  --color-status-exploring: var(--color-accent);
   --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 }

@@ -36,3 +36,32 @@
 @utility animate-status-reconnect {
   animation: status-reconnect-pulse 1.2s ease-in-out infinite;
 }
+
+@keyframes agent-focus-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 oklch(0.72 0.14 250 / 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 8px oklch(0.72 0.14 250 / 0);
+  }
+}
+
+@keyframes slide-up-fade {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@utility animate-focus-pulse {
+  animation: agent-focus-pulse 2s ease-in-out infinite;
+}
+
+@utility animate-slide-up {
+  animation: slide-up-fade 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

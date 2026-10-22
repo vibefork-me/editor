@@ -57,6 +57,25 @@ export interface TranslationSchema {
     title: string;
     placeholder: string;
   };
+  canvas: {
+    agentHere: string;
+    focusHere: string;
+    askAbout: string;
+    explainProblem: string;
+    explainingProblem: string;
+    statusUnknown: string;
+    statusExploring: string;
+    statusChanging: string;
+    statusProblem: string;
+    statusDone: string;
+    doneSummaryTitle: string;
+    doneSummarySubtitle: string;
+    saveAction: string;
+    viewChangesAction: string;
+    reconnectingNotice: string;
+    emptyCanvasTitle: string;
+    emptyCanvasDescription: string;
+  };
   language: {
     ru: string;
     en: string;
