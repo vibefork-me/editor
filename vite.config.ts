@@ -3,16 +3,19 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import {
   CONTENT_SECURITY_POLICY,
+  DEV_CONTENT_SECURITY_POLICY,
+  DEV_SECURITY_HEADERS,
   SECURITY_HEADERS,
 } from "./csp.config.ts";
 
 function injectCspMeta(): Plugin {
   return {
     name: "inject-csp-meta",
-    transformIndexHtml(html) {
+    transformIndexHtml(html, ctx) {
+      const csp = ctx.server ? DEV_CONTENT_SECURITY_POLICY : CONTENT_SECURITY_POLICY;
       return html.replace(
         /content="%%CSP%%"/,
-        `content="${CONTENT_SECURITY_POLICY}"`,
+        `content="${csp}"`,
       );
     },
   };
@@ -23,7 +26,7 @@ export default defineConfig({
   plugins: [injectCspMeta(), react(), tailwindcss()],
   server: {
     port: 5173,
-    headers: SECURITY_HEADERS,
+    headers: DEV_SECURITY_HEADERS,
   },
   preview: {
     headers: SECURITY_HEADERS,
