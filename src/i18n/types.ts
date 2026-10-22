@@ -29,6 +29,18 @@ export interface TranslationSchema {
     title: string;
     description: string;
   };
+  pairing: {
+    title: string;
+    description: string;
+    codeLabel: string;
+    codeAccessibleLabel: string;
+    browserName: string;
+    starting: string;
+    pending: string;
+    denied: string;
+    error: string;
+    retry: string;
+  };
   security: {
     warningTitle: string;
     currentOriginAllowed: string;

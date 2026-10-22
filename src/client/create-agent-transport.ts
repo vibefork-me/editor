@@ -11,6 +11,8 @@ import type {
   AgentTransport,
   GraphSnapshot,
   ModelInfo,
+  PairStartResult,
+  PairStatusResult,
   PlanApproveParams,
   ProjectMetadata,
   SaveProjectResult,
@@ -369,6 +371,21 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
       const { token } = (await sessionRes.json()) as { token: string };
       bearerToken = token;
       return { token };
+    },
+
+    async startPairing(params) {
+      const res = await apiFetch("/v1/pair/start", {
+        method: "POST",
+        body: JSON.stringify({ publicKeyJwk: params.publicKeyJwk, name: params.name }),
+      });
+      if (!res.ok) throw new Error("pairing failed");
+      return (await res.json()) as PairStartResult;
+    },
+
+    async getPairingStatus(pairId) {
+      const res = await apiFetch(`/v1/pair/status?id=${encodeURIComponent(pairId)}`);
+      if (!res.ok) throw new Error("pairing status failed");
+      return (await res.json()) as PairStatusResult;
     },
 
     async listProjects() {

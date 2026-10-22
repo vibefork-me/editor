@@ -142,6 +142,39 @@ describe("agent-client transport", () => {
     expect(JSON.parse(String(init.body))).toEqual({ project: "demo" });
   });
 
+  it("starts pairing and polls for its approval", async () => {
+    const calls: { url: string; init?: RequestInit }[] = [];
+    const fetchMock = vi.fn(async (input: RequestInfo, init?: RequestInit) => {
+      const url = String(input);
+      calls.push({ url, init });
+      if (url.endsWith("/v1/pair/start")) {
+        return jsonResponse({ pairId: "pair-1", code: "123-456" });
+      }
+      if (url.endsWith("/v1/pair/status?id=pair-1")) {
+        return jsonResponse({ status: "approved", keyId: "key-1" });
+      }
+      return new Response("not found", { status: 404 });
+    });
+    const client = createAgentTransport({
+      baseUrl: "http://127.0.0.1:47801",
+      fetch: fetchMock as typeof fetch,
+      WebSocket: MockWebSocket as unknown as typeof WebSocket,
+    });
+
+    const pairing = await client.startPairing({
+      publicKeyJwk: { kty: "EC", crv: "P-256", x: "x", y: "y" },
+      name: "Editor",
+    });
+    const status = await client.getPairingStatus(pairing.pairId);
+
+    expect(pairing).toEqual({ pairId: "pair-1", code: "123-456" });
+    expect(status).toEqual({ status: "approved", keyId: "key-1" });
+    expect(JSON.parse(String(calls[0].init?.body))).toEqual({
+      publicKeyJwk: { kty: "EC", crv: "P-256", x: "x", y: "y" },
+      name: "Editor",
+    });
+  });
+
   it("probes loopback ports 47801 through 47805", async () => {
     const tried: string[] = [];
     const fetchMock = vi.fn(async (input: RequestInfo) => {

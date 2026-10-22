@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { render, screen } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AgentConnectionGate } from "./AgentConnectionGate.tsx";
 
@@ -9,6 +10,10 @@ vi.mock("../hooks/useMobileUnsupported.ts", () => ({
 
 vi.mock("../hooks/useAgentConnectionMonitor.ts", () => ({
   useAgentConnectionMonitor: vi.fn(),
+}));
+
+vi.mock("./PairingGate.tsx", () => ({
+  PairingGate: ({ children }: { children: ReactNode }) => children,
 }));
 
 import { useAgentConnectionMonitor } from "../hooks/useAgentConnectionMonitor.ts";

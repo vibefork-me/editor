@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { useAgentConnectionMonitor } from "../hooks/useAgentConnectionMonitor.ts";
 import { useMobileUnsupported } from "../hooks/useMobileUnsupported.ts";
 import { AgentOfflineScreen } from "./AgentOfflineScreen.tsx";
+import { PairingGate } from "./PairingGate.tsx";
 import { MobileUnsupportedNotice } from "./MobileUnsupportedNotice.tsx";
 import { SecurityWarningBanner } from "./SecurityWarningBanner.tsx";
 
@@ -32,7 +33,7 @@ export function AgentConnectionGate({ children }: AgentConnectionGateProps) {
   return (
     <div className="flex-1 flex flex-col min-h-0">
       <SecurityWarningBanner extraOrigins={extraOrigins} />
-      {children}
+      <PairingGate>{children}</PairingGate>
     </div>
   );
 }

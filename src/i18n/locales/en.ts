@@ -28,6 +28,18 @@ export const en: TranslationSchema = {
     title: "Windows PC required",
     description: "The web IDE is designed for computers running Windows.",
   },
+  pairing: {
+    title: "Pair this browser with Vibefork Agent",
+    description: "Compare the six-digit code with the one shown in the agent window, then approve the request there.",
+    codeLabel: "Pairing code",
+    codeAccessibleLabel: "Six-digit pairing code",
+    browserName: "Vibefork editor",
+    starting: "Preparing a secure browser identity…",
+    pending: "Waiting for approval in the agent window…",
+    denied: "The pairing request was declined or expired.",
+    error: "Could not complete pairing. Check that the agent is available and try again.",
+    retry: "Try again",
+  },
   security: {
     warningTitle: "Security warning: external web origins enabled (extraOrigins)",
     currentOriginAllowed: "Current origin is allowed",

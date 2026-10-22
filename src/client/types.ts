@@ -81,6 +81,16 @@ export interface SaveProjectResult {
   files?: string[];
 }
 
+export interface PairStartResult {
+  pairId: string;
+  code: string;
+}
+
+export interface PairStatusResult {
+  status: "pending" | "approved" | "denied";
+  keyId?: string;
+}
+
 export interface TaskAnswerParams {
   taskId: string;
   questionId: string;
@@ -121,6 +131,8 @@ export interface AgentTransport {
   getHealth(): Promise<AgentHealth>;
   getCapabilities(): Promise<AgentCapabilities>;
   authenticateSession(clientKey: CryptoKey): Promise<{ token: string }>;
+  startPairing(params: { publicKeyJwk: JsonWebKey; name?: string }): Promise<PairStartResult>;
+  getPairingStatus(pairId: string): Promise<PairStatusResult>;
 
   getProject(projectId: string): Promise<ProjectMetadata>;
   listProjects(): Promise<ProjectSummary[]>;
