@@ -1,11 +1,13 @@
 import {
   discoverAgentBaseUrl,
+  fetchAgentHello,
   probeAgentBaseUrl,
   reconnectDelayMs,
   resolveAgentBaseUrlFromLocation,
 } from "./agent-base-url.ts";
 import type {
   AgentCapabilities,
+  AgentHealth,
   AgentTransport,
   GraphSnapshot,
   ModelInfo,
@@ -321,15 +323,22 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
   }
 
   const transport: AgentTransport = {
-    async getHealth() {
+    async getHealth(): Promise<AgentHealth> {
       try {
         if (!baseUrl && deps.discover !== false) {
           const found = await discoverAgentBaseUrl(fetchFn);
           if (found) baseUrl = found;
         }
         if (!baseUrl) return { ok: false };
-        const ok = await probeAgentBaseUrl(fetchFn, baseUrl);
-        return { ok };
+        const hello = await fetchAgentHello(fetchFn, baseUrl);
+        if (!hello) return { ok: false };
+        return {
+          ok: true,
+          version: hello.version,
+          ...(hello.extraOrigins && hello.extraOrigins.length > 0
+            ? { extraOrigins: hello.extraOrigins }
+            : {}),
+        };
       } catch {
         return { ok: false };
       }

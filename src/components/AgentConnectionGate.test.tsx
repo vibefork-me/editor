@@ -32,6 +32,26 @@ describe("AgentConnectionGate", () => {
     );
 
     expect(screen.getByText("Workspace ready")).toBeTruthy();
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("shows security warning banner when extraOrigins are present", () => {
+    vi.mocked(useAgentConnectionMonitor).mockReturnValue({
+      online: true,
+      offlineReason: "agent-not-running",
+      exiting: false,
+      extraOrigins: ["http://localhost:5173"],
+    });
+
+    render(
+      <AgentConnectionGate>
+        <p>Workspace ready</p>
+      </AgentConnectionGate>,
+    );
+
+    expect(screen.getByText("Workspace ready")).toBeTruthy();
+    expect(screen.getByRole("alert")).toBeTruthy();
+    expect(screen.getByText("http://localhost:5173")).toBeTruthy();
   });
 
   it("shows offline screen when agent is unreachable", () => {

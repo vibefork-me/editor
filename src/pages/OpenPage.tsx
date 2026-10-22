@@ -1,6 +1,8 @@
 import { Link, useSearchParams } from "react-router-dom";
+import { useI18n } from "../i18n/index.ts";
 
 export function OpenPage() {
+  const { t } = useI18n();
   const [params] = useSearchParams();
   const repo = params.get("repo") ?? "";
   const ref = params.get("ref");
@@ -8,25 +10,25 @@ export function OpenPage() {
 
   return (
     <div className="text-center space-y-4 max-w-lg">
-      <p className="text-xl font-medium text-neutral-200">Open from the site</p>
+      <p className="text-xl font-medium text-neutral-200">{t("open.title")}</p>
       <p className="text-sm text-neutral-400 break-all font-mono">
-        {repo || "Missing repo query parameter"}
+        {repo || t("open.missingRepo")}
       </p>
       {ref ? (
         <p className="text-sm text-neutral-500">
-          ref: <span className="font-mono">{ref}</span>
+          {t("open.refLabel")} <span className="font-mono">{ref}</span>
         </p>
       ) : null}
       {path ? (
         <p className="text-sm text-neutral-500">
-          path: <span className="font-mono">{path}</span>
+          {t("open.pathLabel")} <span className="font-mono">{path}</span>
         </p>
       ) : null}
       <p className="text-sm text-neutral-500">
-        Lookup, clone, and navigation to /{"{projectId}"} will run here.
+        {t("open.workflowNotice")}
       </p>
       <Link className="text-sm text-neutral-400 underline" to="/">
-        Back to home
+        {t("common.backToHome")}
       </Link>
     </div>
   );

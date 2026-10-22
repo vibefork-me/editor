@@ -20,6 +20,30 @@ describe("probeAgentReachability", () => {
     expect(result).toEqual({ status: "online" });
   });
 
+  it("returns extraOrigins when present in hello response", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo) => {
+      const url = String(input);
+      if (url.includes(":47802/v1/hello")) {
+        return new Response(
+          JSON.stringify({
+            agent: "vibefork",
+            platform: "windows",
+            version: "0.1.0",
+            extraOrigins: ["http://localhost:5173"],
+          }),
+          { status: 200 },
+        );
+      }
+      throw new TypeError("Failed to fetch");
+    });
+
+    const result = await probeAgentReachability(fetchMock as typeof fetch);
+    expect(result).toEqual({
+      status: "online",
+      extraOrigins: ["http://localhost:5173"],
+    });
+  });
+
   it("classifies NotAllowedError as local-network-blocked", () => {
     expect(classifyAgentProbeError(new DOMException("denied", "NotAllowedError"))).toBe(
       "local-network-blocked",

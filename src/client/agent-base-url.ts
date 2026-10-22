@@ -1,6 +1,6 @@
 export const AGENT_LOOPBACK_PORTS = [47801, 47802, 47803, 47804, 47805] as const;
 
-export const AGENT_LOOPBACK_HOSTS = ["127.0.0.1", "[::1]"] as const;
+export const AGENT_LOOPBACK_HOSTS = ["127.0.0.1"] as const;
 
 const HELLO_PATH = "/v1/hello";
 
@@ -11,21 +11,42 @@ export function resolveAgentBaseUrlFromLocation(locationLike: Pick<Location, "or
   return null;
 }
 
-export async function probeAgentBaseUrl(
+export type AgentHelloResponse = {
+  agent: string;
+  version: string;
+  platform: string;
+  extraOrigins?: string[];
+};
+
+export async function fetchAgentHello(
   fetchFn: typeof fetch,
   baseUrl: string,
   signal?: AbortSignal,
-): Promise<boolean> {
+): Promise<AgentHelloResponse | null> {
   try {
     const res = await fetchFn(`${baseUrl}${HELLO_PATH}`, {
       method: "GET",
       headers: { "x-vibefork": "1" },
       signal,
     });
-    return res.ok;
+    if (!res.ok) return null;
+    const data = (await res.json()) as AgentHelloResponse;
+    if (data && typeof data === "object" && typeof data.agent === "string") {
+      return data;
+    }
+    return null;
   } catch {
-    return false;
+    return null;
   }
+}
+
+export async function probeAgentBaseUrl(
+  fetchFn: typeof fetch,
+  baseUrl: string,
+  signal?: AbortSignal,
+): Promise<boolean> {
+  const hello = await fetchAgentHello(fetchFn, baseUrl, signal);
+  return hello !== null;
 }
 
 export async function discoverAgentBaseUrl(

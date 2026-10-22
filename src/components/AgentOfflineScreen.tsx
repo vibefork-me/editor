@@ -3,6 +3,7 @@ import {
   WINDOWS_INSTALL_PS_COMMAND,
   type AgentOfflineReason,
 } from "../client/probe-agent-reachability.ts";
+import { useI18n } from "../i18n/index.ts";
 
 export type AgentOfflineScreenProps = {
   reason: AgentOfflineReason;
@@ -63,23 +64,25 @@ function AgentNotRunningPanel({
   copyFailed: boolean;
   onCopy: () => void;
 }) {
+  const { t } = useI18n();
+
   return (
     <div className="space-y-6 text-center">
       <h2 className="text-xl font-semibold text-neutral-100 leading-snug">
-        Vibefork Agent не запущен на вашем компьютере
+        {t("agentOffline.notRunningTitle")}
       </h2>
       <p className="text-sm text-neutral-400">
-        Запустите локальный агент или установите его одной командой в PowerShell.
+        {t("agentOffline.notRunningDescription")}
       </p>
       <a
         href="vibefork://start"
         className="inline-flex items-center justify-center rounded-lg bg-neutral-100 px-5 py-3 text-sm font-semibold text-neutral-950 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-300"
       >
-        Открыть агент
+        {t("agentOffline.openAgent")}
       </a>
       <div className="space-y-2 text-left">
         <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">
-          Установка (PowerShell)
+          {t("agentOffline.installHeader")}
         </p>
         <div className="flex gap-2 rounded-lg border border-neutral-700 bg-neutral-950 p-3">
           <code className="flex-1 overflow-x-auto text-xs text-neutral-200 whitespace-nowrap">
@@ -88,13 +91,13 @@ function AgentNotRunningPanel({
           <button
             type="button"
             onClick={onCopy}
-            className="shrink-0 rounded-md border border-neutral-600 px-3 py-1.5 text-xs font-medium text-neutral-200 hover:bg-neutral-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400"
+            className="shrink-0 rounded-md border border-neutral-600 px-3 py-1.5 text-xs font-medium text-neutral-200 hover:bg-neutral-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 cursor-pointer"
           >
-            {copied ? "Скопировано" : "Копировать"}
+            {copied ? t("common.copied") : t("common.copy")}
           </button>
         </div>
         {copyFailed ? (
-          <p className="text-xs text-amber-400">Выделите команду и скопируйте вручную.</p>
+          <p className="text-xs text-amber-400">{t("agentOffline.copyFailedHint")}</p>
         ) : null}
       </div>
     </div>
@@ -102,28 +105,27 @@ function AgentNotRunningPanel({
 }
 
 function LocalNetworkBlockedPanel() {
+  const { t } = useI18n();
+
   return (
     <div className="space-y-5 text-left">
       <h2 className="text-xl font-semibold text-neutral-100 text-center leading-snug">
-        Браузер ограничил доступ к локальной сети
+        {t("agentOffline.networkBlockedTitle")}
       </h2>
       <p className="text-sm text-neutral-400">
-        Чтобы редактор подключился к агенту на этом компьютере, разрешите доступ к устройствам в
-        локальной сети для сайта <span className="text-neutral-300">code.vibefork.me</span>.
+        {t("agentOffline.networkBlockedDescription", { domain: "code.vibefork.me" })}
       </p>
       <ol className="list-decimal space-y-3 pl-5 text-sm text-neutral-300">
         <li>
-          <span className="font-medium text-neutral-200">Google Chrome или Microsoft Edge</span>
+          <span className="font-medium text-neutral-200">{t("agentOffline.chromeEdgeTitle")}</span>
           <span className="block text-neutral-400 mt-1">
-            Откройте значок замка слева от адресной строки → «Разрешения для сайта» → «Локальная
-            сеть» → «Разрешить». Обновите страницу не нужно — подключение проверится автоматически.
+            {t("agentOffline.chromeEdgeInstructions")}
           </span>
         </li>
         <li>
-          <span className="font-medium text-neutral-200">Mozilla Firefox</span>
+          <span className="font-medium text-neutral-200">{t("agentOffline.firefoxTitle")}</span>
           <span className="block text-neutral-400 mt-1">
-            Нажмите значок «i» в адресной строке → «Разрешения» → найдите доступ к локальной сети
-            (Local Network) и выберите «Разрешить» для этого сайта.
+            {t("agentOffline.firefoxInstructions")}
           </span>
         </li>
       </ol>
