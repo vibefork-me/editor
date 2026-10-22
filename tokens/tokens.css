@@ -1,4 +1,21 @@
-/* Local token mirror; publish-time package: @vibefork.me/tokens (ide-theme.json). */
+/* Semantic roles for editor shell (S-024); consumed via Tailwind @theme utilities. */
 @theme {
-  /* Role values added here become Tailwind utilities. */
+  --color-surface: oklch(0.17 0.015 260);
+  --color-surface-elevated: oklch(0.22 0.02 260);
+  --color-text: oklch(0.96 0.01 260);
+  --color-text-muted: oklch(0.62 0.02 260);
+  --color-border: oklch(0.32 0.02 260);
+  --color-accent: oklch(0.72 0.14 250);
+  --color-success: oklch(0.72 0.17 145);
+  --color-warning: oklch(0.78 0.15 85);
+  --color-danger: oklch(0.63 0.2 25);
+  --color-status-connected: var(--color-success);
+  --color-status-reconnecting: var(--color-warning);
+  --color-status-offline: var(--color-danger);
+  --color-phase-current: var(--color-accent);
+  --color-phase-done: var(--color-success);
+  --color-phase-todo: var(--color-text-muted);
+  --color-status-problem: var(--color-danger);
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 }

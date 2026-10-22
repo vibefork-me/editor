@@ -1,2 +1,38 @@
 @import "tailwindcss";
 @import "../tokens/tokens.css";
+
+@layer base {
+  body {
+    @apply bg-surface font-sans text-text antialiased;
+  }
+}
+
+@keyframes phase-current-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(1.25);
+  }
+}
+
+@keyframes status-reconnect-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@utility animate-phase-current {
+  animation: phase-current-pulse 2s ease-in-out infinite;
+}
+
+@utility animate-status-reconnect {
+  animation: status-reconnect-pulse 1.2s ease-in-out infinite;
+}
