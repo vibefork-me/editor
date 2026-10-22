@@ -84,6 +84,8 @@ export function handleCanvasKeyDown(
 }
 
 function focusNodeElement(nodeId: string): void {
-  const el = document.querySelector(`[data-node-id="${nodeId}"]`) as HTMLElement | null;
+  const el = [...document.querySelectorAll<HTMLElement>("[data-node-id]")].find(
+    (candidate) => candidate.dataset.nodeId === nodeId
+  );
   el?.focus();
 }

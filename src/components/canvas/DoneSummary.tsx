@@ -39,7 +39,8 @@ export function DoneSummary({ onSave, onViewChanges }: DoneSummaryProps) {
           <div className="mt-3.5 flex items-center gap-2.5">
             <button
               type="button"
-              className="rounded-md bg-success px-3.5 py-1.5 text-xs font-semibold text-black hover:bg-success/90 transition-colors shadow-sm"
+              disabled={!onSave}
+              className="rounded-md bg-success px-3.5 py-1.5 text-xs font-semibold text-black hover:bg-success/90 transition-colors shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
               onClick={onSave}
             >
               {t("canvas.saveAction")}

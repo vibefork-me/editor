@@ -8,6 +8,7 @@ export interface NodePopoverProps {
   label: string;
   status: NodeStatus;
   summary?: string;
+  tabIndex: 0 | -1;
   onFocusNode?: (nodeId: string) => void;
   onAskAbout?: (label: string) => void;
   onExplainProblem?: (nodeId: string) => Promise<string | void>;
@@ -19,6 +20,7 @@ export function NodePopover({
   label,
   status,
   summary,
+  tabIndex,
   onFocusNode,
   onAskAbout,
   onExplainProblem,
@@ -64,22 +66,10 @@ export function NodePopover({
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger
-        nativeButton={false}
-        render={
-          <div
-            tabIndex={0}
-            role="button"
-            aria-haspopup="dialog"
-            aria-expanded={open}
-            onClick={() => setOpen((prev) => !prev)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                setOpen((prev) => !prev);
-              }
-            }}
-          />
-        }
+        data-node-id={nodeId}
+        tabIndex={tabIndex}
+        aria-labelledby={`canvas-node-label-${nodeId} canvas-node-status-${nodeId}`}
+        className="block w-full appearance-none border-0 bg-transparent p-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-md"
       >
         {children}
       </Popover.Trigger>

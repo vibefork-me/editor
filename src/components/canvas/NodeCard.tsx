@@ -23,7 +23,7 @@ function getNodeStatusClasses(status: NodeStatus) {
 
 export const NodeCard = memo(function NodeCard({ data }: NodeProps<ModuleNodeType>) {
   const { t } = useTranslation();
-  const { id, label, status, summary, isFocused, onFocusNode, onAskAbout, onExplainProblem } = data;
+  const { id, label, status, summary, isFocused, isFocusPulseDisabled, tabIndex, onFocusNode, onAskAbout, onExplainProblem } = data;
 
   const statusClasses = getNodeStatusClasses(status);
 
@@ -58,19 +58,21 @@ export const NodeCard = memo(function NodeCard({ data }: NodeProps<ModuleNodeTyp
         label={label}
         status={status}
         summary={summary}
+        tabIndex={tabIndex}
         onFocusNode={onFocusNode}
         onAskAbout={onAskAbout}
         onExplainProblem={onExplainProblem}
       >
         <div
-          data-node-id={id}
           data-status={status}
           data-focused={isFocused}
-          aria-label={`${label} (${statusLabel})`}
           className={`relative min-w-[190px] max-w-[240px] rounded-md p-3 text-left shadow-md transition-all duration-200 cursor-pointer select-none ${statusClasses} ${
-            isFocused ? "ring-2 ring-accent animate-focus-pulse" : "hover:border-accent/70"
+            isFocused ? "ring-2 ring-accent" : "hover:border-accent/70"
           }`}
         >
+          {isFocused && !isFocusPulseDisabled && (
+            <span aria-hidden="true" className="pointer-events-none absolute -inset-1 rounded-md border border-accent animate-focus-pulse" />
+          )}
           {/* Problem corner flag (8px) per T-027 */}
           {status === "problem" && (
             <div
@@ -81,7 +83,7 @@ export const NodeCard = memo(function NodeCard({ data }: NodeProps<ModuleNodeTyp
           )}
 
           <div className="flex items-center justify-between gap-1 mb-1">
-            <span className="font-semibold text-xs text-text truncate max-w-[150px]">
+            <span id={`canvas-node-label-${id}`} className="font-semibold text-xs text-text truncate max-w-[150px]">
               {label}
             </span>
 
@@ -91,13 +93,13 @@ export const NodeCard = memo(function NodeCard({ data }: NodeProps<ModuleNodeTyp
                 data-testid="focus-badge"
                 className="flex items-center gap-1 text-[10px] font-mono font-medium text-accent shrink-0"
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-accent animate-phase-current" />
+                <span className={`w-1.5 h-1.5 rounded-full bg-accent ${isFocusPulseDisabled ? "" : "animate-phase-current"}`} />
                 {t("canvas.agentHere")}
               </span>
             )}
           </div>
 
-          <div className="text-[11px] text-text-muted truncate">
+          <div id={`canvas-node-status-${id}`} className="text-[11px] text-text-muted truncate">
             {summary || statusLabel}
           </div>
         </div>

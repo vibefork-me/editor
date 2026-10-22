@@ -7,7 +7,7 @@ import {
   type Node,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "../../i18n/i18nStore.ts";
 import { getAgentTransport } from "../../stores/agent-bridge.ts";
 import { useGraphStore } from "../../stores/graphStore.ts";
@@ -24,7 +24,7 @@ const nodeTypes = {
   moduleNode: NodeCard,
 };
 
-export function CanvasPanel({ className = "", onAskAbout }: CanvasPanelProps) {
+export function CanvasPanel({ className = "", onAskAbout, onSave }: CanvasPanelProps) {
   const { t } = useTranslation();
   const rawNodesMap = useGraphStore((s) => s.nodes);
   const rawEdges = useGraphStore((s) => s.edges);
@@ -36,8 +36,15 @@ export function CanvasPanel({ className = "", onAskAbout }: CanvasPanelProps) {
   const openDiff = useViewerStore((s) => s.openDiff);
 
   const [activeFocusedNodeId, setActiveFocusedNodeId] = useState<string | null>(null);
+  const nodePositions = useRef(new Map<string, { x: number; y: number }>());
 
   const rawNodes = useMemo(() => Array.from(rawNodesMap.values()), [rawNodesMap]);
+  const rovingNodeId = activeFocusedNodeId && rawNodes.some((node) => node.id === activeFocusedNodeId)
+    ? activeFocusedNodeId
+    : focusNodeId && rawNodes.some((node) => node.id === focusNodeId)
+      ? focusNodeId
+      : rawNodes[0]?.id ?? null;
+  const isReconnecting = connectionStatus === "reconnecting";
 
   // Handlers for node interactions
   const handleFocusNode = useCallback(
@@ -86,9 +93,18 @@ export function CanvasPanel({ className = "", onAskAbout }: CanvasPanelProps) {
         onFocusNode: handleFocusNode,
         onAskAbout: handleAskAbout,
         onExplainProblem: handleExplainProblem,
-      }
+        rovingNodeId,
+        isFocusPulseDisabled: isReconnecting,
+      },
+      { positionsById: nodePositions.current }
     );
-  }, [rawNodes, rawEdges, focusNodeId, handleFocusNode, handleAskAbout, handleExplainProblem]);
+  }, [rawNodes, rawEdges, focusNodeId, handleFocusNode, handleAskAbout, handleExplainProblem, rovingNodeId, isReconnecting]);
+
+  useEffect(() => {
+    for (const node of nodes) {
+      nodePositions.current.set(node.id, node.position);
+    }
+  }, [nodes]);
 
   // Determine if all nodes are done or phase is done
   const isAllDone = useMemo(() => {
@@ -99,23 +115,16 @@ export function CanvasPanel({ className = "", onAskAbout }: CanvasPanelProps) {
     return false;
   }, [phase, rawNodes]);
 
-  const isReconnecting = connectionStatus === "reconnecting";
-
   const handleViewChanges = useCallback(() => {
     // Open diff viewer for project changes
     void openDiff("");
   }, [openDiff]);
 
-  const handleSave = useCallback(() => {
-    // Trigger save / commit notification or action
-    alert("Saving changes to repository...");
-  }, []);
-
   return (
     <div
       role="region"
       aria-label="Module Canvas"
-      tabIndex={0}
+      tabIndex={rawNodes.length === 0 ? 0 : -1}
       onKeyDown={(e) =>
         handleCanvasKeyDown(e, {
           nodes,
@@ -199,7 +208,7 @@ export function CanvasPanel({ className = "", onAskAbout }: CanvasPanelProps) {
 
       {/* Done summary card on completion */}
       {isAllDone && (
-        <DoneSummary onSave={handleSave} onViewChanges={handleViewChanges} />
+        <DoneSummary onSave={onSave} onViewChanges={handleViewChanges} />
       )}
     </div>
   );

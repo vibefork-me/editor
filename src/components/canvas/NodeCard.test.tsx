@@ -29,6 +29,8 @@ describe("NodeCard", () => {
             label: "Auth Service",
             status: "exploring",
             isFocused: false,
+            isFocusPulseDisabled: false,
+            tabIndex: 0,
           }}
         />
       </ReactFlowProvider>
@@ -51,6 +53,8 @@ describe("NodeCard", () => {
             label: "Database Core",
             status: "problem",
             isFocused: false,
+            isFocusPulseDisabled: false,
+            tabIndex: -1,
           }}
         />
       </ReactFlowProvider>
@@ -71,6 +75,8 @@ describe("NodeCard", () => {
             label: "Engine Rust",
             status: "changing",
             isFocused: true,
+            isFocusPulseDisabled: false,
+            tabIndex: 0,
           }}
         />
       </ReactFlowProvider>

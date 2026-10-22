@@ -9,9 +9,18 @@ export interface LayoutOptions {
   nodeGapY?: number;
   startX?: number;
   startY?: number;
+  positionsById?: ReadonlyMap<string, { x: number; y: number }>;
 }
 
-const DEFAULT_OPTIONS: Required<LayoutOptions> = {
+export interface LayoutHandlers {
+  onFocusNode?: (nodeId: string) => void;
+  onAskAbout?: (label: string) => void;
+  onExplainProblem?: (nodeId: string) => Promise<string | void>;
+  rovingNodeId?: string | null;
+  isFocusPulseDisabled?: boolean;
+}
+
+const DEFAULT_OPTIONS: Required<Omit<LayoutOptions, "positionsById">> = {
   nodeWidth: 220,
   nodeHeight: 76,
   layerGapX: 280,
@@ -19,6 +28,19 @@ const DEFAULT_OPTIONS: Required<LayoutOptions> = {
   startX: 40,
   startY: 40,
 };
+
+function normalizeNodeStatus(status: string): NodeCardData["status"] {
+  switch (status) {
+    case "exploring":
+    case "changing":
+    case "problem":
+    case "done":
+    case "unknown":
+      return status;
+    default:
+      return "unknown";
+  }
+}
 
 /**
  * Deterministic layered DAG layout for module nodes.
@@ -28,11 +50,7 @@ export function layoutGraph(
   nodes: GraphNode[],
   edges: GraphEdge[],
   focusNodeId: string | null,
-  handlers: {
-    onFocusNode?: (nodeId: string) => void;
-    onAskAbout?: (label: string) => void;
-    onExplainProblem?: (nodeId: string) => Promise<string | void>;
-  } = {},
+  handlers: LayoutHandlers = {},
   options: LayoutOptions = {}
 ): { nodes: Node<NodeCardData>[]; edges: Edge[] } {
   const opts = { ...DEFAULT_OPTIONS, ...options };
@@ -68,7 +86,7 @@ export function layoutGraph(
 
   // If no edges, arrange in columns of 4
   if (validEdges.length === 0) {
-    nodes.forEach((n, idx) => {
+    [...nodes].sort((a, b) => a.id.localeCompare(b.id)).forEach((n, idx) => {
       layers.set(n.id, Math.floor(idx / 4));
     });
   } else {
@@ -139,13 +157,15 @@ export function layoutGraph(
       flowNodes.push({
         id: n.id,
         type: "moduleNode",
-        position: { x: posX, y: posY },
+        position: opts.positionsById?.get(n.id) ?? { x: posX, y: posY },
         data: {
           id: n.id,
           label: n.label,
-          status: n.status,
+          status: normalizeNodeStatus(n.status),
           summary: n.summary,
           isFocused: n.id === focusNodeId,
+          isFocusPulseDisabled: handlers.isFocusPulseDisabled ?? false,
+          tabIndex: n.id === handlers.rovingNodeId ? 0 : -1,
           onFocusNode: handlers.onFocusNode,
           onAskAbout: handlers.onAskAbout,
           onExplainProblem: handlers.onExplainProblem,

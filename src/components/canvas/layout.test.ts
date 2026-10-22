@@ -60,4 +60,35 @@ describe("layoutGraph", () => {
     expect(res.nodes).toHaveLength(2);
     expect(res.edges).toHaveLength(2);
   });
+
+  it("maps unrecognized agent statuses to unknown", () => {
+    const res = layoutGraph(
+      [{ id: "future", label: "Future node", status: "waiting_for_review" }],
+      [],
+      null
+    );
+    expect(res.nodes[0].data.status).toBe("unknown");
+  });
+
+  it("keeps node positions stable when an edgeless snapshot changes order", () => {
+    const first = layoutGraph(
+      [
+        { id: "b", label: "B", status: "done" },
+        { id: "a", label: "A", status: "done" },
+      ],
+      [],
+      null
+    );
+    const second = layoutGraph(
+      [
+        { id: "a", label: "A", status: "done" },
+        { id: "b", label: "B", status: "done" },
+      ],
+      [],
+      null
+    );
+    expect(second.nodes.map((node) => [node.id, node.position])).toEqual(
+      first.nodes.map((node) => [node.id, node.position])
+    );
+  });
 });
