@@ -1,6 +1,6 @@
 export const AGENT_LOOPBACK_PORTS = [47801, 47802, 47803, 47804, 47805] as const;
 
-export const AGENT_LOOPBACK_HOSTS = ["127.0.0.1", "[::1]"] as const;
+export const AGENT_LOOPBACK_HOSTS = ["127.0.0.1"] as const;
 
 const HELLO_PATH = "/v1/hello";
 
