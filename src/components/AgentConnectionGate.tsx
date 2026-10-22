@@ -3,6 +3,7 @@ import { useAgentConnectionMonitor } from "../hooks/useAgentConnectionMonitor.ts
 import { useMobileUnsupported } from "../hooks/useMobileUnsupported.ts";
 import { AgentOfflineScreen } from "./AgentOfflineScreen.tsx";
 import { MobileUnsupportedNotice } from "./MobileUnsupportedNotice.tsx";
+import { SecurityWarningBanner } from "./SecurityWarningBanner.tsx";
 
 export type AgentConnectionGateProps = {
   children: ReactNode;
@@ -10,7 +11,7 @@ export type AgentConnectionGateProps = {
 
 export function AgentConnectionGate({ children }: AgentConnectionGateProps) {
   const mobileUnsupported = useMobileUnsupported();
-  const { online, offlineReason, exiting } = useAgentConnectionMonitor();
+  const { online, offlineReason, exiting, extraOrigins } = useAgentConnectionMonitor();
 
   if (mobileUnsupported) {
     return (
@@ -28,5 +29,10 @@ export function AgentConnectionGate({ children }: AgentConnectionGateProps) {
     );
   }
 
-  return <>{children}</>;
+  return (
+    <div className="flex-1 flex flex-col min-h-0">
+      <SecurityWarningBanner extraOrigins={extraOrigins} />
+      {children}
+    </div>
+  );
 }

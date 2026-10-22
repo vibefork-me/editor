@@ -12,6 +12,7 @@ export type AgentConnectionState = {
   online: boolean;
   offlineReason: AgentOfflineReason;
   exiting: boolean;
+  extraOrigins?: string[];
 };
 
 export function useAgentConnectionMonitor(pollMs = POLL_MS): AgentConnectionState {
@@ -29,7 +30,12 @@ export function useAgentConnectionMonitor(pollMs = POLL_MS): AgentConnectionStat
     const tick = async () => {
       const health = await client.getHealth();
       let next: AgentReachability = health.ok
-        ? { status: "online" }
+        ? {
+            status: "online",
+            ...(health.extraOrigins && health.extraOrigins.length > 0
+              ? { extraOrigins: health.extraOrigins }
+              : {}),
+          }
         : await probeAgentReachability();
 
       if (cancelled) return;
@@ -65,5 +71,6 @@ export function useAgentConnectionMonitor(pollMs = POLL_MS): AgentConnectionStat
     offlineReason:
       reachability.status === "offline" ? reachability.reason : "agent-not-running",
     exiting,
+    extraOrigins: reachability.status === "online" ? reachability.extraOrigins : undefined,
   };
 }

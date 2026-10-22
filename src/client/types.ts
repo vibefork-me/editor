@@ -84,8 +84,21 @@ export interface Subscription {
   unsubscribe(): void;
 }
 
+export interface AgentHello {
+  agent: string;
+  version: string;
+  platform: string;
+  extraOrigins?: string[];
+}
+
+export interface AgentHealth {
+  ok: boolean;
+  version?: string;
+  extraOrigins?: string[];
+}
+
 export interface AgentTransport {
-  getHealth(): Promise<{ ok: boolean }>;
+  getHealth(): Promise<AgentHealth>;
   getCapabilities(): Promise<AgentCapabilities>;
   authenticateSession(clientKey: CryptoKey): Promise<{ token: string }>;
 

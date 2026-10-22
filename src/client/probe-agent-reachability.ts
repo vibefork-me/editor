@@ -1,9 +1,9 @@
-import { discoverAgentBaseUrl, probeAgentBaseUrl } from "./agent-base-url.ts";
+import { discoverAgentBaseUrl, fetchAgentHello } from "./agent-base-url.ts";
 
 export type AgentOfflineReason = "agent-not-running" | "local-network-blocked";
 
 export type AgentReachability =
-  | { status: "online" }
+  | { status: "online"; extraOrigins?: string[] }
   | { status: "offline"; reason: AgentOfflineReason };
 
 export const WINDOWS_INSTALL_PS_COMMAND = "irm https://vibefork.me/install.ps1 | iex";
@@ -27,8 +27,16 @@ export async function probeAgentReachability(
 ): Promise<AgentReachability> {
   try {
     const base = await discoverAgentBaseUrl(fetchFn, { perAttemptTimeoutMs: 350 });
-    if (base && (await probeAgentBaseUrl(fetchFn, base))) {
-      return { status: "online" };
+    if (base) {
+      const hello = await fetchAgentHello(fetchFn, base);
+      if (hello) {
+        return {
+          status: "online",
+          ...(hello.extraOrigins && hello.extraOrigins.length > 0
+            ? { extraOrigins: hello.extraOrigins }
+            : {}),
+        };
+      }
     }
     return { status: "offline", reason: "agent-not-running" };
   } catch (error) {
