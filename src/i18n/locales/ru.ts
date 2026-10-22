@@ -78,6 +78,15 @@ export const ru: TranslationSchema = {
     emptyCanvasTitle: "Карта проекта строится",
     emptyCanvasDescription: "Агент исследует проект и построит граф модулей в реальном времени.",
   },
+  viewer: {
+    title: "Просмотр кода",
+    close: "Закрыть просмотр (Esc)",
+    modeFile: "Файл",
+    modeDiff: "Дифф",
+    tooLargeWarning: "Файл превышает лимит предпросмотра (2 MiB).",
+    loading: "Загрузка содержимого...",
+    noFileSelected: "Файл не выбран.",
+  },
   language: {
     ru: "Русский",
     en: "English",

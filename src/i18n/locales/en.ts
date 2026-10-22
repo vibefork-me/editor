@@ -78,6 +78,15 @@ export const en: TranslationSchema = {
     emptyCanvasTitle: "No graph available",
     emptyCanvasDescription: "The agent will build an architectural graph as it explores the project.",
   },
+  viewer: {
+    title: "Code Viewer",
+    close: "Close viewer (Esc)",
+    modeFile: "File",
+    modeDiff: "Diff",
+    tooLargeWarning: "File exceeds preview limit (2 MiB).",
+    loading: "Loading content...",
+    noFileSelected: "No file selected.",
+  },
   language: {
     ru: "Русский",
     en: "English",

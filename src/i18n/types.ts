@@ -76,6 +76,15 @@ export interface TranslationSchema {
     emptyCanvasTitle: string;
     emptyCanvasDescription: string;
   };
+  viewer: {
+    title: string;
+    close: string;
+    modeFile: string;
+    modeDiff: string;
+    tooLargeWarning: string;
+    loading: string;
+    noFileSelected: string;
+  };
   language: {
     ru: string;
     en: string;

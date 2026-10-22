@@ -13,10 +13,15 @@ function injectCspMeta(): Plugin {
     name: "inject-csp-meta",
     transformIndexHtml(html, ctx) {
       const csp = ctx.server ? DEV_CONTENT_SECURITY_POLICY : CONTENT_SECURITY_POLICY;
-      return html.replace(
+      let out = html.replace(
         /content="%%CSP%%"/,
         `content="${csp}"`,
       );
+      if (!ctx.server) {
+        // Strip heavy vendor chunks from first-screen index.html (S-054 / T-028)
+        out = out.replace(/<link[^>]+(?:href|src)="[^"]*blocked-heavy-vendor[^"]*"[^>]*>\s*/gi, "");
+      }
+      return out;
     },
   };
 }
@@ -32,6 +37,11 @@ export default defineConfig({
     headers: SECURITY_HEADERS,
   },
   build: {
+    modulePreload: {
+      resolveDependencies(_filename, deps) {
+        return deps.filter((dep) => !/monaco|elkjs|blocked-heavy-vendor/i.test(dep));
+      },
+    },
     rollupOptions: {
       output: {
         manualChunks(id) {
