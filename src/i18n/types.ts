@@ -29,6 +29,18 @@ export interface TranslationSchema {
     title: string;
     description: string;
   };
+  pairing: {
+    title: string;
+    description: string;
+    codeLabel: string;
+    codeAccessibleLabel: string;
+    browserName: string;
+    starting: string;
+    pending: string;
+    denied: string;
+    error: string;
+    retry: string;
+  };
   security: {
     warningTitle: string;
     currentOriginAllowed: string;
@@ -56,6 +68,49 @@ export interface TranslationSchema {
   project: {
     title: string;
     placeholder: string;
+    chatInputLabel: string;
+    chatPlaceholder: string;
+    sendMessage: string;
+    sendingMessage: string;
+    taskStarted: string;
+    chatStartFailed: string;
+    workspaceTabs: string;
+    mapTab: string;
+    chatTab: string;
+  };
+  canvas: {
+    agentHere: string;
+    focusHere: string;
+    askAbout: string;
+    explainProblem: string;
+    explainingProblem: string;
+    statusUnknown: string;
+    statusExploring: string;
+    statusChanging: string;
+    statusProblem: string;
+    statusDone: string;
+    doneSummaryTitle: string;
+    doneSummarySubtitle: string;
+    saveAction: string;
+    savingAction: string;
+    saveComplete: string;
+    saveUnchanged: string;
+    saveNextStep: string;
+    saveFollowup: string;
+    saveError: string;
+    viewChangesAction: string;
+    reconnectingNotice: string;
+    emptyCanvasTitle: string;
+    emptyCanvasDescription: string;
+  };
+  viewer: {
+    title: string;
+    close: string;
+    modeFile: string;
+    modeDiff: string;
+    tooLargeWarning: string;
+    loading: string;
+    noFileSelected: string;
   };
   language: {
     ru: string;

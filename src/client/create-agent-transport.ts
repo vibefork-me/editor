@@ -11,8 +11,11 @@ import type {
   AgentTransport,
   GraphSnapshot,
   ModelInfo,
+  PairStartResult,
+  PairStatusResult,
   PlanApproveParams,
   ProjectMetadata,
+  SaveProjectResult,
   Subscription,
   TaskAnswerParams,
   TaskEvent,
@@ -370,6 +373,21 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
       return { token };
     },
 
+    async startPairing(params) {
+      const res = await apiFetch("/v1/pair/start", {
+        method: "POST",
+        body: JSON.stringify({ publicKeyJwk: params.publicKeyJwk, name: params.name }),
+      });
+      if (!res.ok) throw new Error("pairing failed");
+      return (await res.json()) as PairStartResult;
+    },
+
+    async getPairingStatus(pairId) {
+      const res = await apiFetch(`/v1/pair/status?id=${encodeURIComponent(pairId)}`);
+      if (!res.ok) throw new Error("pairing status failed");
+      return (await res.json()) as PairStatusResult;
+    },
+
     async listProjects() {
       const res = await apiFetch("/v1/projects");
       if (!res.ok) throw new Error("list projects failed");
@@ -553,6 +571,15 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
       if (!res.ok) throw new Error("models failed");
       const body = (await res.json()) as { models: ModelInfo[] };
       return body.models;
+    },
+
+    async saveProject(params) {
+      const res = await apiFetch("/v1/save", {
+        method: "POST",
+        body: JSON.stringify({ project: params.projectId, copy: params.copy }),
+      });
+      if (!res.ok) throw new Error("save failed");
+      return (await res.json()) as SaveProjectResult;
     },
   };
 

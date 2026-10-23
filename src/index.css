@@ -36,3 +36,34 @@
 @utility animate-status-reconnect {
   animation: status-reconnect-pulse 1.2s ease-in-out infinite;
 }
+
+@keyframes agent-focus-pulse {
+  0%,
+  100% {
+    opacity: 0.65;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes slide-up-fade {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@utility animate-focus-pulse {
+  animation: agent-focus-pulse 2s ease-in-out infinite;
+}
+
+@utility animate-slide-up {
+  animation: slide-up-fade 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

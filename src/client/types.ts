@@ -61,6 +61,36 @@ export interface TaskStartParams {
   mode?: string;
 }
 
+export type SaveStep =
+  | "saved"
+  | "unchanged"
+  | "connect_github"
+  | "create_copy"
+  | "create_repo"
+  | "allow_app"
+  | "narrow_access"
+  | "conflict";
+
+export interface SaveProjectResult {
+  step: SaveStep;
+  url: string | null;
+  copy: string | null;
+  commit: string | null;
+  next_url?: string | null;
+  name?: string | null;
+  files?: string[];
+}
+
+export interface PairStartResult {
+  pairId: string;
+  code: string;
+}
+
+export interface PairStatusResult {
+  status: "pending" | "approved" | "denied";
+  keyId?: string;
+}
+
 export interface TaskAnswerParams {
   taskId: string;
   questionId: string;
@@ -101,6 +131,8 @@ export interface AgentTransport {
   getHealth(): Promise<AgentHealth>;
   getCapabilities(): Promise<AgentCapabilities>;
   authenticateSession(clientKey: CryptoKey): Promise<{ token: string }>;
+  startPairing(params: { publicKeyJwk: JsonWebKey; name?: string }): Promise<PairStartResult>;
+  getPairingStatus(pairId: string): Promise<PairStatusResult>;
 
   getProject(projectId: string): Promise<ProjectMetadata>;
   listProjects(): Promise<ProjectSummary[]>;
@@ -115,6 +147,7 @@ export interface AgentTransport {
   }): Subscription;
 
   startTask(params: TaskStartParams): Promise<{ taskId: string }>;
+  saveProject(params: { projectId: string; copy?: string }): Promise<SaveProjectResult>;
   subscribeTask(params: {
     taskId: string;
     afterEventId?: number;

@@ -1,11 +1,17 @@
 import { useEffect, useState } from "react";
 import { useAgentClient } from "../client/react/useAgentClient.ts";
+import { useSessionStore } from "../stores/sessionStore.ts";
 
 export function useModelLabel(): string | null {
   const client = useAgentClient();
+  const bearerToken = useSessionStore((state) => state.bearerToken);
   const [label, setLabel] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!bearerToken) {
+      setLabel(null);
+      return;
+    }
     let cancelled = false;
     void client
       .getModels()
@@ -20,7 +26,7 @@ export function useModelLabel(): string | null {
     return () => {
       cancelled = true;
     };
-  }, [client]);
+  }, [bearerToken, client]);
 
   return label;
 }

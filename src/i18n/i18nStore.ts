@@ -118,3 +118,5 @@ export function useI18n() {
 
   return { locale, setLocale, t };
 }
+
+export const useTranslation = useI18n;

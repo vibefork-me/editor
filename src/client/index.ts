@@ -3,8 +3,12 @@ export type {
   AgentTransport,
   GraphSnapshot,
   ModelInfo,
+  PairStartResult,
+  PairStatusResult,
   ProjectMetadata,
   ProjectSummary,
+  SaveProjectResult,
+  SaveStep,
   Subscription,
   TaskEvent,
 } from "./types.ts";
