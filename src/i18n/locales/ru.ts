@@ -40,6 +40,23 @@ export const ru: TranslationSchema = {
     error: "Не удалось выполнить сопряжение. Проверьте, что агент доступен, и повторите попытку.",
     retry: "Повторить",
   },
+  connectAi: {
+    title: "Подключите искусственный интеллект",
+    description:
+      "Без подключённого ИИ редактор не может работать: нейросеть разбирается в коде, объясняет риски и помогает вносить изменения.",
+    whatWorksTitle: "Что подойдёт",
+    optionSubscriptionTitle: "Подписка Claude или ChatGPT",
+    optionSubscriptionDescription: "Claude Pro / Team (Anthropic) или ChatGPT Plus / Codex (OpenAI).",
+    optionOpenRouterTitle: "Бесплатная модель OpenRouter",
+    optionOpenRouterDescription: "Быстрый старт без платной подписки, либо свой ключ API.",
+    howToConnectTitle: "Как подключить",
+    howToConnectDescription:
+      "Настройка выполняется в приложении Vibefork Agent на вашем компьютере. Ключи и токены не вводятся в браузере — они хранятся локально в агенте.",
+    openAgent: "Открыть агент",
+    checkAgain: "Проверить снова",
+    checking: "Проверяем…",
+    errorNotice: "Не удалось получить список моделей от агента. Попробуйте ещё раз.",
+  },
   security: {
     warningTitle: "Предупреждение безопасности: активны сторонние веб-источники (extraOrigins)",
     currentOriginAllowed: "Текущий адрес разрешён",

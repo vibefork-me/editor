@@ -40,6 +40,23 @@ export const en: TranslationSchema = {
     error: "Could not complete pairing. Check that the agent is available and try again.",
     retry: "Try again",
   },
+  connectAi: {
+    title: "Connect an AI model",
+    description:
+      "The editor requires AI to operate: the model understands foreign code, explains risks, and helps apply changes.",
+    whatWorksTitle: "What works",
+    optionSubscriptionTitle: "Claude or ChatGPT subscription",
+    optionSubscriptionDescription: "Claude Pro / Team (Anthropic) or ChatGPT Plus / Codex (OpenAI).",
+    optionOpenRouterTitle: "Free OpenRouter model",
+    optionOpenRouterDescription: "Quick start without a paid subscription, or your own API key.",
+    howToConnectTitle: "How to connect",
+    howToConnectDescription:
+      "Configuration is done in the Vibefork Agent app on your computer. Keys and tokens are never entered in the browser — they remain stored locally in your agent.",
+    openAgent: "Open agent",
+    checkAgain: "Check again",
+    checking: "Checking…",
+    errorNotice: "Could not retrieve the models list from the agent. Please try again.",
+  },
   security: {
     warningTitle: "Security warning: external web origins enabled (extraOrigins)",
     currentOriginAllowed: "Current origin is allowed",

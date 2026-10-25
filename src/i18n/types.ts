@@ -41,6 +41,21 @@ export interface TranslationSchema {
     error: string;
     retry: string;
   };
+  connectAi: {
+    title: string;
+    description: string;
+    whatWorksTitle: string;
+    optionSubscriptionTitle: string;
+    optionSubscriptionDescription: string;
+    optionOpenRouterTitle: string;
+    optionOpenRouterDescription: string;
+    howToConnectTitle: string;
+    howToConnectDescription: string;
+    openAgent: string;
+    checkAgain: string;
+    checking: string;
+    errorNotice: string;
+  };
   security: {
     warningTitle: string;
     currentOriginAllowed: string;
