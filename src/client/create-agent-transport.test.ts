@@ -362,4 +362,104 @@ describe("agent-client transport", () => {
     expect(healthChecks.length).toBeGreaterThanOrEqual(1);
     vi.useRealTimers();
   });
+
+  it("reads project file from /v1/file with project and path query parameters", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo) => {
+      const url = String(input);
+      if (url.includes("/v1/file?project=demo&path=src%2Fmain.rs")) {
+        return jsonResponse({
+          path: "src/main.rs",
+          size: 15,
+          tooLarge: false,
+          binary: false,
+          content: "fn main() {}",
+        });
+      }
+      return new Response("not found", { status: 404 });
+    });
+    const client = createAgentTransport({
+      baseUrl: "http://127.0.0.1:47801",
+      fetch: fetchMock as typeof fetch,
+      WebSocket: MockWebSocket as unknown as typeof WebSocket,
+    });
+
+    const file = await client.readFile({ projectId: "demo", path: "src/main.rs" });
+    expect(file).toEqual({
+      path: "src/main.rs",
+      size: 15,
+      tooLarge: false,
+      binary: false,
+      content: "fn main() {}",
+    });
+  });
+
+  it("reads project diff from /v1/diff with project and path query parameters", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo) => {
+      const url = String(input);
+      if (url.includes("/v1/diff?project=demo&path=src%2Fmain.rs")) {
+        return jsonResponse({
+          path: "src/main.rs",
+          base: "commit1",
+          tooLarge: false,
+          binary: false,
+          original: "old",
+          modified: "new",
+        });
+      }
+      return new Response("not found", { status: 404 });
+    });
+    const client = createAgentTransport({
+      baseUrl: "http://127.0.0.1:47801",
+      fetch: fetchMock as typeof fetch,
+      WebSocket: MockWebSocket as unknown as typeof WebSocket,
+    });
+
+    const diff = await client.readDiff({ projectId: "demo", path: "src/main.rs" });
+    expect(diff).toEqual({
+      path: "src/main.rs",
+      base: "commit1",
+      tooLarge: false,
+      binary: false,
+      original: "old",
+      modified: "new",
+    });
+  });
+
+  it("assertSafePath rejects path traversal and secret files before fetch", async () => {
+    const fetchMock = vi.fn();
+    const client = createAgentTransport({
+      baseUrl: "http://127.0.0.1:47801",
+      fetch: fetchMock as typeof fetch,
+      WebSocket: MockWebSocket as unknown as typeof WebSocket,
+    });
+
+    await expect(client.readFile({ projectId: "demo", path: "../outside.txt" })).rejects.toThrow("invalid path");
+    await expect(client.readFile({ projectId: "demo", path: "/etc/passwd" })).rejects.toThrow("invalid path");
+    await expect(client.readFile({ projectId: "demo", path: ".env" })).rejects.toThrow("path denied");
+    await expect(client.readDiff({ projectId: "demo", path: "../outside.txt" })).rejects.toThrow("invalid path");
+    await expect(client.readDiff({ projectId: "demo", path: ".env" })).rejects.toThrow("path denied");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("propagates HTTP 403 error status on forbidden files", async () => {
+    const fetchMock = vi.fn(async () =>
+      new Response(JSON.stringify({ error: "this file is not shown" }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    const client = createAgentTransport({
+      baseUrl: "http://127.0.0.1:47801",
+      fetch: fetchMock as typeof fetch,
+      WebSocket: MockWebSocket as unknown as typeof WebSocket,
+    });
+
+    try {
+      await client.readFile({ projectId: "demo", path: "secret.key" });
+      expect.fail("should have thrown");
+    } catch (err) {
+      expect((err as { status?: number }).status).toBe(403);
+      expect((err as Error).message).toBe("this file is not shown");
+    }
+  });
 });

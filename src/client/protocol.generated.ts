@@ -19,6 +19,12 @@ export type ErrorBody = { error: string };
 /** A normalized event, tagged by `kind`. */
 export type Event = { cli: string; kind: "init"; mcp?: number | null; model?: string | null; session?: string | null; skills?: number | null } | { kind: "text"; text: string } | { detail: string; kind: "tool"; tool: string } | { error: boolean; kind: "tool_result"; text: string } | { costUsd?: number | null; kind: "result"; ms?: number | null; ok: boolean; text: string; turns?: number | null; usage?: Usage | null } | { kind: "error"; text: string };
 
+/** `GET /v1/diff?project=…&path=…`: a file as the project was taken and as it is now. */
+export type FileDiffResponse = { base?: string | null; binary: boolean; modified?: string | null; original?: string | null; path: string; tooLarge: boolean };
+
+/** `GET /v1/file?project=…&path=…`: a file for the code viewer. */
+export type FileResponse = { binary: boolean; content?: string | null; path: string; size: number; tooLarge: boolean };
+
 /** What code from outside the original changes compared with it, so the user sees it before a build. Sorted by file name only; the content is not reviewed. */
 export type ForeignChanges = { binaries: (string)[]; buildScripts: (string)[]; compareUrl: string; complete: boolean; dependencies: (string)[]; files: number; source: string };
 
@@ -27,6 +33,15 @@ export type GithubConnectResponse = { expiresIn: number; userCode: string; verif
 
 /** Response of `GET /v1/github/status`. */
 export type GithubStatusResponse = { connected: boolean; error?: string | null; login?: string | null; pending: boolean };
+
+/** `from` contains `to`. */
+export type GraphEdge = { from: string; to: string };
+
+/** A part of a project: a folder (or the files at the root). */
+export type GraphNode = { changed: number; files: number; id: string; label: string };
+
+/** `GET /v1/graph?project=…`: the map of a project — its parts by folder, and which of them changed since the project was taken. */
+export type GraphResponse = { edges: (GraphEdge)[]; nodes: (GraphNode)[]; revision?: string | null };
 
 /** `GET /v1/hello` — the only call that needs neither a session nor an allowed origin. */
 export type Hello = { agent: string; extraOriginsActive?: boolean; platform: string; version: string };

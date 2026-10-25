@@ -16,6 +16,9 @@ export const initialViewerState = {
   diffModified: null as string | null,
   isLoading: false,
   error: null as string | null,
+  isTooLarge: false,
+  isBinary: false,
+  isForbidden: false,
 };
 
 export interface ViewerState {
@@ -27,6 +30,9 @@ export interface ViewerState {
   diffModified: string | null;
   isLoading: boolean;
   error: string | null;
+  isTooLarge: boolean;
+  isBinary: boolean;
+  isForbidden: boolean;
   openFile: (path: string) => Promise<void>;
   openDiff: (path: string) => Promise<void>;
   closeViewer: () => void;
@@ -48,15 +54,28 @@ export const useViewerStore = create<ViewerState>((set) => ({
       mode: "file",
       isLoading: true,
       error: null,
+      isTooLarge: false,
+      isBinary: false,
+      isForbidden: false,
       diffOriginal: null,
       diffModified: null,
     });
     try {
-      const { content } = await transport.readFile({ projectId, path });
-      set({ content, isLoading: false });
+      const res = await transport.readFile({ projectId, path });
+      if (res.tooLarge) {
+        set({ isTooLarge: true, isLoading: false, content: null });
+      } else if (res.binary) {
+        set({ isBinary: true, isLoading: false, content: null });
+      } else {
+        set({ content: res.content ?? "", isLoading: false });
+      }
     } catch (err) {
+      const status = (err as { status?: number })?.status;
+      const msg = err instanceof Error ? err.message : "read failed";
+      const isForbidden = status === 403 || msg.includes("not shown") || msg.includes("leads out");
       set({
-        error: err instanceof Error ? err.message : "read failed",
+        isForbidden,
+        error: isForbidden ? null : msg,
         isLoading: false,
         content: null,
       });
@@ -75,14 +94,41 @@ export const useViewerStore = create<ViewerState>((set) => ({
       mode: "diff",
       isLoading: true,
       error: null,
+      isTooLarge: false,
+      isBinary: false,
+      isForbidden: false,
       content: null,
     });
     try {
-      const { original, modified } = await transport.readDiff({ projectId, path });
-      set({ diffOriginal: original, diffModified: modified, isLoading: false });
+      const res = await transport.readDiff({ projectId, path });
+      if (res.tooLarge) {
+        set({
+          isTooLarge: true,
+          isLoading: false,
+          diffOriginal: null,
+          diffModified: null,
+        });
+      } else if (res.binary) {
+        set({
+          isBinary: true,
+          isLoading: false,
+          diffOriginal: null,
+          diffModified: null,
+        });
+      } else {
+        set({
+          diffOriginal: res.original ?? "",
+          diffModified: res.modified ?? "",
+          isLoading: false,
+        });
+      }
     } catch (err) {
+      const status = (err as { status?: number })?.status;
+      const msg = err instanceof Error ? err.message : "diff failed";
+      const isForbidden = status === 403 || msg.includes("not shown") || msg.includes("leads out");
       set({
-        error: err instanceof Error ? err.message : "diff failed",
+        isForbidden,
+        error: isForbidden ? null : msg,
         isLoading: false,
         diffOriginal: null,
         diffModified: null,
@@ -98,6 +144,9 @@ export const useViewerStore = create<ViewerState>((set) => ({
       diffModified: null,
       error: null,
       isLoading: false,
+      isTooLarge: false,
+      isBinary: false,
+      isForbidden: false,
     }),
   resetViewer: () => set({ ...initialViewerState }),
 }));

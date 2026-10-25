@@ -16,6 +16,9 @@ export function ViewerLayoutContainer({ className = "" }: ViewerLayoutContainerP
   const diffModified = useViewerStore((s) => s.diffModified);
   const isLoading = useViewerStore((s) => s.isLoading);
   const error = useViewerStore((s) => s.error);
+  const isTooLargeStore = useViewerStore((s) => s.isTooLarge);
+  const isBinary = useViewerStore((s) => s.isBinary);
+  const isForbidden = useViewerStore((s) => s.isForbidden);
   const closeViewer = useViewerStore((s) => s.closeViewer);
 
   // Close viewer on Esc key
@@ -38,7 +41,7 @@ export function ViewerLayoutContainer({ className = "" }: ViewerLayoutContainerP
   // Check if content exceeds 2 MiB limit
   const totalLength =
     (content?.length || 0) + (diffOriginal?.length || 0) + (diffModified?.length || 0);
-  const isTooLarge = totalLength > MAX_PREVIEW_BYTES;
+  const isTooLarge = isTooLargeStore || totalLength > MAX_PREVIEW_BYTES;
 
   return (
     <aside
@@ -107,8 +110,50 @@ export function ViewerLayoutContainer({ className = "" }: ViewerLayoutContainerP
           <p className="text-sm font-semibold text-text">
             {t("viewer.tooLargeWarning")}
           </p>
-          <p className="mt-1 text-xs text-text-muted font-mono">
-            {Math.round(totalLength / (1024 * 1024) * 10) / 10} MiB &gt; 2 MiB
+          {totalLength > MAX_PREVIEW_BYTES && (
+            <p className="mt-1 text-xs text-text-muted font-mono">
+              {Math.round((totalLength / (1024 * 1024)) * 10) / 10} MiB &gt; 2 MiB
+            </p>
+          )}
+        </div>
+      ) : isBinary ? (
+        <div
+          role="alert"
+          data-testid="binary-banner"
+          className="flex flex-1 flex-col items-center justify-center p-8 text-center"
+        >
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-surface-elevated text-text-muted border border-border mb-3">
+            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
+            </svg>
+          </div>
+          <p className="text-sm font-semibold text-text">
+            {t("viewer.binaryWarning")}
+          </p>
+        </div>
+      ) : isForbidden ? (
+        <div
+          role="alert"
+          data-testid="forbidden-banner"
+          className="flex flex-1 flex-col items-center justify-center p-8 text-center"
+        >
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-danger/20 text-danger border border-danger/40 mb-3">
+            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
+              />
+            </svg>
+          </div>
+          <p className="text-sm font-semibold text-text">
+            {t("viewer.forbiddenWarning")}
           </p>
         </div>
       ) : isLoading ? (
