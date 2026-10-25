@@ -211,4 +211,14 @@ export const en: TranslationSchema = {
     en: "English",
     selectLanguage: "Switch language",
   },
+  status: {
+    agentOk: "Agent is running",
+    agentOkHint: "Vibefork on your computer is running and responding.",
+    reconnecting: "Connection lost",
+    reconnectingHint: "Reconnecting to Vibefork on your computer. Nothing to do.",
+    connecting: "Connecting…",
+    connectingHint: "Reaching Vibefork on your computer.",
+    ai: "AI: {name}",
+    aiHint: "{name} does the work. Model: {model}.",
+  },
 };

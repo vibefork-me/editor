@@ -7,7 +7,7 @@ import { useSessionStore } from "../../stores/sessionStore.ts";
 import { StatusBar } from "./StatusBar.tsx";
 
 vi.mock("../../hooks/useModelLabel.ts", () => ({
-  useModelLabel: () => "Claude 3.5 Sonnet",
+  useModelLabel: () => ({ name: "Claude", model: "Claude 3.5 Sonnet" }),
 }));
 
 function renderBar() {
@@ -34,20 +34,28 @@ describe("StatusBar", () => {
     expect(screen.getByRole("button", { name: /demo-repo/i })).toBeTruthy();
   });
 
-  it("shows Reconnecting when session store is reconnecting", () => {
+  it("says the connection dropped while the task socket reconnects", () => {
     useSessionStore.setState({ connectionStatus: "reconnecting" });
     renderBar();
-    expect(screen.getByText("Reconnecting")).toBeTruthy();
+    expect(screen.getByText(/Связь прервалась|Connection lost/)).toBeTruthy();
   });
 
-  it("shows Connected when session store is connected", () => {
+  it("says the agent is running when connected, with a plain hint", () => {
     useSessionStore.setState({ connectionStatus: "connected" });
     renderBar();
-    expect(screen.getByText("Connected")).toBeTruthy();
+    const label = screen.getByText(/Агент работает|Agent is running/);
+    expect(label.closest("[title]")?.getAttribute("title")).toMatch(/Vibefork/);
   });
 
-  it("shows model label from getModels hook", () => {
+  it("never says Offline: the page is shown only while the agent answers", () => {
+    useSessionStore.setState({ connectionStatus: "disconnected" });
     renderBar();
-    expect(screen.getByText("Claude 3.5 Sonnet")).toBeTruthy();
+    expect(screen.queryByText(/Offline/)).toBeNull();
+  });
+
+  it("names the AI, with the model in the hint", () => {
+    renderBar();
+    const ai = screen.getByText(/(ИИ|AI): Claude/);
+    expect(ai.getAttribute("title")).toContain("Claude 3.5 Sonnet");
   });
 });

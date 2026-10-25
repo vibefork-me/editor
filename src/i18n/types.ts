@@ -207,6 +207,16 @@ export interface TranslationSchema {
     en: string;
     selectLanguage: string;
   };
+  status: {
+    agentOk: string;
+    agentOkHint: string;
+    reconnecting: string;
+    reconnectingHint: string;
+    connecting: string;
+    connectingHint: string;
+    ai: string;
+    aiHint: string;
+  };
 }
 
 export type TranslationKey = {

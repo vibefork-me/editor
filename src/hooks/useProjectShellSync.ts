@@ -10,7 +10,9 @@ export function useProjectShellSync(): void {
 
   useEffect(() => {
     bindAgentTransport(client);
-    setConnectionStatus("connecting");
+    // The page is shown only after the agent answered: it is connected until the task socket says
+    // otherwise.
+    setConnectionStatus("connected");
     setWsConnectionListener((event) => {
       if (event === "open") {
         setConnectionStatus("connected");

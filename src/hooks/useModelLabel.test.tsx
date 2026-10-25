@@ -13,7 +13,7 @@ import { useModelLabel } from "./useModelLabel.ts";
 describe("useModelLabel", () => {
   beforeEach(() => {
     getModels.mockReset();
-    getModels.mockResolvedValue([{ id: "model", label: "Model", tier: 0 }]);
+    getModels.mockResolvedValue([{ provider: "claude", model: "haiku", label: "Claude haiku", tier: 0 }]);
     useSessionStore.setState({ bearerToken: null });
   });
 
@@ -24,6 +24,6 @@ describe("useModelLabel", () => {
 
     act(() => useSessionStore.getState().setBearerToken("session"));
     await waitFor(() => expect(getModels).toHaveBeenCalledTimes(1));
-    await waitFor(() => expect(result.current).toBe("Model"));
+    await waitFor(() => expect(result.current).toEqual({ name: "Claude", model: "Claude haiku" }));
   });
 });
