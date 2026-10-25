@@ -113,6 +113,7 @@ export const ru: TranslationSchema = {
     statusDone: "Готово",
     statusChanged: "изменено",
     statusUnchanged: "без изменений",
+    otherNodeLabel: "Остальное",
     viewToggleAria: "Режим карты",
     viewParts: "Части",
     viewFolders: "Папки",

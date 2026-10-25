@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import type { GraphEdge, GraphNode, GraphResponse, GraphSnapshot, GraphSource } from "../client/types.ts";
 import { getAgentTransport } from "./agent-bridge.ts";
-import { useI18nStore } from "../i18n/i18nStore.ts";
+import { translate, useI18nStore } from "../i18n/i18nStore.ts";
 import type { GraphPhase } from "./types.ts";
 
 export type GraphViewMode = "parts" | "folders";
@@ -55,9 +55,13 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   applyResponse: (res) => {
     const nodes = new Map<string, GraphNode>();
     for (const n of res.nodes) {
+      const label =
+        n.id === "other" && !n.label
+          ? translate(useI18nStore.getState().locale, "canvas.otherNodeLabel")
+          : n.label;
       nodes.set(n.id, {
         id: n.id,
-        label: n.label,
+        label,
         files: n.files,
         changed: n.changed,
         status: n.changed > 0 ? "changed" : "unchanged",
@@ -75,7 +79,19 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   loadGraph: async (projectId: string, view?: GraphViewMode) => {
     const transport = getAgentTransport();
     if (!transport || typeof transport.getGraph !== "function") return;
-    const targetView = view ?? get().currentView;
+    const isNewProject = projectId !== get().currentProjectId;
+    const targetView = view ?? (isNewProject ? "parts" : get().currentView);
+    if (isNewProject) {
+      set({
+        currentProjectId: projectId,
+        partsMap: null,
+        folderMap: null,
+        source: null,
+        revision: 0,
+        nodes: new Map(),
+        edges: [],
+      });
+    }
     set({ isLoading: true, currentProjectId: projectId, currentView: targetView });
     try {
       const res = await transport.getGraph({
@@ -144,11 +160,11 @@ export const useGraphStore = create<GraphState>((set, get) => ({
         view: view === "folders" ? "folders" : undefined,
       });
       if (view === "folders") {
-        set({ folderMap: res });
+        set({ folderMap: res, partsMap: null });
       } else if (res.source === "model") {
-        set({ partsMap: res });
+        set({ partsMap: res, folderMap: null });
       } else {
-        set({ folderMap: res });
+        set({ folderMap: res, partsMap: null });
       }
       get().applyResponse(res);
     } catch (err) {

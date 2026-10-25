@@ -129,4 +129,26 @@ describe("NodeCard", () => {
 
     expect(screen.getByText(/без изменений|unchanged/i)).toBeTruthy();
   });
+
+  it("renders Everything else / Остальное when id is other and label is empty", () => {
+    render(
+      <ReactFlowProvider>
+        <NodeCard
+          {...baseProps}
+          id="other"
+          type="moduleNode"
+          data={{
+            id: "other",
+            label: "",
+            status: "unchanged",
+            isFocused: false,
+            isFocusPulseDisabled: false,
+            tabIndex: 0,
+          }}
+        />
+      </ReactFlowProvider>
+    );
+
+    expect(screen.getByText(/everything else|остальное/i)).toBeTruthy();
+  });
 });

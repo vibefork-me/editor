@@ -50,6 +50,7 @@ export const NodeCard = memo(function NodeCard({ data }: NodeProps<ModuleNodeTyp
     }
   };
 
+  const displayLabel = id === "other" && !label ? t("canvas.otherNodeLabel") : label;
   const statusLabel = getStatusLabel();
 
   return (
@@ -63,7 +64,7 @@ export const NodeCard = memo(function NodeCard({ data }: NodeProps<ModuleNodeTyp
 
       <NodePopover
         nodeId={id}
-        label={label}
+        label={displayLabel}
         status={status}
         summary={summary}
         tabIndex={tabIndex}
@@ -92,7 +93,7 @@ export const NodeCard = memo(function NodeCard({ data }: NodeProps<ModuleNodeTyp
 
           <div className="flex items-center justify-between gap-1 mb-1">
             <span id={`canvas-node-label-${id}`} className="font-semibold text-xs text-text truncate max-w-[150px]">
-              {label}
+              {displayLabel}
             </span>
 
             {/* Agent focus badge: "now here" ("сейчас здесь") */}

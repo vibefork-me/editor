@@ -248,4 +248,84 @@ describe("Zustand stores", () => {
     expect(useGraphStore.getState().nodes.get("p1")?.status).toBe("changed");
     expect(useGraphStore.getState().nodes.get("p1")?.changed).toBe(2);
   });
+
+  it("labels other node with empty label as Everything else / Остальное", async () => {
+    bindAgentTransport({
+      getGraph: vi.fn(async () => ({
+        source: "model" as const,
+        revision: "rev-other",
+        nodes: [
+          { id: "p1", label: "Core", files: 3, changed: 0 },
+          { id: "other", label: "", files: 2, changed: 0 },
+        ],
+        edges: [],
+      })),
+    } as unknown as AgentTransport);
+
+    await useGraphStore.getState().loadGraph("proj-other");
+    const otherNode = useGraphStore.getState().nodes.get("other");
+    expect(otherNode).toBeTruthy();
+    expect(otherNode?.label).toMatch(/everything else|остальное/i);
+  });
+
+  it("isolates cache between projects on A -> B -> Folders -> Parts", async () => {
+    let projBDescribeCount = 0;
+    bindAgentTransport({
+      getGraph: vi.fn(async ({ projectId }: { projectId: string; view?: string }) => {
+        if (projectId === "project-a") {
+          return {
+            source: "model" as const,
+            revision: "rev-a",
+            nodes: [{ id: "p-a", label: "Part A", files: 5, changed: 0 }],
+            edges: [],
+          };
+        }
+        if (projectId === "project-b") {
+          // Project B starts with folders
+          return {
+            source: "folders" as const,
+            revision: "rev-b-folders",
+            nodes: [{ id: "b-dir", label: "src", files: 8, changed: 0 }],
+            edges: [],
+          };
+        }
+        return { source: "folders" as const, revision: "0", nodes: [], edges: [] };
+      }),
+      describeGraph: vi.fn(async ({ projectId }: { projectId: string }) => {
+        if (projectId === "project-b") {
+          projBDescribeCount++;
+          return {
+            source: "model" as const,
+            revision: "rev-b-model",
+            nodes: [{ id: "p-b", label: "Part B", files: 8, changed: 0 }],
+            edges: [],
+          };
+        }
+        throw new Error("unexpected describe call");
+      }),
+    } as unknown as AgentTransport);
+
+    // 1. Open Project A (has model map)
+    await useProjectStore.getState().selectProject("project-a");
+    expect(useGraphStore.getState().source).toBe("model");
+    expect(useGraphStore.getState().nodes.get("p-a")?.label).toBe("Part A");
+
+    // 2. Open Project B (source is folders -> auto-describes to model map)
+    await useProjectStore.getState().selectProject("project-b");
+    expect(useGraphStore.getState().source).toBe("model");
+    expect(useGraphStore.getState().nodes.get("p-b")?.label).toBe("Part B");
+    expect(useGraphStore.getState().nodes.has("p-a")).toBe(false);
+    expect(projBDescribeCount).toBe(1);
+
+    // 3. Switch to Folders in Project B
+    await useGraphStore.getState().setView("folders");
+    expect(useGraphStore.getState().currentView).toBe("folders");
+    expect(useGraphStore.getState().nodes.get("b-dir")?.label).toBe("src");
+
+    // 4. Switch back to Parts in Project B (must use Project B's parts, never Project A's)
+    await useGraphStore.getState().setView("parts");
+    expect(useGraphStore.getState().currentView).toBe("parts");
+    expect(useGraphStore.getState().nodes.get("p-b")?.label).toBe("Part B");
+    expect(useGraphStore.getState().nodes.has("p-a")).toBe(false);
+  });
 });

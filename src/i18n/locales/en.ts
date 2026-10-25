@@ -113,6 +113,7 @@ export const en: TranslationSchema = {
     statusDone: "Done",
     statusChanged: "changed",
     statusUnchanged: "unchanged",
+    otherNodeLabel: "Everything else",
     viewToggleAria: "Map view mode",
     viewParts: "Parts",
     viewFolders: "Folders",

@@ -111,6 +111,7 @@ export interface TranslationSchema {
     statusDone: string;
     statusChanged: string;
     statusUnchanged: string;
+    otherNodeLabel: string;
     viewToggleAria: string;
     viewParts: string;
     viewFolders: string;
