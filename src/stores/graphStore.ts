@@ -90,6 +90,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
         revision: 0,
         nodes: new Map(),
         edges: [],
+        isDescribing: false,
       });
     }
     set({ isLoading: true, currentProjectId: projectId, currentView: targetView });
@@ -98,6 +99,9 @@ export const useGraphStore = create<GraphState>((set, get) => ({
         projectId,
         view: targetView === "folders" ? "folders" : undefined,
       });
+      if (get().currentProjectId !== projectId || get().currentView !== targetView) {
+        return;
+      }
       if (res.source === "folders") {
         set({ folderMap: res });
         // If we are in "parts" view and source is "folders", auto-describe per VF-155
@@ -106,12 +110,24 @@ export const useGraphStore = create<GraphState>((set, get) => ({
           const lang = useI18nStore.getState().locale;
           try {
             const modelRes = await transport.describeGraph({ projectId, lang });
+            if (get().currentProjectId !== projectId) {
+              return;
+            }
+            if (get().currentView !== "parts") {
+              set({ partsMap: modelRes, isDescribing: false });
+              return;
+            }
             set({ partsMap: modelRes, isDescribing: false, isLoading: false });
             get().applyResponse(modelRes);
             return;
           } catch (err) {
+            if (get().currentProjectId !== projectId) {
+              return;
+            }
             console.warn("Auto-describe failed, falling back to folders:", err);
-            get().applyResponse(res);
+            if (get().currentView === "parts") {
+              get().applyResponse(res);
+            }
             set({ isDescribing: false, isLoading: false });
             return;
           }
@@ -122,8 +138,10 @@ export const useGraphStore = create<GraphState>((set, get) => ({
       get().applyResponse(res);
       set({ isLoading: false });
     } catch (err) {
-      console.error("Failed to load graph:", err);
-      set({ isLoading: false, isDescribing: false });
+      if (get().currentProjectId === projectId) {
+        console.error("Failed to load graph:", err);
+        set({ isLoading: false, isDescribing: false });
+      }
     }
   },
 
@@ -153,12 +171,15 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     if (!projectId) return;
     const transport = getAgentTransport();
     if (!transport || typeof transport.getGraph !== "function") return;
+    const view = get().currentView;
     try {
-      const view = get().currentView;
       const res = await transport.getGraph({
         projectId,
         view: view === "folders" ? "folders" : undefined,
       });
+      if (get().currentProjectId !== projectId || get().currentView !== view) {
+        return;
+      }
       if (view === "folders") {
         set({ folderMap: res, partsMap: null });
       } else if (res.source === "model") {
@@ -168,7 +189,9 @@ export const useGraphStore = create<GraphState>((set, get) => ({
       }
       get().applyResponse(res);
     } catch (err) {
-      console.warn("Failed to refresh graph:", err);
+      if (get().currentProjectId === projectId) {
+        console.warn("Failed to refresh graph:", err);
+      }
     }
   },
 

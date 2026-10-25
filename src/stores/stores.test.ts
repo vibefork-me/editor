@@ -328,4 +328,76 @@ describe("Zustand stores", () => {
     expect(useGraphStore.getState().nodes.get("p-b")?.label).toBe("Part B");
     expect(useGraphStore.getState().nodes.has("p-a")).toBe(false);
   });
+
+  it("discards slow describeGraph response from Project A when switched to Project B", async () => {
+    let resolveProjADescribe!: (val: unknown) => void;
+    const projADescribePromise = new Promise((resolve) => {
+      resolveProjADescribe = resolve;
+    });
+
+    bindAgentTransport({
+      getGraph: vi.fn(async ({ projectId }: { projectId: string; view?: string }) => {
+        if (projectId === "project-a") {
+          return {
+            source: "folders" as const,
+            revision: "rev-a-folders",
+            nodes: [{ id: "dir-a", label: "src-a", files: 2, changed: 0 }],
+            edges: [],
+          };
+        }
+        if (projectId === "project-b") {
+          return {
+            source: "model" as const,
+            revision: "rev-b-model",
+            nodes: [{ id: "p-b", label: "Part B", files: 10, changed: 0 }],
+            edges: [],
+          };
+        }
+        return { source: "folders" as const, revision: "0", nodes: [], edges: [] };
+      }),
+      describeGraph: vi.fn(async ({ projectId }: { projectId: string }) => {
+        if (projectId === "project-a") {
+          return projADescribePromise;
+        }
+        throw new Error(`unexpected describe call for ${projectId}`);
+      }),
+    } as unknown as AgentTransport);
+
+    // 1. Select Project A. It starts loading folders, triggers describeGraph (which hangs).
+    const projAPromise = useProjectStore.getState().selectProject("project-a");
+    // Wait microtasks so getGraph finishes and describeGraph is initiated
+    await new Promise((r) => setTimeout(r, 10));
+
+    expect(useGraphStore.getState().isDescribing).toBe(true);
+    expect(useGraphStore.getState().currentProjectId).toBe("project-a");
+
+    // 2. User switches to Project B before Project A's describe finishes.
+    await useProjectStore.getState().selectProject("project-b");
+
+    expect(useGraphStore.getState().currentProjectId).toBe("project-b");
+    expect(useGraphStore.getState().source).toBe("model");
+    expect(useGraphStore.getState().nodes.has("p-b")).toBe(true);
+    expect(useGraphStore.getState().nodes.has("dir-a")).toBe(false);
+    expect(useGraphStore.getState().isDescribing).toBe(false);
+
+    // 3. Now Project A's describeGraph finally resolves
+    resolveProjADescribe({
+      source: "model" as const,
+      revision: "rev-a-model",
+      nodes: [{ id: "p-a-model", label: "Part A Model", files: 5, changed: 0 }],
+      edges: [],
+    });
+    // Wait for promise chain
+    await projAPromise;
+    await new Promise((r) => setTimeout(r, 10));
+
+    // 4. Verify Project B state: Project A's model data must NOT have leaked into Project B
+    expect(useGraphStore.getState().currentProjectId).toBe("project-b");
+    expect(useGraphStore.getState().nodes.has("p-a-model")).toBe(false);
+    expect(useGraphStore.getState().nodes.has("p-b")).toBe(true);
+    expect(useGraphStore.getState().isDescribing).toBe(false);
+    expect(
+      useGraphStore.getState().partsMap?.nodes.some((n: { id: string }) => n.id === "p-a-model"),
+    ).toBe(false);
+  });
 });
