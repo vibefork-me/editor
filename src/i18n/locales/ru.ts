@@ -132,6 +132,9 @@ export const ru: TranslationSchema = {
     confirmNote: "Агент попросит подтвердить сборку в системном окне.",
     noArtifacts: "Артефакты сформированы в рабочей папке проекта.",
     dismissBanner: "Закрыть",
+    errorNoConnection: "Нет связи с локальным агентом.",
+    errorProcessFailed: "Сборка завершилась с ошибкой. Подробности — в логе выше.",
+    errorGeneral: "Не удалось выполнить сборку.",
   },
   project: {
     title: "Оболочка проекта",

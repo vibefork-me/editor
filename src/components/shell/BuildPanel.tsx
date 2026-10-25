@@ -8,6 +8,7 @@ export function BuildPanel() {
   const status = useBuildStore((s) => s.status);
   const log = useBuildStore((s) => s.log);
   const outcome = useBuildStore((s) => s.outcome);
+  const errorKey = useBuildStore((s) => s.errorKey);
   const error = useBuildStore((s) => s.error);
   const isPanelOpen = useBuildStore((s) => s.isPanelOpen);
   const copiedArtifacts = useBuildStore((s) => s.copiedArtifacts);
@@ -134,13 +135,19 @@ export function BuildPanel() {
           <div ref={logEndRef} />
 
           {/* Human-readable error message */}
-          {status === "failed" && error && (
+          {status === "failed" && (
             <div
               role="alert"
               className="mt-2 rounded bg-danger/10 border border-danger/30 p-2 text-danger font-sans text-xs flex items-center gap-2"
             >
               <IconTriangleAlert className="size-4 shrink-0 text-danger" />
-              <span>{error}</span>
+              <span>
+                {errorKey === "noConnection"
+                  ? t("build.errorNoConnection")
+                  : errorKey === "processFailed"
+                    ? t("build.errorProcessFailed")
+                    : error ?? t("build.errorGeneral")}
+              </span>
             </div>
           )}
 

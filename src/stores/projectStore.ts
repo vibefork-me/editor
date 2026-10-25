@@ -6,15 +6,23 @@ import { useGraphStore } from "./graphStore.ts";
 import { useTaskStore } from "./taskStore.ts";
 import { useViewerStore } from "./viewerStore.ts";
 
+export interface ForeignChangesEntry {
+  project: string;
+  foreign: ForeignChanges;
+}
+
 export interface ProjectState {
   currentProjectId: string | null;
   projectMeta: ProjectMetadata | null;
   grantedProjects: ProjectSummary[];
-  foreignChanges: ForeignChanges | null;
+  foreignChanges: ForeignChangesEntry | null;
   isLoading: boolean;
   selectProject: (projectId: string, meta?: ProjectMetadata | null) => Promise<void>;
   loadGrantedProjects: () => Promise<void>;
-  setForeignChanges: (foreign: ForeignChanges | null) => void;
+  setForeignChanges: (
+    projectOrEntry: string | ForeignChangesEntry | null,
+    foreign?: ForeignChanges | null,
+  ) => void;
   clearForeignChanges: () => void;
 }
 
@@ -24,18 +32,29 @@ export const useProjectStore = create<ProjectState>((set) => ({
   grantedProjects: [],
   foreignChanges: null,
   isLoading: false,
-  setForeignChanges: (foreign) => set({ foreignChanges: foreign }),
+  setForeignChanges: (projectOrEntry, foreign) => {
+    if (typeof projectOrEntry === "string") {
+      if (foreign) {
+        set({ foreignChanges: { project: projectOrEntry, foreign } });
+      } else {
+        set({ foreignChanges: null });
+      }
+    } else {
+      set({ foreignChanges: projectOrEntry ?? null });
+    }
+  },
   clearForeignChanges: () => set({ foreignChanges: null }),
   selectProject: async (projectId, meta) => {
     useGraphStore.getState().resetGraph();
     useTaskStore.getState().resetTask();
     useViewerStore.getState().resetViewer();
-    useBuildStore.getState().resetBuild();
-    set({
+    useBuildStore.getState().setActiveProject(projectId);
+    set((s) => ({
       currentProjectId: projectId,
       projectMeta: meta ?? { projectId },
+      foreignChanges: s.foreignChanges?.project === projectId ? s.foreignChanges : null,
       isLoading: false,
-    });
+    }));
     await useGraphStore.getState().loadGraph(projectId);
   },
   loadGrantedProjects: async () => {

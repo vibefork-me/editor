@@ -132,6 +132,9 @@ export const en: TranslationSchema = {
     confirmNote: "The agent will ask you to confirm the build in a native dialog.",
     noArtifacts: "Artifacts were created in the project workspace.",
     dismissBanner: "Dismiss",
+    errorNoConnection: "No connection to local agent.",
+    errorProcessFailed: "Build failed. See the log above for details.",
+    errorGeneral: "Failed to execute build.",
   },
   project: {
     title: "Project shell",

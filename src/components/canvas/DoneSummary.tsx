@@ -35,6 +35,7 @@ export function DoneSummary({
   const currentProjectId = useProjectStore((s) => s.currentProjectId);
   const storeBuildStatus = useBuildStore((s) => s.status);
   const storeOutcome = useBuildStore((s) => s.outcome);
+  const storeErrorKey = useBuildStore((s) => s.errorKey);
   const storeError = useBuildStore((s) => s.error);
   const storeCopied = useBuildStore((s) => s.copiedArtifacts);
   const startBuild = useBuildStore((s) => s.startBuild);
@@ -165,7 +166,11 @@ export function DoneSummary({
           {/* Build error summary if build failed */}
           {!shouldShowGithubSave && status === "failed" && (
             <p role="alert" className="mt-2 text-xs text-danger">
-              {storeError ?? t("build.failed")}
+              {storeErrorKey === "noConnection"
+                ? t("build.errorNoConnection")
+                : storeErrorKey === "processFailed"
+                  ? t("build.errorProcessFailed")
+                  : storeError ?? t("build.failed")}
             </p>
           )}
 

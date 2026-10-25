@@ -39,8 +39,9 @@ export function CanvasPanel({ className = "", onAskAbout, onSave }: CanvasPanelP
 
   const connectionStatus = useSessionStore((s) => s.connectionStatus);
   const currentProjectId = useProjectStore((s) => s.currentProjectId);
-  const foreignChanges = useProjectStore((s) => s.foreignChanges);
+  const foreignEntry = useProjectStore((s) => s.foreignChanges);
   const clearForeignChanges = useProjectStore((s) => s.clearForeignChanges);
+  const buildStatus = useBuildStore((s) => s.status);
   const startBuild = useBuildStore((s) => s.startBuild);
   const openDiff = useViewerStore((s) => s.openDiff);
 
@@ -188,12 +189,13 @@ export function CanvasPanel({ className = "", onAskAbout, onSave }: CanvasPanelP
       </div>
 
       {/* Foreign code summary banner (VF-171) */}
-      {foreignChanges && (
+      {foreignEntry && foreignEntry.project === currentProjectId && buildStatus === "idle" && (
         <ForeignChangesBanner
-          foreign={foreignChanges}
+          foreign={foreignEntry.foreign}
           onDismiss={clearForeignChanges}
           onBuild={() => {
             if (currentProjectId) {
+              clearForeignChanges();
               void startBuild(currentProjectId);
             }
           }}

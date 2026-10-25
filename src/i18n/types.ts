@@ -128,6 +128,9 @@ export interface TranslationSchema {
     confirmNote: string;
     noArtifacts: string;
     dismissBanner: string;
+    errorNoConnection: string;
+    errorProcessFailed: string;
+    errorGeneral: string;
   };
   project: {
     title: string;

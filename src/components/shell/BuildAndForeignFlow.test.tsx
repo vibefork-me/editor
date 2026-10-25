@@ -71,6 +71,25 @@ describe("Workspace build and foreign changes flow", () => {
       fireEvent.click(dismissBtn);
       expect(handleDismiss).toHaveBeenCalledTimes(1);
     });
+
+    it("clears foreign changes when switching to another project (Point 1)", async () => {
+      useProjectStore.getState().setForeignChanges("project-A", mockForeign);
+      expect(useProjectStore.getState().foreignChanges?.project).toBe("project-A");
+
+      // Switching to project-B clears foreign changes
+      await useProjectStore.getState().selectProject("project-B");
+      expect(useProjectStore.getState().foreignChanges).toBeNull();
+    });
+
+    it("retains foreign changes when selecting the same project (Point 1)", async () => {
+      useProjectStore.getState().setForeignChanges("project-A", mockForeign);
+      expect(useProjectStore.getState().foreignChanges?.project).toBe("project-A");
+
+      // Selecting the same project keeps foreign changes
+      await useProjectStore.getState().selectProject("project-A");
+      expect(useProjectStore.getState().foreignChanges?.project).toBe("project-A");
+      expect(useProjectStore.getState().foreignChanges?.foreign.files).toBe(4);
+    });
   });
 
   describe("BuildPanel and buildStore in workspace", () => {
@@ -152,6 +171,105 @@ describe("Workspace build and foreign changes flow", () => {
           screen.getByText(/Compiler crashed: missing header sys\/socket.h/i)
         ).toBeTruthy();
       });
+    });
+
+    it("displays localized error message and hides raw technical exit code on non-zero exit", async () => {
+      const mockRunBuild = vi.fn(async (_p: string, onMessage: (m: BuildMessage) => void): Promise<BuildOutcome> => {
+        onMessage({ type: "stderr", text: "error[E0432]: unresolved import `foo`" });
+        return {
+          kind: "done",
+          code: 101,
+          files: [],
+        };
+      });
+
+      const mockTransport = {
+        runBuild: mockRunBuild,
+      } as unknown as AgentTransport;
+
+      bindAgentTransport(mockTransport);
+
+      render(<BuildPanel />);
+
+      await useBuildStore.getState().startBuild("test-proj");
+
+      await waitFor(() => {
+        expect(screen.getByRole("alert")).toBeTruthy();
+        // Localized EN message
+        expect(screen.getByText(/Build failed\. See the log above for details\./i)).toBeTruthy();
+        // Technical exit code string must NOT be in alert
+        expect(screen.queryByText(/Build process exited with code 101/i)).toBeNull();
+      });
+
+      // Also verify RU localization
+      useI18nStore.getState().setLocale("ru");
+      await waitFor(() => {
+        expect(
+          screen.getByText(/Сборка завершилась с ошибкой\. Подробности — в логе выше\./i)
+        ).toBeTruthy();
+      });
+    });
+
+    it("displays localized error message when agent transport is offline", async () => {
+      bindAgentTransport(null as unknown as AgentTransport);
+
+      render(<BuildPanel />);
+
+      await useBuildStore.getState().startBuild("test-proj");
+
+      await waitFor(() => {
+        expect(screen.getByRole("alert")).toBeTruthy();
+        expect(screen.getByText(/No connection to local agent\./i)).toBeTruthy();
+      });
+    });
+
+    it("isolates build logs and outcome between projects (Point 5)", async () => {
+      let emitMessage: (m: BuildMessage) => void = () => {};
+      let resolveBuild: (outcome: BuildOutcome) => void = () => {};
+
+      const mockRunBuild = vi.fn((_p: string, onMessage: (m: BuildMessage) => void) => {
+        emitMessage = onMessage;
+        return new Promise<BuildOutcome>((resolve) => {
+          resolveBuild = resolve;
+        });
+      });
+
+      const mockTransport = {
+        runBuild: mockRunBuild,
+      } as unknown as AgentTransport;
+
+      bindAgentTransport(mockTransport);
+
+      // Start build on project-A
+      const buildPromise = useBuildStore.getState().startBuild("project-A");
+      expect(useBuildStore.getState().status).toBe("building");
+      expect(useBuildStore.getState().buildingProjectId).toBe("project-A");
+
+      // While build is running on project-A, user switches to project-B
+      useBuildStore.getState().setActiveProject("project-B");
+
+      // Build state for active project-B is idle
+      expect(useBuildStore.getState().status).toBe("idle");
+      expect(useBuildStore.getState().log).toEqual([]);
+
+      // Late message arrives from project-A
+      emitMessage({ type: "build_log", text: "Compiling crates for project-A..." });
+
+      // Must be ignored because active project is project-B
+      expect(useBuildStore.getState().log).toEqual([]);
+
+      // Build finishes for project-A
+      resolveBuild({
+        kind: "done",
+        code: 0,
+        artifacts: "/path/to/project-A.exe",
+        files: ["project-A.exe"],
+      });
+      await buildPromise;
+
+      // Active project-B must NOT have project-A's status or outcome
+      expect(useBuildStore.getState().status).toBe("idle");
+      expect(useBuildStore.getState().outcome).toBeNull();
     });
   });
 

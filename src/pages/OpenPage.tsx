@@ -43,7 +43,7 @@ export function OpenPage() {
     try {
       const result = await client.importProject({ repo, ref, upstream });
       if (result.foreign) {
-        useProjectStore.getState().setForeignChanges(result.foreign);
+        useProjectStore.getState().setForeignChanges(result.project, result.foreign);
       }
       navigate(`/${result.project}`, { replace: true });
     } catch (e) {

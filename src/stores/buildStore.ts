@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import type { BuildMessage, BuildOutcome } from "../client/types.ts";
 import { getAgentTransport } from "./agent-bridge.ts";
-import { useProjectStore } from "./projectStore.ts";
 
 export function buildLogLine(m: BuildMessage): string | null {
   switch (m.type) {
@@ -17,14 +16,19 @@ export function buildLogLine(m: BuildMessage): string | null {
 }
 
 export type BuildStatus = "idle" | "building" | "built" | "failed" | "cancelled";
+export type BuildErrorKind = "noConnection" | "processFailed" | "agentError" | "general";
 
 export interface BuildState {
+  activeProjectId: string | null;
+  buildingProjectId: string | null;
   status: BuildStatus;
   log: string[];
   outcome: BuildOutcome | null;
+  errorKey: BuildErrorKind | null;
   error: string | null;
   isPanelOpen: boolean;
   copiedArtifacts: boolean;
+  setActiveProject: (projectId: string | null) => void;
   startBuild: (projectId: string) => Promise<BuildOutcome | null>;
   setPanelOpen: (open: boolean) => void;
   togglePanel: () => void;
@@ -33,12 +37,36 @@ export interface BuildState {
 }
 
 export const useBuildStore = create<BuildState>((set, get) => ({
+  activeProjectId: null,
+  buildingProjectId: null,
   status: "idle",
   log: [],
   outcome: null,
+  errorKey: null,
   error: null,
   isPanelOpen: false,
   copiedArtifacts: false,
+
+  setActiveProject: (projectId: string | null) => {
+    set((s) => {
+      if (s.activeProjectId === projectId) return s;
+      const isSameAsBuilding = s.buildingProjectId !== null && s.buildingProjectId === projectId;
+      return {
+        activeProjectId: projectId,
+        ...(isSameAsBuilding
+          ? {}
+          : {
+              status: "idle",
+              log: [],
+              outcome: null,
+              errorKey: null,
+              error: null,
+              isPanelOpen: false,
+              copiedArtifacts: false,
+            }),
+      };
+    });
+  },
 
   setPanelOpen: (open: boolean) => set({ isPanelOpen: open }),
   togglePanel: () => set((s) => ({ isPanelOpen: !s.isPanelOpen })),
@@ -62,9 +90,11 @@ export const useBuildStore = create<BuildState>((set, get) => ({
 
   resetBuild: () =>
     set({
+      buildingProjectId: null,
       status: "idle",
       log: [],
       outcome: null,
+      errorKey: null,
       error: null,
       isPanelOpen: false,
       copiedArtifacts: false,
@@ -74,52 +104,73 @@ export const useBuildStore = create<BuildState>((set, get) => ({
     const transport = getAgentTransport();
     if (!transport) {
       set({
+        activeProjectId: projectId,
+        buildingProjectId: projectId,
         status: "failed",
-        error: "No connection to agent",
+        errorKey: "noConnection",
+        error: null,
         isPanelOpen: true,
       });
       return null;
     }
 
     set({
+      activeProjectId: projectId,
+      buildingProjectId: projectId,
       status: "building",
       log: [],
       outcome: null,
+      errorKey: null,
       error: null,
       isPanelOpen: true,
       copiedArtifacts: false,
     });
 
-    // Dismiss foreign code banner once the first build starts per requirement 1
-    useProjectStore.getState().clearForeignChanges();
-
     try {
       const outcome = await transport.runBuild(projectId, (m) => {
+        // Prevent cross-project build log leaks if active project switched
+        if (get().activeProjectId !== projectId) {
+          return;
+        }
         const line = buildLogLine(m);
         if (line) {
           set((s) => ({ log: [...s.log.slice(-499), line] }));
         }
       });
 
+      // Ignore outcome if user switched away to another project
+      if (get().activeProjectId !== projectId) {
+        return outcome;
+      }
+
       if (outcome.kind === "done") {
         if (outcome.code === 0) {
-          set({ status: "built", outcome, error: null });
+          set({ status: "built", outcome, errorKey: null, error: null });
         } else {
           set({
             status: "failed",
             outcome,
-            error: `Build process exited with code ${outcome.code}`,
+            errorKey: "processFailed",
+            error: null,
           });
         }
       } else if (outcome.kind === "error") {
-        set({ status: "failed", outcome, error: outcome.error });
+        set({
+          status: "failed",
+          outcome,
+          errorKey: "agentError",
+          error: outcome.error,
+        });
       } else if (outcome.kind === "cancelled") {
-        set({ status: "cancelled", outcome, error: null });
+        set({ status: "cancelled", outcome, errorKey: null, error: null });
       }
       return outcome;
     } catch (err) {
+      if (get().activeProjectId !== projectId) {
+        return null;
+      }
       const msg = err instanceof Error ? err.message : String(err);
-      set({ status: "failed", error: msg });
+      set({ status: "failed", errorKey: "general", error: msg });
       return null;
     }
   },

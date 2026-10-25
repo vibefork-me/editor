@@ -84,8 +84,9 @@ describe("OpenPage unified flow", () => {
     });
 
     // Foreign changes must be stored in projectStore for the workspace
-    expect(useProjectStore.getState().foreignChanges?.files).toBe(3);
-    expect(useProjectStore.getState().foreignChanges?.dependencies).toEqual(["package.json"]);
+    expect(useProjectStore.getState().foreignChanges?.project).toBe("my-project");
+    expect(useProjectStore.getState().foreignChanges?.foreign.files).toBe(3);
+    expect(useProjectStore.getState().foreignChanges?.foreign.dependencies).toEqual(["package.json"]);
   });
 
   it("surfaces human-readable import error on failure", async () => {
