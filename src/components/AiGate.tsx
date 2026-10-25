@@ -38,9 +38,9 @@ export function AiGate({ children, pollIntervalMs = POLL_INTERVAL_MS }: AiGatePr
         setPhase("no-ai");
       }
       return res;
-    } catch (err) {
+    } catch (_err) {
       setPhase("error");
-      setErrorMessage(err instanceof Error ? err.message : String(err));
+      setErrorMessage(t("connectAi.errorNotice"));
       return null;
     } finally {
       setIsChecking(false);
@@ -61,10 +61,10 @@ export function AiGate({ children, pollIntervalMs = POLL_INTERVAL_MS }: AiGatePr
         } else {
           setPhase("no-ai");
         }
-      } catch (err) {
+      } catch (_err) {
         if (cancelled) return;
         setPhase("error");
-        setErrorMessage(err instanceof Error ? err.message : String(err));
+        setErrorMessage(t("connectAi.errorNotice"));
       } finally {
         if (!cancelled) {
           setIsChecking(false);
@@ -83,13 +83,31 @@ export function AiGate({ children, pollIntervalMs = POLL_INTERVAL_MS }: AiGatePr
       setConnectingProvider(providerId);
       setErrorMessage(null);
       try {
-        await client.connectAi(providerId);
-      } catch (err) {
+        const res = await client.connectAi(providerId);
+        if (!res.started) {
+          setConnectingProvider(null);
+          return;
+        }
+        const status = await checkStatus();
+        if (status?.ready) {
+          setConnectingProvider(null);
+        }
+      } catch (err: unknown) {
         setConnectingProvider(null);
-        setErrorMessage(err instanceof Error ? err.message : String(err));
+        const msg = err instanceof Error ? err.message : String(err);
+        const isBadKey =
+          providerId === "openrouter" &&
+          (msg.toLowerCase().includes("openrouter") ||
+            msg.toLowerCase().includes("key") ||
+            (typeof err === "object" && err !== null && "status" in err && (err as { status?: number }).status === 400));
+        if (isBadKey) {
+          setErrorMessage(t("connectAi.openRouterKeyRejected"));
+        } else {
+          setErrorMessage(msg || t("connectAi.errorNotice"));
+        }
       }
     },
-    [client],
+    [checkStatus, client, t],
   );
 
   // Poll GET /v1/ai every 3 seconds for up to 10 minutes when sign-in is started

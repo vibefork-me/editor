@@ -54,11 +54,17 @@ export interface TranslationSchema {
     subscriptionBadge: string;
     freeBadge: string;
     signInAction: string;
+    enterKeyAction: string;
+    installAndSignInAction: string;
     connectedBadge: string;
     notInstalledNotice: string;
     comingSoonNotice: string;
     confirmAndSignInNotice: string;
+    enterKeyInAgentNotice: string;
+    installingNotice: string;
     timedOutNotice: string;
+    openRouterKeyRejected: string;
+    getFreeKeyLink: string;
     openAgent: string;
     checkAgain: string;
     checking: string;
