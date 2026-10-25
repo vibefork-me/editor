@@ -16,13 +16,9 @@ import type {
   ModelInfo,
   PairStartResult,
   PairStatusResult,
-  PlanApproveParams,
   ProjectMetadata,
   SaveProjectResult,
   Subscription,
-  TaskAnswerParams,
-  TaskEvent,
-  TaskStartParams,
 } from "./types.ts";
 import { notifyWsConnection } from "./ws-connection-bridge.ts";
 import type { ClientMessage, ProjectsResponse, ServerMessage } from "./protocol.generated.ts";
@@ -57,13 +53,6 @@ type ProjectSub = {
   bufferRevision: number;
 };
 
-type TaskSub = {
-  taskId: string;
-  afterEventId?: number;
-  onEvent: (event: TaskEvent) => void;
-  onGap: () => void;
-};
-
 function randomRequestId(): string {
   return crypto.randomUUID();
 }
@@ -95,7 +84,6 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
 
   const pending = new Map<string, WsPending>();
   const projectSubs = new Map<symbol, ProjectSub>();
-  const taskSubs = new Map<symbol, TaskSub>();
 
   async function ensureBaseUrl(): Promise<string> {
     if (baseUrl) return baseUrl;
@@ -185,42 +173,6 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
       }
       return;
     }
-
-    if (type === "task_event") {
-      const taskId = String(msg.taskId ?? "");
-      const event: TaskEvent = {
-        taskId,
-        eventId: Number(msg.eventId),
-        at: String(msg.at ?? ""),
-        type: String(msg.eventType ?? msg.type ?? "unknown"),
-        data: msg.data,
-      };
-      if (event.type === "graph_update") {
-        const snapshot = parseGraphSnapshot(msg.data);
-        for (const sub of projectSubs.values()) {
-          if (snapshot.revision > sub.bufferRevision) {
-            sub.bufferRevision = snapshot.revision;
-            sub.onSnapshot(snapshot);
-          }
-        }
-      }
-      for (const sub of taskSubs.values()) {
-        if (sub.taskId !== taskId) continue;
-        sub.afterEventId = event.eventId;
-        sub.onEvent(event);
-      }
-      return;
-    }
-
-    if (type === "task_replay_expired") {
-      const taskId = String(msg.taskId ?? "");
-      for (const sub of taskSubs.values()) {
-        if (sub.taskId !== taskId) continue;
-        sub.afterEventId = undefined;
-        sub.onGap();
-        sendTaskSubscribe(sub);
-      }
-    }
   }
 
   function sendWs(payload: Record<string, unknown>): boolean {
@@ -238,16 +190,6 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
       project: sub.projectId,
     };
     if (sub.afterCursor) body.afterCursor = sub.afterCursor;
-    if (!sendWs(body)) scheduleReconnect();
-  }
-
-  function sendTaskSubscribe(sub: TaskSub): void {
-    const body: Record<string, unknown> = {
-      type: "task_subscribe",
-      requestId: randomRequestId(),
-      taskId: sub.taskId,
-    };
-    if (sub.afterEventId !== undefined) body.afterEventId = sub.afterEventId;
     if (!sendWs(body)) scheduleReconnect();
   }
 
@@ -292,7 +234,6 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
             notifyWsConnection("open");
             wsAuth();
             for (const sub of projectSubs.values()) sendProjectSubscribe(sub);
-            for (const sub of taskSubs.values()) sendTaskSubscribe(sub);
             resolve();
           };
           ws.onmessage = (ev) => handleWsMessage(String(ev.data));
@@ -483,77 +424,6 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
           projectSubs.delete(id);
         },
       } satisfies Subscription;
-    },
-
-    async startTask(params: TaskStartParams) {
-      await ensureWs();
-      const requestId = randomRequestId();
-      if (
-        !sendWs({
-          type: "task_start",
-          requestId,
-          project: params.projectId,
-          prompt: params.prompt,
-          provider: params.provider,
-          model: params.model,
-          continue: params.continue,
-          mode: params.mode,
-        })
-      ) {
-        throw new Error("WebSocket is not connected");
-      }
-      const accepted = await waitWs<{ taskId: string }>(requestId, "task_accepted");
-      return { taskId: accepted.taskId };
-    },
-
-    subscribeTask(params) {
-      const id = Symbol("task-sub");
-      const sub: TaskSub = {
-        taskId: params.taskId,
-        afterEventId: params.afterEventId,
-        onEvent: params.onEvent,
-        onGap: params.onGap,
-      };
-      taskSubs.set(id, sub);
-      void ensureWs()
-        .then(() => sendTaskSubscribe(sub))
-        .catch(() => scheduleReconnect());
-      return {
-        unsubscribe() {
-          taskSubs.delete(id);
-        },
-      } satisfies Subscription;
-    },
-
-    async sendAnswer(params: TaskAnswerParams) {
-      await ensureWs();
-      const requestId = randomRequestId();
-      if (
-        !sendWs({
-          type: "answer",
-          requestId,
-          taskId: params.taskId,
-          questionId: params.questionId,
-          answer: params.answer,
-        })
-      ) {
-        throw new Error("WebSocket is not connected");
-      }
-    },
-
-    async approvePlan(params: PlanApproveParams) {
-      await ensureWs();
-      const requestId = randomRequestId();
-      if (
-        !sendWs({
-          type: "plan_approve",
-          requestId,
-          taskId: params.taskId,
-          planId: params.planId,
-        })
-      ) {
-        throw new Error("WebSocket is not connected");
-      }
     },
 
     async focusNode(params) {
