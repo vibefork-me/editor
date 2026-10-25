@@ -375,4 +375,50 @@ describe("agent-client transport", () => {
       expect((err as Error).message).toBe("this file is not shown");
     }
   });
+
+  it("fetches AI status from /v1/ai", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo) => {
+      const url = String(input);
+      if (url.includes("/v1/ai")) {
+        return jsonResponse({
+          ready: false,
+          providers: [
+            { id: "claude", kind: "subscription", installed: true, connected: "no" },
+            { id: "codex", kind: "subscription", installed: true, connected: "no" },
+            { id: "openrouter", kind: "free", installed: true, connected: "no" },
+          ],
+        });
+      }
+      return jsonResponse({});
+    });
+    const client = createAgentTransport({
+      baseUrl: "http://127.0.0.1:47801",
+      fetch: fetchMock as typeof fetch,
+      WebSocket: MockWebSocket as unknown as typeof WebSocket,
+    });
+    const status = await client.getAiStatus();
+    expect(status.ready).toBe(false);
+    expect(status.providers).toHaveLength(3);
+    expect(status.providers[0].id).toBe("claude");
+  });
+
+  it("posts AI connect to /v1/ai/connect", async () => {
+    let requestBody: unknown;
+    const fetchMock = vi.fn(async (input: RequestInfo, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes("/v1/ai/connect")) {
+        requestBody = JSON.parse(String(init?.body));
+        return jsonResponse({ started: true });
+      }
+      return jsonResponse({});
+    });
+    const client = createAgentTransport({
+      baseUrl: "http://127.0.0.1:47801",
+      fetch: fetchMock as typeof fetch,
+      WebSocket: MockWebSocket as unknown as typeof WebSocket,
+    });
+    const res = await client.connectAi("claude");
+    expect(res.started).toBe(true);
+    expect(requestBody).toEqual({ provider: "claude" });
+  });
 });
