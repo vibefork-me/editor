@@ -9,7 +9,7 @@ import { useProjectShellSync } from "../hooks/useProjectShellSync.ts";
 import { useTranslation } from "../i18n/i18nStore.ts";
 import { getAgentTransport } from "../stores/agent-bridge.ts";
 import { useProjectStore } from "../stores/projectStore.ts";
-import { useTaskStore } from "../stores/taskStore.ts";
+import { feedLine, type FeedLine } from "../client/task-feed.ts";
 
 export function ProjectPage() {
   const { t } = useTranslation();
@@ -17,6 +17,7 @@ export function ProjectPage() {
   const selectProject = useProjectStore((s) => s.selectProject);
   const currentProjectId = useProjectStore((s) => s.currentProjectId);
   const [chatDraft, setChatDraft] = useState("");
+  const [feed, setFeed] = useState<FeedLine[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [chatStatus, setChatStatus] = useState<string | null>(null);
   const [smallScreenTab, setSmallScreenTab] = useState<"map" | "chat">("map");
@@ -31,12 +32,22 @@ export function ProjectPage() {
       return;
     }
     setIsSending(true);
-    setChatStatus(null);
+    setChatStatus(t("project.taskStarted"));
+    setChatDraft("");
+    setFeed((f) => [...f, { kind: "status", text: `> ${prompt}` }]);
     try {
-      const { taskId } = await transport.startTask({ projectId: currentProjectId, prompt });
-      useTaskStore.getState().setActiveTask(taskId);
-      setChatDraft("");
-      setChatStatus(t("project.taskStarted"));
+      // The agent runs the task over its own messages; each one becomes a chat line.
+      const outcome = await transport.runTask({ projectId: currentProjectId, prompt }, (m) => {
+        const line = feedLine(m);
+        if (line) setFeed((f) => [...f.slice(-499), line]);
+      });
+      setChatStatus(
+        outcome.kind === "done" && outcome.code === 0
+          ? t("project.taskDone")
+          : outcome.kind === "cancelled"
+            ? t("project.taskCancelled")
+            : t("project.taskFailed"),
+      );
     } catch {
       setChatStatus(t("project.chatStartFailed"));
     } finally {
@@ -76,7 +87,22 @@ export function ProjectPage() {
             <ViewerLayoutContainer />
           </section>
           <aside aria-label={t("project.chatTab")} className={`flex min-h-0 w-full shrink-0 flex-col border-l border-border bg-surface lg:w-[360px] min-[1280px]:w-[400px] ${smallScreenTab === "map" ? "hidden lg:flex" : "flex"}`}>
-            <div className="min-h-0 flex-1 overflow-y-auto" aria-live="polite" />
+            <div className="min-h-0 flex-1 overflow-y-auto p-3 space-y-1.5 text-sm" aria-live="polite" data-testid="task-feed">
+              {feed.map((line, i) => (
+                <p
+                  key={i}
+                  className={`whitespace-pre-wrap break-words ${
+                    line.kind === "agent"
+                      ? "text-text"
+                      : line.kind === "error"
+                        ? "text-red-400"
+                        : "text-neutral-500 font-mono text-xs"
+                  }`}
+                >
+                  {line.text}
+                </p>
+              ))}
+            </div>
             <ChatComposer
               value={chatDraft}
               onChange={setChatDraft}

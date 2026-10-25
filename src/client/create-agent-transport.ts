@@ -25,7 +25,8 @@ import type {
   TaskStartParams,
 } from "./types.ts";
 import { notifyWsConnection } from "./ws-connection-bridge.ts";
-import type { ProjectsResponse } from "./protocol.generated.ts";
+import type { ClientMessage, ProjectsResponse, ServerMessage } from "./protocol.generated.ts";
+import type { TaskOutcome } from "./task-feed.ts";
 
 const MAX_TEXT_BYTES = 2 * 1024 * 1024;
 const SECRET_PATH_DENY = /(?:^|\/)(?:\.env|id_rsa|credentials\.json|\.pem)(?:$|\/)/i;
@@ -335,6 +336,54 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
     return (await res.json()) as ProjectsResponse;
   }
 
+  /**
+   * A WebSocket of its own speaking the agent's message set: `auth` → `authed` → `start` → messages
+   * until `ends` returns an outcome. The agent runs one task or build per connection.
+   */
+  function agentSession<T>(
+    start: ClientMessage,
+    onMessage: (m: ServerMessage) => void,
+    ends: (m: ServerMessage) => T | null,
+  ): Promise<T | { kind: "error"; error: string }> {
+    return new Promise((resolve, reject) => {
+      if (!bearerToken) {
+        reject(new Error("no session"));
+        return;
+      }
+      const token = bearerToken;
+      ensureBaseUrl()
+        .then((base) => {
+          const socket = new WS(`${base.replace(/^http/, "ws")}/v1/ws`);
+          let settled = false;
+          const finish = (outcome: T | { kind: "error"; error: string }) => {
+            if (settled) return;
+            settled = true;
+            socket.close();
+            resolve(outcome);
+          };
+          socket.onopen = () => socket.send(JSON.stringify({ type: "auth", token } satisfies ClientMessage));
+          socket.onmessage = (ev) => {
+            let msg: ServerMessage;
+            try {
+              msg = JSON.parse(String(ev.data)) as ServerMessage;
+            } catch {
+              return;
+            }
+            if (msg.type === "authed") {
+              socket.send(JSON.stringify(start));
+              return;
+            }
+            onMessage(msg);
+            const outcome = ends(msg);
+            if (outcome) finish(outcome);
+          };
+          socket.onerror = () => finish({ kind: "error", error: "connection to the agent failed" });
+          socket.onclose = () => finish({ kind: "error", error: "connection to the agent closed" });
+        })
+        .catch(reject);
+    });
+  }
+
   const transport: AgentTransport = {
     async getHealth(): Promise<AgentHealth> {
       try {
@@ -587,52 +636,34 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
     },
 
     runBuild(project: string, onMessage: (m: BuildMessage) => void): Promise<BuildOutcome> {
-      // A connection of its own: the build speaks the agent's message set (auth → build → events).
-      return new Promise((resolve, reject) => {
-        if (!bearerToken) {
-          reject(new Error("no session"));
-          return;
-        }
-        const token = bearerToken;
-        ensureBaseUrl()
-          .then((base) => {
-            const socket = new WS(`${base.replace(/^http/, "ws")}/v1/ws`);
-            let settled = false;
-            const finish = (outcome: BuildOutcome) => {
-              if (settled) return;
-              settled = true;
-              socket.close();
-              resolve(outcome);
-            };
-            socket.onopen = () => socket.send(JSON.stringify({ type: "auth", token }));
-            socket.onmessage = (ev) => {
-              let msg: BuildMessage;
-              try {
-                msg = JSON.parse(String(ev.data)) as BuildMessage;
-              } catch {
-                return;
-              }
-              if (msg.type === "authed") {
-                socket.send(JSON.stringify({ type: "build", project }));
-                return;
-              }
-              onMessage(msg);
-              if (msg.type === "build_done") {
-                finish({
-                  kind: "done",
-                  code: msg.code,
-                  artifacts: msg.artifacts ?? undefined,
-                  files: msg.files,
-                });
-              }
-              else if (msg.type === "error") finish({ kind: "error", error: msg.error });
-              else if (msg.type === "cancelled") finish({ kind: "cancelled" });
-            };
-            socket.onerror = () => finish({ kind: "error", error: "connection to the agent failed" });
-            socket.onclose = () => finish({ kind: "error", error: "connection to the agent closed" });
-          })
-          .catch(reject);
+      return agentSession({ type: "build", project }, onMessage, (msg) => {
+        if (msg.type === "build_done")
+          return { kind: "done", code: msg.code, artifacts: msg.artifacts ?? undefined, files: msg.files };
+        if (msg.type === "error") return { kind: "error", error: msg.error };
+        if (msg.type === "cancelled") return { kind: "cancelled" };
+        return null;
       });
+    },
+
+    runTask(params, onMessage): Promise<TaskOutcome> {
+      return agentSession(
+        {
+          type: "task",
+          project: params.projectId,
+          prompt: params.prompt,
+          provider: params.provider ?? null,
+          model: params.model ?? null,
+          continue: params.continue ?? false,
+        },
+        onMessage,
+        (msg) => {
+          if (msg.type === "done")
+            return { kind: "done", code: msg.code, status: msg.status, commit: msg.commit ?? undefined };
+          if (msg.type === "error") return { kind: "error", error: msg.error };
+          if (msg.type === "cancelled") return { kind: "cancelled" };
+          return null;
+        },
+      );
     },
 
     async saveProject(params) {

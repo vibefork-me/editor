@@ -28,7 +28,7 @@ class AgentSocket {
     const msg = JSON.parse(data) as Record<string, unknown>;
     this.sent.push(msg);
     if (msg.type === "auth") queueMicrotask(() => this.emit({ type: "authed", keyId: "k" }));
-    if (msg.type === "build") {
+    if (msg.type === "build" || msg.type === "task") {
       for (const m of AgentSocket.script) queueMicrotask(() => this.emit(m));
     }
   }
@@ -168,5 +168,29 @@ describe("projects", () => {
   it("clones through the agent's import", async () => {
     const t = transportWithSession(fetchImpl);
     expect(await t.cloneProject({ upstream: "owner/app", ref: "main" })).toEqual({ projectId: "new" });
+  });
+});
+
+describe("runTask", () => {
+  it("sends the task in the agent's format and ends on done", async () => {
+    AgentSocket.script = [
+      { type: "started", project: "demo", provider: "claude", model: "s", resume: false, handoff: false, toolchain: [] },
+      { type: "evt", provider: "claude", ev: { kind: "text", text: "ok" } },
+      { type: "done", code: 0, diff: "d", status: "1 file changed", commit: "abc" },
+    ];
+    const t = transportWithSession(sessionFetch());
+    await t.authenticateSession({} as CryptoKey);
+    const seen: string[] = [];
+    const outcome = await t.runTask({ projectId: "demo", prompt: "fix it" }, (m) => seen.push(m.type));
+    expect(AgentSocket.last?.sent[1]).toEqual({
+      type: "task",
+      project: "demo",
+      prompt: "fix it",
+      provider: null,
+      model: null,
+      continue: false,
+    });
+    expect(seen).toEqual(["started", "evt", "done"]);
+    expect(outcome).toEqual({ kind: "done", code: 0, status: "1 file changed", commit: "abc" });
   });
 });
