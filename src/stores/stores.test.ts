@@ -167,4 +167,85 @@ describe("Zustand stores", () => {
     expect(useViewerStore.getState().diffOriginal).toBe("");
     expect(useViewerStore.getState().diffModified).toBe("console.log(1);");
   });
+
+  it("loads graph on selectProject and auto-describes if source is folders in parts view", async () => {
+    let describeCalled = false;
+    bindAgentTransport({
+      getGraph: vi.fn(async ({ view }: { view?: string }) => {
+        if (view === "folders") {
+          return {
+            source: "folders" as const,
+            revision: "rev-1",
+            nodes: [{ id: "src", label: "src", files: 10, changed: 0 }],
+            edges: [],
+          };
+        }
+        // First call returns folders (not yet described by model)
+        if (!describeCalled) {
+          return {
+            source: "folders" as const,
+            revision: "rev-1",
+            nodes: [{ id: "src", label: "src", files: 10, changed: 0 }],
+            edges: [],
+          };
+        }
+        return {
+          source: "model" as const,
+          revision: "rev-2",
+          nodes: [{ id: "p1", label: "Auth", files: 5, changed: 1, summary: "User auth" }],
+          edges: [],
+        };
+      }),
+      describeGraph: vi.fn(async () => {
+        describeCalled = true;
+        return {
+          source: "model" as const,
+          revision: "rev-2",
+          nodes: [{ id: "p1", label: "Auth", files: 5, changed: 1, summary: "User auth" }],
+          edges: [],
+        };
+      }),
+    } as unknown as AgentTransport);
+
+    await useProjectStore.getState().selectProject("demo-proj");
+    expect(useGraphStore.getState().currentView).toBe("parts");
+    expect(useGraphStore.getState().source).toBe("model");
+    expect(useGraphStore.getState().nodes.get("p1")?.status).toBe("changed");
+    expect(useGraphStore.getState().nodes.get("p1")?.summary).toBe("User auth");
+
+    // Toggle to folders
+    await useGraphStore.getState().setView("folders");
+    expect(useGraphStore.getState().currentView).toBe("folders");
+    expect(useGraphStore.getState().source).toBe("folders");
+    expect(useGraphStore.getState().nodes.get("src")?.status).toBe("unchanged");
+
+    // Toggle back to parts
+    await useGraphStore.getState().setView("parts");
+    expect(useGraphStore.getState().currentView).toBe("parts");
+    expect(useGraphStore.getState().source).toBe("model");
+  });
+
+  it("refreshes graph snapshot and updates node statuses", async () => {
+    let callCount = 0;
+    bindAgentTransport({
+      getGraph: vi.fn(async () => {
+        callCount++;
+        return {
+          source: "model" as const,
+          revision: `rev-${callCount}`,
+          nodes: [
+            { id: "p1", label: "Core", files: 4, changed: callCount > 1 ? 2 : 0, summary: "Core logic" },
+          ],
+          edges: [],
+        };
+      }),
+    } as unknown as AgentTransport);
+
+    await useGraphStore.getState().loadGraph("proj-refresh");
+    expect(useGraphStore.getState().nodes.get("p1")?.status).toBe("unchanged");
+
+    await useGraphStore.getState().refreshGraph();
+    expect(useGraphStore.getState().nodes.get("p1")?.status).toBe("changed");
+    expect(useGraphStore.getState().nodes.get("p1")?.changed).toBe(2);
+  });
 });

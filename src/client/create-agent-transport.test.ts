@@ -5,7 +5,6 @@ import {
   reconnectDelayMs,
 } from "./agent-base-url.ts";
 import { createAgentTransport } from "./create-agent-transport.ts";
-import type { GraphSnapshot } from "./types.ts";
 
 class MockWebSocket {
   static OPEN = 1;
@@ -180,187 +179,101 @@ describe("agent-client transport", () => {
     expect(tried.map((u) => new URL(u).port)).toEqual(["47801", "47802", "47803"]);
   });
 
-  it("replays project stream with cursor", async () => {
-    let ws: MockWebSocket | null = null;
-    const fetchMock = vi.fn(async (input: RequestInfo) => {
-      if (String(input).endsWith("/v1/hello")) {
-        return jsonResponse({ agent: "vf", platform: "test", version: "0" });
-      }
-      return jsonResponse({ token: "t", expiresIn: 900 });
-    });
-
-    const client = createAgentTransport({
-      baseUrl: "http://127.0.0.1:47801",
-      fetch: fetchMock as typeof fetch,
-      WebSocket: class extends MockWebSocket {
-        constructor(url: string) {
-          super(url);
-          ws = this;
-        }
-      } as unknown as typeof WebSocket,
-      getKeyId: async () => "k",
-      signNonce: async () => "s",
-    });
-    await client.authenticateSession({} as CryptoKey);
-
-    const snapshots: GraphSnapshot[] = [];
-    client.subscribeProjectResearch({
-      projectId: "demo",
-      afterCursor: "cur-9",
-      onSnapshot: (s) => snapshots.push(s),
-      onGap: () => {},
-    });
-
-    await vi.waitFor(() => expect(ws?.sent.length).toBeGreaterThan(0));
-    const projectSub = JSON.parse(
-      ws!.sent.find((s) => JSON.parse(s).type === "project_research_subscribe")!,
-    ) as { afterCursor?: string };
-    expect(projectSub.afterCursor).toBe("cur-9");
-
-    ws!.emit({
-      type: "project_event",
-      project: "demo",
-      cursor: "cur-10",
-      eventType: "graph_update",
-      data: { revision: 1, nodes: [], edges: [], focus: null, phase: "exploring" },
-    });
-
-    expect(snapshots).toHaveLength(1);
-  });
-
-  it("resets project buffer on replay_gap and resubscribes without cursor", async () => {
-    let ws: MockWebSocket | null = null;
-    const fetchMock = vi.fn(async (input: RequestInfo) => {
-      if (String(input).endsWith("/v1/hello")) {
-        return jsonResponse({ agent: "vf", platform: "test", version: "0" });
-      }
-      return jsonResponse({ token: "t", expiresIn: 900 });
-    });
-
-    const gaps: number[] = [];
-    const client = createAgentTransport({
-      baseUrl: "http://127.0.0.1:47801",
-      fetch: fetchMock as typeof fetch,
-      WebSocket: class extends MockWebSocket {
-        constructor(url: string) {
-          super(url);
-          ws = this;
-        }
-      } as unknown as typeof WebSocket,
-      getKeyId: async () => "k",
-      signNonce: async () => "s",
-    });
-    await client.authenticateSession({} as CryptoKey);
-
-    client.subscribeProjectResearch({
-      projectId: "demo",
-      afterCursor: "stale",
-      onSnapshot: () => {},
-      onGap: () => gaps.push(1),
-    });
-
-    await vi.waitFor(() => expect(ws?.sent.length).toBeGreaterThan(0));
-    const before = ws!.sent.length;
-    ws!.emit({ type: "replay_gap", project: "demo" });
-    await vi.waitFor(() => expect(ws!.sent.length).toBeGreaterThan(before));
-
-    const lastProjectSub = [...ws!.sent]
-      .map((s) => JSON.parse(s) as { type: string; afterCursor?: string })
-      .filter((m) => m.type === "project_research_subscribe")
-      .at(-1);
-    expect(gaps).toHaveLength(1);
-    expect(lastProjectSub?.afterCursor).toBeUndefined();
-  });
-
-  it("notifies ws connection bridge when socket closes unexpectedly", async () => {
-    const events: string[] = [];
-    const { setWsConnectionListener } = await import("./ws-connection-bridge.ts");
-    setWsConnectionListener((event) => events.push(event));
-
-    let ws: MockWebSocket | null = null;
-    const client = createAgentTransport({
-      baseUrl: "http://127.0.0.1:47802",
-      fetch: vi.fn(async (input: RequestInfo) => {
-        const url = String(input);
-        if (url.endsWith("/v1/hello")) {
-          return jsonResponse({ agent: "vf", platform: "test", version: "0" });
-        }
-        if (url.endsWith("/v1/auth/challenge")) return jsonResponse({ nonce: "n" });
-        if (url.endsWith("/v1/auth/session")) return jsonResponse({ token: "t", expiresIn: 900 });
-        return new Response("not found", { status: 404 });
-      }) as typeof fetch,
-      WebSocket: class extends MockWebSocket {
-        constructor(url: string) {
-          super(url);
-          ws = this;
-        }
-      } as unknown as typeof WebSocket,
-      getKeyId: async () => "k",
-      signNonce: async () => "s",
-    });
-
-    await client.authenticateSession({} as CryptoKey);
-    client.subscribeProjectResearch({
-      projectId: "demo",
-      onSnapshot: () => {},
-      onGap: () => {},
-    });
-    await vi.waitFor(() => expect(ws).not.toBeNull());
-    events.length = 0;
-    ws!.close();
-    expect(events).toContain("closed-reconnecting");
-    setWsConnectionListener(null);
-  });
-
-  it("schedules reconnect after health polling when socket drops", async () => {
-    vi.useFakeTimers();
-    let ws: MockWebSocket | null = null;
-    const healthChecks: string[] = [];
-    const scheduled: number[] = [];
-
+  it("fetches graph snapshot from /v1/graph and supports view=folders", async () => {
+    const urls: string[] = [];
     const fetchMock = vi.fn(async (input: RequestInfo) => {
       const url = String(input);
+      urls.push(url);
       if (url.endsWith("/v1/hello")) {
-        healthChecks.push(url);
         return jsonResponse({ agent: "vf", platform: "test", version: "0" });
       }
-      if (url.endsWith("/v1/auth/challenge")) return jsonResponse({ nonce: "n" });
-      if (url.endsWith("/v1/auth/session")) return jsonResponse({ token: "t", expiresIn: 900 });
+      if (url.includes("/v1/graph?project=demo&view=folders")) {
+        return jsonResponse({
+          source: "folders",
+          revision: "rev-folders",
+          nodes: [{ id: "src", label: "src", files: 10, changed: 2 }],
+          edges: [],
+        });
+      }
+      if (url.includes("/v1/graph?project=demo")) {
+        return jsonResponse({
+          source: "model",
+          revision: "rev-model",
+          nodes: [{ id: "p1", label: "Core", files: 5, changed: 1, summary: "Main logic" }],
+          edges: [],
+        });
+      }
       return new Response("not found", { status: 404 });
     });
 
     const client = createAgentTransport({
-      baseUrl: "http://127.0.0.1:47802",
+      baseUrl: "http://127.0.0.1:47801",
       fetch: fetchMock as typeof fetch,
-      WebSocket: class extends MockWebSocket {
-        constructor(url: string) {
-          super(url);
-          ws = this;
-        }
-      } as unknown as typeof WebSocket,
-      getKeyId: async () => "k",
-      signNonce: async () => "s",
-      schedule: (fn, ms) => {
-        scheduled.push(ms);
-        return setTimeout(fn, ms) as unknown as number;
-      },
-      clearSchedule: (id) => clearTimeout(id),
     });
 
-    await client.authenticateSession({} as CryptoKey);
-    client.subscribeProjectResearch({
-      projectId: "demo",
-      onSnapshot: () => {},
-      onGap: () => {},
-    });
-    await vi.waitFor(() => expect(ws).not.toBeNull());
-    ws!.close();
+    const defaultGraph = await client.getGraph("demo");
+    expect(defaultGraph.source).toBe("model");
+    expect(defaultGraph.nodes[0]?.label).toBe("Core");
+    expect(urls.some((u) => u.includes("/v1/graph?project=demo"))).toBe(true);
 
-    await vi.advanceTimersByTimeAsync(1000);
-    await Promise.resolve();
-    expect(scheduled[0]).toBe(1000);
-    expect(healthChecks.length).toBeGreaterThanOrEqual(1);
-    vi.useRealTimers();
+    const folderGraph = await client.getGraph({ projectId: "demo", view: "folders" });
+    expect(folderGraph.source).toBe("folders");
+    expect(folderGraph.nodes[0]?.label).toBe("src");
+    expect(urls.some((u) => u.includes("/v1/graph?project=demo&view=folders"))).toBe(true);
+  });
+
+  it("calls POST /v1/graph/describe with language code", async () => {
+    let capturedBody: unknown = null;
+    const fetchMock = vi.fn(async (input: RequestInfo, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/v1/hello")) {
+        return jsonResponse({ agent: "vf", platform: "test", version: "0" });
+      }
+      if (url.endsWith("/v1/graph/describe") && init?.method === "POST") {
+        capturedBody = JSON.parse(String(init.body));
+        return jsonResponse({
+          source: "model",
+          revision: "rev-described",
+          nodes: [{ id: "p1", label: "UI", files: 3, changed: 0, summary: "User interface" }],
+          edges: [],
+        });
+      }
+      return new Response("not found", { status: 404 });
+    });
+
+    const client = createAgentTransport({
+      baseUrl: "http://127.0.0.1:47801",
+      fetch: fetchMock as typeof fetch,
+    });
+
+    const described = await client.describeGraph({ projectId: "demo", lang: "ru" });
+    expect(described.source).toBe("model");
+    expect(described.nodes[0]?.summary).toBe("User interface");
+    expect(capturedBody).toEqual({ project: "demo", lang: "ru" });
+  });
+
+  it("propagates HTTP errors from getGraph and describeGraph", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo) => {
+      const url = String(input);
+      if (url.endsWith("/v1/hello")) {
+        return jsonResponse({ agent: "vf", platform: "test", version: "0" });
+      }
+      if (url.includes("/v1/graph?project=missing")) {
+        return jsonResponse({ error: "no such project" }, 404);
+      }
+      if (url.endsWith("/v1/graph/describe")) {
+        return jsonResponse({ error: "model unavailable" }, 500);
+      }
+      return new Response("not found", { status: 404 });
+    });
+
+    const client = createAgentTransport({
+      baseUrl: "http://127.0.0.1:47801",
+      fetch: fetchMock as typeof fetch,
+    });
+
+    await expect(client.getGraph("missing")).rejects.toThrow("no such project");
+    await expect(client.describeGraph({ projectId: "missing" })).rejects.toThrow("model unavailable");
   });
 
   it("reads project file from /v1/file with project and path query parameters", async () => {

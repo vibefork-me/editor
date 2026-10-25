@@ -8,6 +8,10 @@ export type ModuleNodeType = Node<NodeCardData, "moduleNode">;
 
 function getNodeStatusClasses(status: NodeStatus) {
   switch (status) {
+    case "changed":
+      return "border border-solid border-warning bg-surface-elevated";
+    case "unchanged":
+      return "border border-solid border-border bg-surface-elevated/70 text-text-muted";
     case "exploring":
       return "border border-dashed border-accent bg-surface-elevated/90";
     case "changing":
@@ -29,6 +33,10 @@ export const NodeCard = memo(function NodeCard({ data }: NodeProps<ModuleNodeTyp
 
   const getStatusLabel = () => {
     switch (status) {
+      case "changed":
+        return t("canvas.statusChanged");
+      case "unchanged":
+        return t("canvas.statusUnchanged");
       case "exploring":
         return t("canvas.statusExploring");
       case "changing":

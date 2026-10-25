@@ -10,7 +10,8 @@ import type {
   AgentTransport,
   BuildMessage,
   BuildOutcome,
-  GraphSnapshot,
+  DescribeRequest,
+  GraphResponse,
   ImportProjectRequest,
   ImportProjectResult,
   ModelInfo,
@@ -18,7 +19,6 @@ import type {
   PairStatusResult,
   ProjectMetadata,
   SaveProjectResult,
-  Subscription,
 } from "./types.ts";
 import { notifyWsConnection } from "./ws-connection-bridge.ts";
 import type {
@@ -44,24 +44,6 @@ export type AgentTransportDeps = {
   location?: Pick<Location, "origin" | "pathname">;
 };
 
-type WsPending = {
-  resolve: (value: unknown) => void;
-  reject: (err: Error) => void;
-  kind: string;
-};
-
-type ProjectSub = {
-  projectId: string;
-  afterCursor?: string;
-  onSnapshot: (snapshot: GraphSnapshot) => void;
-  onGap: () => void;
-  bufferRevision: number;
-};
-
-function randomRequestId(): string {
-  return crypto.randomUUID();
-}
-
 function assertSafePath(path: string): void {
   if (path.includes("..") || path.startsWith("/") || /[\0\r\n]/.test(path)) {
     throw new Error("invalid path");
@@ -70,7 +52,6 @@ function assertSafePath(path: string): void {
     throw new Error("path denied");
   }
 }
-
 
 export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransport {
   const fetchFn = deps.fetch ?? fetch.bind(globalThis);
@@ -83,9 +64,6 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
   let ws: WebSocket | null = null;
   let reconnectAttempt = 0;
   let intentionalClose = false;
-
-  const pending = new Map<string, WsPending>();
-  const projectSubs = new Map<symbol, ProjectSub>();
 
   async function ensureBaseUrl(): Promise<string> {
     if (baseUrl) return baseUrl;
@@ -117,82 +95,12 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
     return fetchFn(`${base}${path}`, { ...init, headers });
   }
 
-  function parseGraphSnapshot(data: unknown): GraphSnapshot {
-    const d = data as GraphSnapshot;
-    return {
-      revision: d.revision,
-      nodes: d.nodes ?? [],
-      edges: d.edges ?? [],
-      focus: d.focus ?? null,
-      phase: d.phase ?? "exploring",
-    };
-  }
-
-  function handleWsMessage(raw: string): void {
-    let msg: Record<string, unknown>;
-    try {
-      msg = JSON.parse(raw) as Record<string, unknown>;
-    } catch {
-      return;
-    }
-    const type = String(msg.type ?? "");
-
-    const requestId = typeof msg.requestId === "string" ? msg.requestId : null;
-    if (requestId && pending.has(requestId)) {
-      const entry = pending.get(requestId)!;
-      if (entry.kind === type || type.endsWith("_result") || type === "graph_explanation") {
-        pending.delete(requestId);
-        if (type === "graph_error" || (msg.code && type === "error")) {
-          entry.reject(new Error(String(msg.code ?? msg.message ?? "request failed")));
-        } else {
-          entry.resolve(msg);
-        }
-      }
-    }
-
-    if (type === "project_event" && msg.eventType === "graph_update") {
-      const project = String(msg.project ?? "");
-      const cursor = typeof msg.cursor === "string" ? msg.cursor : undefined;
-      const snapshot = parseGraphSnapshot(msg.data);
-      for (const sub of projectSubs.values()) {
-        if (sub.projectId !== project) continue;
-        if (snapshot.revision <= sub.bufferRevision) continue;
-        sub.bufferRevision = snapshot.revision;
-        if (cursor) sub.afterCursor = cursor;
-        sub.onSnapshot(snapshot);
-      }
-      return;
-    }
-
-    if (type === "replay_gap" || type === "project_replay_gap") {
-      const project = String(msg.project ?? "");
-      for (const sub of projectSubs.values()) {
-        if (sub.projectId !== project) continue;
-        sub.afterCursor = undefined;
-        sub.bufferRevision = 0;
-        sub.onGap();
-        sendProjectSubscribe(sub);
-      }
-      return;
-    }
-  }
-
   function sendWs(payload: Record<string, unknown>): boolean {
     if (!ws || ws.readyState !== WS.OPEN) {
       return false;
     }
     ws.send(JSON.stringify(payload));
     return true;
-  }
-
-  function sendProjectSubscribe(sub: ProjectSub): void {
-    const body: Record<string, unknown> = {
-      type: "project_research_subscribe",
-      requestId: randomRequestId(),
-      project: sub.projectId,
-    };
-    if (sub.afterCursor) body.afterCursor = sub.afterCursor;
-    if (!sendWs(body)) scheduleReconnect();
   }
 
   function wsAuth(): void {
@@ -235,10 +143,9 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
             reconnectAttempt = 0;
             notifyWsConnection("open");
             wsAuth();
-            for (const sub of projectSubs.values()) sendProjectSubscribe(sub);
             resolve();
           };
-          ws.onmessage = (ev) => handleWsMessage(String(ev.data));
+          ws.onmessage = () => {};
           ws.onerror = () => reject(new Error("WebSocket error"));
           ws.onclose = () => {
             ws = null;
@@ -249,27 +156,6 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
           };
         })
         .catch(reject);
-    });
-  }
-
-  async function ensureWs(): Promise<void> {
-    if (ws && ws.readyState === WS.OPEN) return;
-    await connectWs();
-  }
-
-  function waitWs<T>(requestId: string, kind: string, timeoutMs = 10_000): Promise<T> {
-    return new Promise((resolve, reject) => {
-      pending.set(requestId, {
-        kind,
-        resolve: resolve as (v: unknown) => void,
-        reject,
-      });
-      schedule(() => {
-        if (pending.has(requestId)) {
-          pending.delete(requestId);
-          reject(new Error("WebSocket request timed out"));
-        }
-      }, timeoutMs);
     });
   }
 
@@ -408,58 +294,48 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
       return { projectId: res.project };
     },
 
-    subscribeProjectResearch(params) {
-      const id = Symbol("project-sub");
-      const sub: ProjectSub = {
-        projectId: params.projectId,
-        afterCursor: params.afterCursor,
-        onSnapshot: params.onSnapshot,
-        onGap: params.onGap,
-        bufferRevision: 0,
+    async getGraph(
+      params: { projectId: string; view?: "parts" | "folders" } | string,
+      view?: "parts" | "folders",
+    ): Promise<GraphResponse> {
+      const projectId = typeof params === "string" ? params : params.projectId;
+      const v = (typeof params === "object" ? params.view : undefined) ?? view;
+      const q = new URLSearchParams();
+      q.set("project", projectId);
+      if (v === "folders") {
+        q.set("view", "folders");
+      }
+      const res = await apiFetch(`/v1/graph?${q.toString()}`);
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        const error = new Error(err.error ?? `get graph failed (${res.status})`);
+        (error as { status?: number }).status = res.status;
+        throw error;
+      }
+      return (await res.json()) as GraphResponse;
+    },
+
+    async describeGraph(
+      params: { projectId: string; lang?: string } | string,
+      lang?: string,
+    ): Promise<GraphResponse> {
+      const projectId = typeof params === "string" ? params : params.projectId;
+      const l = (typeof params === "object" ? params.lang : undefined) ?? lang;
+      const body: DescribeRequest = {
+        project: projectId,
+        ...(l ? { lang: l } : {}),
       };
-      projectSubs.set(id, sub);
-      void ensureWs()
-        .then(() => sendProjectSubscribe(sub))
-        .catch(() => scheduleReconnect());
-      return {
-        unsubscribe() {
-          projectSubs.delete(id);
-        },
-      } satisfies Subscription;
-    },
-
-    async focusNode(params) {
-      await ensureWs();
-      const requestId = randomRequestId();
-      if (
-        !sendWs({
-          type: "graph_focus",
-          requestId,
-          project: params.projectId,
-          nodeId: params.nodeId,
-        })
-      ) {
-        throw new Error("WebSocket is not connected");
+      const res = await apiFetch("/v1/graph/describe", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        const error = new Error(err.error ?? `describe graph failed (${res.status})`);
+        (error as { status?: number }).status = res.status;
+        throw error;
       }
-      const result = await waitWs<{ accepted: boolean }>(requestId, "graph_focus_result");
-      return { accepted: Boolean(result.accepted) };
-    },
-
-    async explainNode(params) {
-      await ensureWs();
-      const requestId = randomRequestId();
-      if (
-        !sendWs({
-          type: "graph_explain",
-          requestId,
-          project: params.projectId,
-          nodeId: params.nodeId,
-        })
-      ) {
-        throw new Error("WebSocket is not connected");
-      }
-      const result = await waitWs<{ summary: string }>(requestId, "graph_explanation");
-      return { explanation: String(result.summary ?? "") };
+      return (await res.json()) as GraphResponse;
     },
 
     async readFile(params): Promise<FileResponse> {

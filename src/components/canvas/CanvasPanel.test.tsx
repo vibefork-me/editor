@@ -118,4 +118,25 @@ describe("CanvasPanel", () => {
     expect(document.querySelector(".animate-focus-pulse")).toBeNull();
     expect(document.querySelector(".animate-phase-current")).toBeNull();
   });
+
+  it("renders view mode toggle and handles view switching", () => {
+    render(<CanvasPanel />);
+    const partsBtn = screen.getByRole("button", { name: /части|parts/i });
+    const foldersBtn = screen.getByRole("button", { name: /папки|folders/i });
+
+    expect(partsBtn).toBeTruthy();
+    expect(foldersBtn).toBeTruthy();
+    expect(partsBtn.getAttribute("aria-pressed")).toBe("true");
+    expect(foldersBtn.getAttribute("aria-pressed")).toBe("false");
+
+    fireEvent.click(foldersBtn);
+    expect(useGraphStore.getState().currentView).toBe("folders");
+  });
+
+  it("renders describing banner when isDescribing is true", () => {
+    useGraphStore.setState({ isDescribing: true });
+    render(<CanvasPanel />);
+    expect(screen.getByTestId("describing-banner")).toBeTruthy();
+    expect(screen.getByText(/составляю карту|drawing project map/i)).toBeTruthy();
+  });
 });

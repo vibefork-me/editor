@@ -28,6 +28,7 @@ export const useProjectStore = create<ProjectState>((set) => ({
       projectMeta: meta ?? { projectId },
       isLoading: false,
     });
+    await useGraphStore.getState().loadGraph(projectId);
   },
   loadGrantedProjects: async () => {
     const transport = getAgentTransport();

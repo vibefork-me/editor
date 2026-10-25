@@ -85,4 +85,48 @@ describe("NodeCard", () => {
     expect(screen.getByTestId("focus-badge")).toBeTruthy();
     expect(screen.getByText(/сейчас здесь|now here/i)).toBeTruthy();
   });
+
+  it("renders changed and unchanged status labels and summary", () => {
+    const { rerender } = render(
+      <ReactFlowProvider>
+        <NodeCard
+          {...baseProps}
+          id="node-1"
+          type="moduleNode"
+          data={{
+            id: "node-1",
+            label: "Parser",
+            status: "changed",
+            summary: "Parses model map",
+            isFocused: false,
+            isFocusPulseDisabled: false,
+            tabIndex: 0,
+          }}
+        />
+      </ReactFlowProvider>
+    );
+
+    expect(screen.getByText("Parser")).toBeTruthy();
+    expect(screen.getByText("Parses model map")).toBeTruthy();
+
+    rerender(
+      <ReactFlowProvider>
+        <NodeCard
+          {...baseProps}
+          id="node-1"
+          type="moduleNode"
+          data={{
+            id: "node-1",
+            label: "Parser",
+            status: "unchanged",
+            isFocused: false,
+            isFocusPulseDisabled: false,
+            tabIndex: 0,
+          }}
+        />
+      </ReactFlowProvider>
+    );
+
+    expect(screen.getByText(/без изменений|unchanged/i)).toBeTruthy();
+  });
 });

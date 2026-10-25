@@ -1,8 +1,13 @@
 export type {
   AgentTransport,
+  DescribeRequest,
   FileDiffResponse,
   FileResponse,
+  GraphEdge,
+  GraphNode,
+  GraphResponse,
   GraphSnapshot,
+  GraphSource,
   ModelInfo,
   PairStartResult,
   PairStatusResult,

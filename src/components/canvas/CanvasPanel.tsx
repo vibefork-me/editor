@@ -30,6 +30,9 @@ export function CanvasPanel({ className = "", onAskAbout, onSave }: CanvasPanelP
   const rawEdges = useGraphStore((s) => s.edges);
   const focusNodeId = useGraphStore((s) => s.focusNodeId);
   const phase = useGraphStore((s) => s.phase);
+  const currentView = useGraphStore((s) => s.currentView);
+  const setView = useGraphStore((s) => s.setView);
+  const isDescribing = useGraphStore((s) => s.isDescribing);
 
   const connectionStatus = useSessionStore((s) => s.connectionStatus);
   const currentProjectId = useProjectStore((s) => s.currentProjectId);
@@ -49,41 +52,11 @@ export function CanvasPanel({ className = "", onAskAbout, onSave }: CanvasPanelP
       : rawNodes[0]?.id ?? null;
   const isReconnecting = connectionStatus === "reconnecting";
 
-  // Handlers for node interactions
-  const handleFocusNode = useCallback(
-    async (nodeId: string) => {
-      if (!currentProjectId) return;
-      const transport = getAgentTransport();
-      if (!transport) return;
-      try {
-        await transport.focusNode({ projectId: currentProjectId, nodeId });
-      } catch (err) {
-        console.warn("Failed to focus node:", err);
-      }
-    },
-    [currentProjectId]
-  );
-
   const handleAskAbout = useCallback(
     (label: string) => {
       onAskAbout?.(`[${label}] `);
     },
     [onAskAbout]
-  );
-
-  const handleExplainProblem = useCallback(
-    async (nodeId: string): Promise<string> => {
-      if (!currentProjectId) return "No project selected";
-      const transport = getAgentTransport();
-      if (!transport) return "Agent transport not connected";
-      try {
-        const res = await transport.explainNode({ projectId: currentProjectId, nodeId });
-        return res.explanation;
-      } catch (err) {
-        return err instanceof Error ? err.message : "Failed to explain problem";
-      }
-    },
-    [currentProjectId]
   );
 
   // Layout calculation
@@ -93,15 +66,13 @@ export function CanvasPanel({ className = "", onAskAbout, onSave }: CanvasPanelP
       rawEdges,
       focusNodeId,
       {
-        onFocusNode: handleFocusNode,
         onAskAbout: handleAskAbout,
-        onExplainProblem: handleExplainProblem,
         rovingNodeId,
         isFocusPulseDisabled: isReconnecting,
       },
       { positionsById: nodePositions.current }
     );
-  }, [rawNodes, rawEdges, focusNodeId, handleFocusNode, handleAskAbout, handleExplainProblem, rovingNodeId, isReconnecting]);
+  }, [rawNodes, rawEdges, focusNodeId, handleAskAbout, rovingNodeId, isReconnecting]);
 
   useEffect(() => {
     for (const node of nodes) {
@@ -176,6 +147,51 @@ export function CanvasPanel({ className = "", onAskAbout, onSave }: CanvasPanelP
       }
       className={`relative flex h-full w-full min-h-0 flex-1 flex-col overflow-hidden bg-surface outline-none ${className}`}
     >
+      {/* View switch: Parts / Folders (VF-155) */}
+      <div
+        role="group"
+        aria-label={t("canvas.viewToggleAria")}
+        className="absolute top-4 left-4 z-20 flex items-center rounded-lg border border-border bg-surface-elevated/90 p-0.5 shadow-sm backdrop-blur text-xs"
+      >
+        <button
+          type="button"
+          aria-pressed={currentView === "parts"}
+          disabled={isDescribing}
+          onClick={() => void setView("parts")}
+          className={`rounded-md px-2.5 py-1 font-medium transition-colors ${
+            currentView === "parts"
+              ? "bg-surface text-text shadow-xs"
+              : "text-text-muted hover:text-text"
+          }`}
+        >
+          {t("canvas.viewParts")}
+        </button>
+        <button
+          type="button"
+          aria-pressed={currentView === "folders"}
+          disabled={isDescribing}
+          onClick={() => void setView("folders")}
+          className={`rounded-md px-2.5 py-1 font-medium transition-colors ${
+            currentView === "folders"
+              ? "bg-surface text-text shadow-xs"
+              : "text-text-muted hover:text-text"
+          }`}
+        >
+          {t("canvas.viewFolders")}
+        </button>
+      </div>
+
+      {/* Model describing indicator */}
+      {isDescribing && (
+        <div
+          data-testid="describing-banner"
+          className="absolute top-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 rounded-full border border-accent/40 bg-surface-elevated/95 px-4 py-1.5 text-xs font-medium text-accent shadow-md backdrop-blur"
+        >
+          <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+          <span>{t("canvas.describingMap")}</span>
+        </div>
+      )}
+
       {/* Reconnecting overlay notice */}
       {isReconnecting && (
         <div
