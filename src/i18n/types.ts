@@ -91,6 +91,9 @@ export interface TranslationSchema {
     sendingMessage: string;
     taskStarted: string;
     chatStartFailed: string;
+    taskDone: string;
+    taskFailed: string;
+    taskCancelled: string;
     workspaceTabs: string;
     mapTab: string;
     chatTab: string;

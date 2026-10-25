@@ -106,6 +106,8 @@ export interface AgentHealth {
   extraOriginsActive?: boolean;
 }
 
+import type { TaskOutcome } from "./task-feed.ts";
+
 // Messages and bodies the agent defines: generated from its schema (src/client/protocol.generated.ts).
 import type {
   ForeignChanges as AgentForeignChanges,
@@ -173,6 +175,11 @@ export interface AgentTransport {
 
   /** Takes a project from GitHub, optionally at a ref of a fork or a pull request. */
   importProject(req: ImportProjectRequest): Promise<ImportProjectResult>;
+  /** Runs a task in a project over the agent's own messages; streams them; resolves when it ends. */
+  runTask(
+    params: { projectId: string; prompt: string; provider?: string; model?: string; continue?: boolean },
+    onMessage: (m: ServerMessage) => void,
+  ): Promise<TaskOutcome>;
   /** Builds a project (the agent asks the user in a native dialog); streams its messages. */
   runBuild(project: string, onMessage: (m: BuildMessage) => void): Promise<BuildOutcome>;
 }
