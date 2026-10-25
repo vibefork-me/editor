@@ -5,20 +5,21 @@ import {
   reconnectDelayMs,
   resolveAgentBaseUrlFromLocation,
 } from "./agent-base-url.ts";
-import type {
-  AgentHealth,
-  AgentTransport,
-  BuildMessage,
-  BuildOutcome,
-  DescribeRequest,
-  GraphResponse,
-  ImportProjectRequest,
-  ImportProjectResult,
-  ModelInfo,
-  PairStartResult,
-  PairStatusResult,
-  ProjectMetadata,
-  SaveProjectResult,
+import {
+  AgentApiError,
+  type AgentHealth,
+  type AgentTransport,
+  type BuildMessage,
+  type BuildOutcome,
+  type DescribeRequest,
+  type GraphResponse,
+  type ImportProjectRequest,
+  type ImportProjectResult,
+  type ModelInfo,
+  type PairStartResult,
+  type PairStatusResult,
+  type ProjectMetadata,
+  type SaveProjectResult,
 } from "./types.ts";
 import { notifyWsConnection } from "./ws-connection-bridge.ts";
 import type {
@@ -28,6 +29,8 @@ import type {
   ClientMessage,
   FileDiffResponse,
   FileResponse,
+  GithubConnectResponse,
+  GithubStatusResponse,
   ProjectsResponse,
   ServerMessage,
 } from "./protocol.generated.ts";
@@ -395,6 +398,28 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
       return (await res.json()) as AiConnectResponse;
     },
 
+    async connectGithub(): Promise<GithubConnectResponse> {
+      const res = await apiFetch("/v1/github/connect", {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(err.error ?? `connect GitHub failed (${res.status})`);
+      }
+      return (await res.json()) as GithubConnectResponse;
+    },
+
+    async getGithubStatus(): Promise<GithubStatusResponse> {
+      const res = await apiFetch("/v1/github/status", {
+        method: "GET",
+      });
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(err.error ?? `get GitHub status failed (${res.status})`);
+      }
+      return (await res.json()) as GithubStatusResponse;
+    },
+
     async importProject(req: ImportProjectRequest): Promise<ImportProjectResult> {
       const body: ImportProjectRequest = { repo: req.repo };
       if (req.ref) body.ref = req.ref;
@@ -404,8 +429,18 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
         body: JSON.stringify(body),
       });
       if (!res.ok) {
-        const err = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(err.error ?? `import failed (${res.status})`);
+        const err = (await res.json().catch(() => ({}))) as {
+          error?: string;
+          code?: string;
+          resetMinutes?: number;
+          reset_minutes?: number;
+        };
+        const resetMinutes = err.resetMinutes ?? err.reset_minutes;
+        const msg = err.error ?? `import failed (${res.status})`;
+        throw new AgentApiError(msg, res.status, {
+          code: err.code ?? (res.status === 429 ? "rate_limit" : undefined),
+          resetMinutes,
+        });
       }
       return (await res.json()) as ImportProjectResult;
     },

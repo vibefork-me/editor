@@ -110,6 +110,15 @@ export interface TranslationSchema {
     buildSucceeded: string;
     buildFailed: string;
     buildCancelled: string;
+    rateLimitTitle: string;
+    rateLimitWait: string;
+    rateLimitNotice: string;
+    rateLimitConnectAction: string;
+    rateLimitRetryAction: string;
+    deviceCodePrompt: string;
+    openVerificationPage: string;
+    waitingForAuthorization: string;
+    connectedRetrying: string;
   };
   build: {
     action: string;
