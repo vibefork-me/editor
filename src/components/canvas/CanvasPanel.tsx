@@ -10,11 +10,14 @@ import "@xyflow/react/dist/style.css";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "../../i18n/i18nStore.ts";
 import { getAgentTransport } from "../../stores/agent-bridge.ts";
+import { useBuildStore } from "../../stores/buildStore.ts";
 import { useGraphStore } from "../../stores/graphStore.ts";
 import { useProjectStore } from "../../stores/projectStore.ts";
 import { useSessionStore } from "../../stores/sessionStore.ts";
 import { useViewerStore } from "../../stores/viewerStore.ts";
 import { DoneSummary } from "./DoneSummary.tsx";
+import { ForeignChangesBanner } from "../shell/ForeignChangesBanner.tsx";
+import { BuildPanel } from "../shell/BuildPanel.tsx";
 import { handleCanvasKeyDown } from "./a11y.ts";
 import { layoutGraph } from "./layout.ts";
 import { NodeCard } from "./NodeCard.tsx";
@@ -36,6 +39,10 @@ export function CanvasPanel({ className = "", onAskAbout, onSave }: CanvasPanelP
 
   const connectionStatus = useSessionStore((s) => s.connectionStatus);
   const currentProjectId = useProjectStore((s) => s.currentProjectId);
+  const foreignEntry = useProjectStore((s) => s.foreignChanges);
+  const clearForeignChanges = useProjectStore((s) => s.clearForeignChanges);
+  const buildStatus = useBuildStore((s) => s.status);
+  const startBuild = useBuildStore((s) => s.startBuild);
   const openDiff = useViewerStore((s) => s.openDiff);
 
   const [activeFocusedNodeId, setActiveFocusedNodeId] = useState<string | null>(null);
@@ -181,6 +188,20 @@ export function CanvasPanel({ className = "", onAskAbout, onSave }: CanvasPanelP
         </button>
       </div>
 
+      {/* Foreign code summary banner (VF-171) */}
+      {foreignEntry && foreignEntry.project === currentProjectId && buildStatus === "idle" && (
+        <ForeignChangesBanner
+          foreign={foreignEntry.foreign}
+          onDismiss={clearForeignChanges}
+          onBuild={() => {
+            if (currentProjectId) {
+              clearForeignChanges();
+              void startBuild(currentProjectId);
+            }
+          }}
+        />
+      )}
+
       {/* Model describing indicator */}
       {isDescribing && (
         <div
@@ -273,6 +294,9 @@ export function CanvasPanel({ className = "", onAskAbout, onSave }: CanvasPanelP
           saveHref={saveHref}
         />
       )}
+
+      {/* Collapsible build log panel (VF-171) */}
+      <BuildPanel />
     </div>
   );
 }
