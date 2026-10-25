@@ -1,3 +1,17 @@
+import type {
+  AiConnectResponse,
+  AiResponse,
+} from "./protocol.generated.ts";
+
+export type {
+  AiConnectRequest,
+  AiConnectResponse,
+  AiConnected,
+  AiKind,
+  AiProvider,
+  AiResponse,
+} from "./protocol.generated.ts";
+
 export interface GraphNode {
   id: string;
   label: string;
@@ -149,6 +163,8 @@ export interface AgentTransport {
   }): Promise<FileDiffResponse>;
 
   getModels(): Promise<ModelInfo[]>;
+  getAiStatus(): Promise<AiResponse>;
+  connectAi(provider: string): Promise<AiConnectResponse>;
 
   /** Takes a project from GitHub, optionally at a ref of a fork or a pull request. */
   importProject(req: ImportProjectRequest): Promise<ImportProjectResult>;

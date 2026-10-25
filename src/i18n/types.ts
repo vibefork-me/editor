@@ -51,6 +51,14 @@ export interface TranslationSchema {
     optionOpenRouterDescription: string;
     howToConnectTitle: string;
     howToConnectDescription: string;
+    subscriptionBadge: string;
+    freeBadge: string;
+    signInAction: string;
+    connectedBadge: string;
+    notInstalledNotice: string;
+    comingSoonNotice: string;
+    confirmAndSignInNotice: string;
+    timedOutNotice: string;
     openAgent: string;
     checkAgain: string;
     checking: string;

@@ -22,6 +22,9 @@ import type {
 } from "./types.ts";
 import { notifyWsConnection } from "./ws-connection-bridge.ts";
 import type {
+  AiConnectRequest,
+  AiConnectResponse,
+  AiResponse,
   ClientMessage,
   FileDiffResponse,
   FileResponse,
@@ -371,6 +374,25 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
       if (!res.ok) throw new Error("models failed");
       const body = (await res.json()) as { models: ModelInfo[] };
       return body.models;
+    },
+
+    async getAiStatus(): Promise<AiResponse> {
+      const res = await apiFetch("/v1/ai");
+      if (!res.ok) throw new Error("get AI status failed");
+      return (await res.json()) as AiResponse;
+    },
+
+    async connectAi(provider: string): Promise<AiConnectResponse> {
+      const body: AiConnectRequest = { provider };
+      const res = await apiFetch("/v1/ai/connect", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(err.error ?? `connect AI failed (${res.status})`);
+      }
+      return (await res.json()) as AiConnectResponse;
     },
 
     async importProject(req: ImportProjectRequest): Promise<ImportProjectResult> {
