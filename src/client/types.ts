@@ -127,6 +127,43 @@ export interface AgentHealth {
   extraOrigins?: string[];
 }
 
+/** `POST /v1/projects/import` of the agent: where the code comes from. */
+export type ImportProjectRequest = {
+  /** `owner/name` of the repository with the code (the original or a fork). */
+  repo: string;
+  /** Branch, tag, commit or `pull/<N>/head`. */
+  ref?: string;
+  /** The original when the code is a fork or a pull request. */
+  upstream?: string;
+};
+
+/** What code from outside the original changes, by file name (agent `ForeignChanges`). */
+export type ForeignChanges = {
+  source: string;
+  files: number;
+  dependencies: string[];
+  buildScripts: string[];
+  binaries: string[];
+  complete: boolean;
+  compareUrl: string;
+};
+
+export type ImportProjectResult = {
+  project: string;
+  upstream: string;
+  commit: string;
+  foreign?: ForeignChanges;
+};
+
+/** One message of the agent while it builds (agent `ServerMessage`, `type` in snake_case). */
+export type BuildMessage = { type: string } & Record<string, unknown>;
+
+/** How a build ended. */
+export type BuildOutcome =
+  | { kind: "done"; code: number; artifacts?: string; files: string[] }
+  | { kind: "error"; error: string }
+  | { kind: "cancelled" };
+
 export interface AgentTransport {
   getHealth(): Promise<AgentHealth>;
   getCapabilities(): Promise<AgentCapabilities>;
@@ -167,4 +204,9 @@ export interface AgentTransport {
   }): Promise<{ original: string; modified: string }>;
 
   getModels(): Promise<ModelInfo[]>;
+
+  /** Takes a project from GitHub, optionally at a ref of a fork or a pull request. */
+  importProject(req: ImportProjectRequest): Promise<ImportProjectResult>;
+  /** Builds a project (the agent asks the user in a native dialog); streams its messages. */
+  runBuild(project: string, onMessage: (m: BuildMessage) => void): Promise<BuildOutcome>;
 }

@@ -64,6 +64,23 @@ export interface TranslationSchema {
     refLabel: string;
     pathLabel: string;
     workflowNotice: string;
+    notOriginal: string;
+    originalLabel: string;
+    takeCode: string;
+    importing: string;
+    changedFiles: string;
+    changesDependencies: string;
+    changesBuildScripts: string;
+    changesBinaries: string;
+    incompleteCheck: string;
+    viewChanges: string;
+    projectReady: string;
+    build: string;
+    buildConfirmNote: string;
+    building: string;
+    buildSucceeded: string;
+    buildFailed: string;
+    buildCancelled: string;
   };
   project: {
     title: string;

@@ -9,7 +9,11 @@ import type {
   AgentCapabilities,
   AgentHealth,
   AgentTransport,
+  BuildMessage,
+  BuildOutcome,
   GraphSnapshot,
+  ImportProjectRequest,
+  ImportProjectResult,
   ModelInfo,
   PairStartResult,
   PairStatusResult,
@@ -571,6 +575,70 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
       if (!res.ok) throw new Error("models failed");
       const body = (await res.json()) as { models: ModelInfo[] };
       return body.models;
+    },
+
+    async importProject(req: ImportProjectRequest): Promise<ImportProjectResult> {
+      const body: ImportProjectRequest = { repo: req.repo };
+      if (req.ref) body.ref = req.ref;
+      if (req.upstream) body.upstream = req.upstream;
+      const res = await apiFetch("/v1/projects/import", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(err.error ?? `import failed (${res.status})`);
+      }
+      return (await res.json()) as ImportProjectResult;
+    },
+
+    runBuild(project: string, onMessage: (m: BuildMessage) => void): Promise<BuildOutcome> {
+      // A connection of its own: the build speaks the agent's message set (auth → build → events).
+      return new Promise((resolve, reject) => {
+        if (!bearerToken) {
+          reject(new Error("no session"));
+          return;
+        }
+        const token = bearerToken;
+        ensureBaseUrl()
+          .then((base) => {
+            const socket = new WS(`${base.replace(/^http/, "ws")}/v1/ws`);
+            let settled = false;
+            const finish = (outcome: BuildOutcome) => {
+              if (settled) return;
+              settled = true;
+              socket.close();
+              resolve(outcome);
+            };
+            socket.onopen = () => socket.send(JSON.stringify({ type: "auth", token }));
+            socket.onmessage = (ev) => {
+              let msg: BuildMessage;
+              try {
+                msg = JSON.parse(String(ev.data)) as BuildMessage;
+              } catch {
+                return;
+              }
+              if (msg.type === "authed") {
+                socket.send(JSON.stringify({ type: "build", project }));
+                return;
+              }
+              onMessage(msg);
+              if (msg.type === "build_done") {
+                finish({
+                  kind: "done",
+                  code: Number(msg.code ?? 1),
+                  artifacts: typeof msg.artifacts === "string" ? msg.artifacts : undefined,
+                  files: Array.isArray(msg.files) ? msg.files.map(String) : [],
+                });
+              }
+              else if (msg.type === "error") finish({ kind: "error", error: String(msg.error ?? "build failed") });
+              else if (msg.type === "cancelled") finish({ kind: "cancelled" });
+            };
+            socket.onerror = () => finish({ kind: "error", error: "connection to the agent failed" });
+            socket.onclose = () => finish({ kind: "error", error: "connection to the agent closed" });
+          })
+          .catch(reject);
+      });
     },
 
     async saveProject(params) {
