@@ -1,4 +1,4 @@
-export type NodeStatus = "unknown" | "exploring" | "changing" | "problem" | "done";
+export type NodeStatus = "unknown" | "exploring" | "changing" | "problem" | "done" | "changed" | "unchanged";
 
 export interface NodeCardData extends Record<string, unknown> {
   id: string;

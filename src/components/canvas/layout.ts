@@ -31,6 +31,8 @@ const DEFAULT_OPTIONS: Required<Omit<LayoutOptions, "positionsById">> = {
 
 function normalizeNodeStatus(status: string): NodeCardData["status"] {
   switch (status) {
+    case "changed":
+    case "unchanged":
     case "exploring":
     case "changing":
     case "problem":

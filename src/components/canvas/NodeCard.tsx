@@ -8,6 +8,10 @@ export type ModuleNodeType = Node<NodeCardData, "moduleNode">;
 
 function getNodeStatusClasses(status: NodeStatus) {
   switch (status) {
+    case "changed":
+      return "border border-solid border-warning bg-surface-elevated";
+    case "unchanged":
+      return "border border-solid border-border bg-surface-elevated/70 text-text-muted";
     case "exploring":
       return "border border-dashed border-accent bg-surface-elevated/90";
     case "changing":
@@ -29,6 +33,10 @@ export const NodeCard = memo(function NodeCard({ data }: NodeProps<ModuleNodeTyp
 
   const getStatusLabel = () => {
     switch (status) {
+      case "changed":
+        return t("canvas.statusChanged");
+      case "unchanged":
+        return t("canvas.statusUnchanged");
       case "exploring":
         return t("canvas.statusExploring");
       case "changing":
@@ -42,6 +50,7 @@ export const NodeCard = memo(function NodeCard({ data }: NodeProps<ModuleNodeTyp
     }
   };
 
+  const displayLabel = id === "other" && !label ? t("canvas.otherNodeLabel") : label;
   const statusLabel = getStatusLabel();
 
   return (
@@ -55,7 +64,7 @@ export const NodeCard = memo(function NodeCard({ data }: NodeProps<ModuleNodeTyp
 
       <NodePopover
         nodeId={id}
-        label={label}
+        label={displayLabel}
         status={status}
         summary={summary}
         tabIndex={tabIndex}
@@ -84,7 +93,7 @@ export const NodeCard = memo(function NodeCard({ data }: NodeProps<ModuleNodeTyp
 
           <div className="flex items-center justify-between gap-1 mb-1">
             <span id={`canvas-node-label-${id}`} className="font-semibold text-xs text-text truncate max-w-[150px]">
-              {label}
+              {displayLabel}
             </span>
 
             {/* Agent focus badge: "now here" ("сейчас здесь") */}

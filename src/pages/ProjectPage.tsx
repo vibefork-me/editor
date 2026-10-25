@@ -9,7 +9,8 @@ import { useProjectShellSync } from "../hooks/useProjectShellSync.ts";
 import { useTranslation } from "../i18n/i18nStore.ts";
 import { getAgentTransport } from "../stores/agent-bridge.ts";
 import { useProjectStore } from "../stores/projectStore.ts";
-import { feedLine, type FeedLine } from "../client/task-feed.ts";
+import { useGraphStore } from "../stores/graphStore.ts";
+import { feedLine, phaseFromMessage, type FeedLine } from "../client/task-feed.ts";
 
 export function ProjectPage() {
   const { t } = useTranslation();
@@ -40,7 +41,18 @@ export function ProjectPage() {
       const outcome = await transport.runTask({ projectId: currentProjectId, prompt }, (m) => {
         const line = feedLine(m);
         if (line) setFeed((f) => [...f.slice(-499), line]);
+        const nextPhase = phaseFromMessage(m);
+        if (nextPhase) {
+          useGraphStore.getState().setPhase(nextPhase);
+        }
+        if (m.type === "step-done" || m.type === "done") {
+          void useGraphStore.getState().refreshGraph();
+        }
       });
+      if (outcome.kind === "done") {
+        useGraphStore.getState().setPhase("done");
+        void useGraphStore.getState().refreshGraph();
+      }
       setChatStatus(
         outcome.kind === "done" && outcome.code === 0
           ? t("project.taskDone")
@@ -64,8 +76,12 @@ export function ProjectPage() {
   useProjectShellSync();
 
   useEffect(() => {
-    if (!projectId || projectId === currentProjectId) return;
-    void selectProject(projectId);
+    if (!projectId) return;
+    if (projectId !== currentProjectId) {
+      void selectProject(projectId);
+    } else {
+      void useGraphStore.getState().loadGraph(projectId);
+    }
   }, [projectId, currentProjectId, selectProject]);
 
   return (

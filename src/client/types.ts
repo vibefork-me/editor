@@ -1,7 +1,9 @@
 export interface GraphNode {
   id: string;
   label: string;
-  status: "exploring" | "problem" | "changing" | "done" | string;
+  files?: number;
+  changed?: number;
+  status: "changed" | "unchanged" | "exploring" | "problem" | "changing" | "done" | string;
   summary?: string;
 }
 
@@ -12,7 +14,7 @@ export interface GraphEdge {
 }
 
 export interface GraphSnapshot {
-  revision: number;
+  revision: number | string;
   nodes: GraphNode[];
   edges: GraphEdge[];
   focus: string | null;
@@ -82,16 +84,25 @@ import type { TaskOutcome } from "./task-feed.ts";
 
 // Messages and bodies the agent defines: generated from its schema (src/client/protocol.generated.ts).
 import type {
+  DescribeRequest,
   FileDiffResponse,
   FileResponse,
   ForeignChanges as AgentForeignChanges,
+  GraphResponse,
+  GraphSource,
   Hello,
   ImportRequest,
   ImportResponse,
   ServerMessage,
 } from "./protocol.generated.ts";
 
-export type { FileDiffResponse, FileResponse };
+export type {
+  DescribeRequest,
+  FileDiffResponse,
+  FileResponse,
+  GraphResponse,
+  GraphSource,
+};
 
 /** `GET /v1/hello` of the agent. */
 export type AgentHello = Hello;
@@ -120,17 +131,16 @@ export interface AgentTransport {
   findProjectsByUpstream(upstream: string): Promise<{ projectId: string }[]>;
   cloneProject(params: { upstream: string; ref?: string }): Promise<{ projectId: string }>;
 
-  subscribeProjectResearch(params: {
-    projectId: string;
-    afterCursor?: string;
-    onSnapshot: (snapshot: GraphSnapshot) => void;
-    onGap: () => void;
-  }): Subscription;
+  getGraph(
+    params: { projectId: string; view?: "parts" | "folders" } | string,
+    view?: "parts" | "folders",
+  ): Promise<GraphResponse>;
+  describeGraph(
+    params: { projectId: string; lang?: string } | string,
+    lang?: string,
+  ): Promise<GraphResponse>;
 
   saveProject(params: { projectId: string; copy?: string }): Promise<SaveProjectResult>;
-
-  focusNode(params: { projectId: string; nodeId: string }): Promise<{ accepted: boolean }>;
-  explainNode(params: { projectId: string; nodeId: string }): Promise<{ explanation: string }>;
 
   readFile(params: { projectId: string; path: string }): Promise<FileResponse>;
   readDiff(params: {

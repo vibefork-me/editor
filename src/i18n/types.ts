@@ -109,6 +109,13 @@ export interface TranslationSchema {
     statusChanging: string;
     statusProblem: string;
     statusDone: string;
+    statusChanged: string;
+    statusUnchanged: string;
+    otherNodeLabel: string;
+    viewToggleAria: string;
+    viewParts: string;
+    viewFolders: string;
+    describingMap: string;
     doneSummaryTitle: string;
     doneSummarySubtitle: string;
     saveAction: string;
