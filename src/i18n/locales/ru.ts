@@ -181,6 +181,8 @@ export const ru: TranslationSchema = {
     viewParts: "Части",
     viewFolders: "Папки",
     describingMap: "Составляю карту…",
+    partsFailed: "Не получилось разбить проект на части — показываю папки.",
+    partsRetry: "Повторить",
     doneSummaryTitle: "Задача завершена",
     doneSummarySubtitle: "Все модули проверены и готовы к сохранению.",
     saveAction: "Сохранить",

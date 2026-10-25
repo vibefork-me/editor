@@ -177,6 +177,8 @@ export interface TranslationSchema {
     viewParts: string;
     viewFolders: string;
     describingMap: string;
+    partsFailed: string;
+    partsRetry: string;
     doneSummaryTitle: string;
     doneSummarySubtitle: string;
     saveAction: string;
