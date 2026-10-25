@@ -2,33 +2,32 @@ import { useState } from "react";
 import { useI18n } from "../i18n/index.ts";
 
 export type SecurityWarningBannerProps = {
-  extraOrigins?: string[];
+  /** The agent is a development build that allows extra web origins. */
+  active?: boolean;
 };
 
-export function SecurityWarningBanner({ extraOrigins = [] }: SecurityWarningBannerProps) {
+/** Origins the agent always allows: the hosted editor and its own fallback UI on loopback. */
+const BUILT_IN_ORIGIN = /^(https:\/\/code\.vibefork\.me|http:\/\/127\.0\.0\.1(:\d+)?)$/;
+
+export function SecurityWarningBanner({ active = false }: SecurityWarningBannerProps) {
   const { t } = useI18n();
   const [dismissed, setDismissed] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
 
-  // If no extra origins configured, do not render
-  if (!extraOrigins || extraOrigins.length === 0) {
+  if (!active) {
     return null;
   }
 
+  // The agent does not reveal the list; a page outside the built-in origins can only be one of them.
   const currentOrigin = typeof window !== "undefined" ? window.location.origin : "";
-  const isCurrentOriginExtra = Boolean(currentOrigin && extraOrigins.includes(currentOrigin));
+  const isCurrentOriginExtra = Boolean(currentOrigin && !BUILT_IN_ORIGIN.test(currentOrigin));
 
   if (dismissed) {
     return (
       <div className="bg-amber-950/40 border-b border-amber-500/20 px-6 py-1.5 flex items-center justify-between text-xs text-amber-300/80">
         <div className="flex items-center gap-2">
           <span aria-hidden="true">⚠️</span>
-          <span>
-            {t("security.compactNotice", {
-              count: extraOrigins.length,
-              origins: extraOrigins.join(", "),
-            })}
-          </span>
+          <span>{t("security.compactNotice")}</span>
         </div>
         <button
           type="button"
@@ -64,20 +63,7 @@ export function SecurityWarningBanner({ extraOrigins = [] }: SecurityWarningBann
               ) : null}
             </div>
 
-            <p className="text-xs text-amber-200/90 leading-relaxed">
-              {t("security.description", { origins: extraOrigins.join(", ") })}
-            </p>
-
-            <div className="flex flex-wrap gap-1.5 py-0.5">
-              {extraOrigins.map((orig) => (
-                <code
-                  key={orig}
-                  className="rounded bg-amber-900/60 border border-amber-700/50 px-1.5 py-0.5 font-mono text-xs text-amber-100"
-                >
-                  {orig}
-                </code>
-              ))}
-            </div>
+            <p className="text-xs text-amber-200/90 leading-relaxed">{t("security.description")}</p>
 
             {showDetails ? (
               <div className="mt-2 rounded-md bg-neutral-950/70 border border-amber-600/30 p-2.5 text-xs text-neutral-300 space-y-1.5">

@@ -19,21 +19,6 @@ export interface GraphSnapshot {
   phase: string;
 }
 
-export interface AgentCapabilityLimit {
-  id: string;
-  version: string;
-  limits?: Record<string, number | string | boolean>;
-  enabled?: boolean;
-  reasonCode?: string;
-}
-
-export interface AgentCapabilities {
-  apiVersion: string;
-  agentVersion: string;
-  capabilities: AgentCapabilityLimit[];
-  limits?: Record<string, number>;
-}
-
 export interface ProjectSummary {
   projectId: string;
   upstream?: string;
@@ -114,49 +99,31 @@ export interface Subscription {
   unsubscribe(): void;
 }
 
-export interface AgentHello {
-  agent: string;
-  version: string;
-  platform: string;
-  extraOrigins?: string[];
-}
-
 export interface AgentHealth {
   ok: boolean;
   version?: string;
-  extraOrigins?: string[];
+  /** A development build of the agent allows extra web origins. */
+  extraOriginsActive?: boolean;
 }
 
-/** `POST /v1/projects/import` of the agent: where the code comes from. */
-export type ImportProjectRequest = {
-  /** `owner/name` of the repository with the code (the original or a fork). */
-  repo: string;
-  /** Branch, tag, commit or `pull/<N>/head`. */
-  ref?: string;
-  /** The original when the code is a fork or a pull request. */
-  upstream?: string;
-};
+// Messages and bodies the agent defines: generated from its schema (src/client/protocol.generated.ts).
+import type {
+  ForeignChanges as AgentForeignChanges,
+  Hello,
+  ImportRequest,
+  ImportResponse,
+  ServerMessage,
+} from "./protocol.generated.ts";
 
-/** What code from outside the original changes, by file name (agent `ForeignChanges`). */
-export type ForeignChanges = {
-  source: string;
-  files: number;
-  dependencies: string[];
-  buildScripts: string[];
-  binaries: string[];
-  complete: boolean;
-  compareUrl: string;
-};
-
-export type ImportProjectResult = {
-  project: string;
-  upstream: string;
-  commit: string;
-  foreign?: ForeignChanges;
-};
-
-/** One message of the agent while it builds (agent `ServerMessage`, `type` in snake_case). */
-export type BuildMessage = { type: string } & Record<string, unknown>;
+/** `GET /v1/hello` of the agent. */
+export type AgentHello = Hello;
+/** `POST /v1/projects/import`: where the code comes from. */
+export type ImportProjectRequest = ImportRequest;
+/** What code from outside the original changes, by file name. */
+export type ForeignChanges = AgentForeignChanges;
+export type ImportProjectResult = ImportResponse;
+/** One message of the agent while it builds. */
+export type BuildMessage = ServerMessage;
 
 /** How a build ended. */
 export type BuildOutcome =
@@ -166,7 +133,6 @@ export type BuildOutcome =
 
 export interface AgentTransport {
   getHealth(): Promise<AgentHealth>;
-  getCapabilities(): Promise<AgentCapabilities>;
   authenticateSession(clientKey: CryptoKey): Promise<{ token: string }>;
   startPairing(params: { publicKeyJwk: JsonWebKey; name?: string }): Promise<PairStartResult>;
   getPairingStatus(pairId: string): Promise<PairStatusResult>;

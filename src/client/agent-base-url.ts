@@ -15,7 +15,8 @@ export type AgentHelloResponse = {
   agent: string;
   version: string;
   platform: string;
-  extraOrigins?: string[];
+  /** Development build: extra web origins are allowed. */
+  extraOriginsActive?: boolean;
 };
 
 export async function fetchAgentHello(

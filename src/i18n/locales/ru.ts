@@ -44,16 +44,16 @@ export const ru: TranslationSchema = {
     warningTitle: "Предупреждение безопасности: активны сторонние веб-источники (extraOrigins)",
     currentOriginAllowed: "Текущий адрес разрешён",
     description:
-      "Агент Vibefork настроен с дополнительными доверенными адресами: {origins}. Любая веб-страница на этих адресах получает доступ к локальному агенту и вашим проектам.",
+      "Это сборка агента Vibefork для разработки: она разрешает дополнительные веб-источники. Любая страница на них получает доступ к локальному агенту и файлам проектов.",
     detailsSecurityTitle: "Безопасность:",
     detailsSecurityText:
       "Режим extraOrigins предназначен только для локальной разработки (например, Vite dev-сервера на localhost:5173).",
     detailsDisableText:
-      "Чтобы отключить, удалите поле extraOrigins из settings.json или очистите переменную окружения VF_EXTRA_ORIGINS и перезапустите агент.",
+      "Релизные сборки игнорируют extraOrigins. Чтобы выключить в сборке для разработки, удалите extraOrigins из settings.json или очистите VF_EXTRA_ORIGINS и перезапустите агент.",
     showRiskDetails: "Подробнее о риске",
     hideRiskDetails: "Скрыть подробности",
     dismissTitle: "Скрыть предупреждение",
-    compactNotice: "Разрешены сторонние источники ({count}): {origins}",
+    compactNotice: "Сборка для разработки: разрешены сторонние веб-источники",
     showWarning: "Показать предупреждение",
   },
   home: {

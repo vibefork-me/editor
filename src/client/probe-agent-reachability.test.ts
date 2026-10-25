@@ -20,7 +20,7 @@ describe("probeAgentReachability", () => {
     expect(result).toEqual({ status: "online" });
   });
 
-  it("returns extraOrigins when present in hello response", async () => {
+  it("reports extra origins when the hello response says they are active", async () => {
     const fetchMock = vi.fn(async (input: RequestInfo) => {
       const url = String(input);
       if (url.includes(":47802/v1/hello")) {
@@ -29,7 +29,7 @@ describe("probeAgentReachability", () => {
             agent: "vibefork",
             platform: "windows",
             version: "0.1.0",
-            extraOrigins: ["http://localhost:5173"],
+            extraOriginsActive: true,
           }),
           { status: 200 },
         );
@@ -40,7 +40,7 @@ describe("probeAgentReachability", () => {
     const result = await probeAgentReachability(fetchMock as typeof fetch);
     expect(result).toEqual({
       status: "online",
-      extraOrigins: ["http://localhost:5173"],
+      extraOriginsActive: true,
     });
   });
 

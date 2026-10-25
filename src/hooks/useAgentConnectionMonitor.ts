@@ -13,7 +13,7 @@ export type AgentConnectionState = {
   online: boolean;
   offlineReason: AgentOfflineReason;
   exiting: boolean;
-  extraOrigins?: string[];
+  extraOriginsActive?: boolean;
 };
 
 export type AgentConnectionMonitorOptions = {
@@ -58,9 +58,7 @@ export function useAgentConnectionMonitor(
       const next: AgentReachability = health.ok
         ? {
             status: "online",
-            ...(health.extraOrigins && health.extraOrigins.length > 0
-              ? { extraOrigins: health.extraOrigins }
-              : {}),
+            ...(health.extraOriginsActive ? { extraOriginsActive: true } : {}),
           }
         : await probeAgentReachability();
 
@@ -111,6 +109,6 @@ export function useAgentConnectionMonitor(
     offlineReason:
       reachability.status === "offline" ? reachability.reason : "agent-not-running",
     exiting,
-    extraOrigins: reachability.status === "online" ? reachability.extraOrigins : undefined,
+    extraOriginsActive: reachability.status === "online" ? reachability.extraOriginsActive : undefined,
   };
 }

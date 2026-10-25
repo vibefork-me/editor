@@ -1,5 +1,4 @@
 export type {
-  AgentCapabilities,
   AgentTransport,
   GraphSnapshot,
   ModelInfo,
