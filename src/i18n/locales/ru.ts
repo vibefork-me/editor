@@ -211,4 +211,14 @@ export const ru: TranslationSchema = {
     en: "English",
     selectLanguage: "Сменить язык",
   },
+  status: {
+    agentOk: "Агент работает",
+    agentOkHint: "Vibefork на вашем компьютере запущен и отвечает.",
+    reconnecting: "Связь прервалась",
+    reconnectingHint: "Восстанавливаю связь с Vibefork на компьютере. Ничего делать не нужно.",
+    connecting: "Подключаюсь…",
+    connectingHint: "Связываюсь с Vibefork на вашем компьютере.",
+    ai: "ИИ: {name}",
+    aiHint: "Работу делает {name}. Модель: {model}.",
+  },
 };

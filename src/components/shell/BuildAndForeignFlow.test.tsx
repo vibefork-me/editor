@@ -12,7 +12,7 @@ import { StatusBar } from "./StatusBar.tsx";
 import type { AgentTransport, BuildMessage, BuildOutcome } from "../../client/types.ts";
 
 vi.mock("../../hooks/useModelLabel.ts", () => ({
-  useModelLabel: () => "Claude 3.5 Sonnet",
+  useModelLabel: () => ({ name: "Claude", model: "Claude 3.5 Sonnet" }),
 }));
 
 vi.mock("../../client/react/useAgentClient.ts", () => ({

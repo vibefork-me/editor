@@ -8,26 +8,26 @@ import { useSessionStore } from "../../stores/sessionStore.ts";
 import { IconCheck } from "./icons.tsx";
 import { ProjectPickerModal } from "./ProjectPickerModal.tsx";
 
+/** The page is shown only while the agent answers (`AgentConnectionGate`), so there is no "offline"
+ * here: only the task socket reconnecting, or the first connection. */
 function connectionPresentation(status: ReturnType<typeof useSessionStore.getState>["connectionStatus"]) {
   switch (status) {
     case "connected":
-      return {
-        label: "Connected",
-        dotClass: "bg-status-connected",
-        pulse: false,
-      };
+      return { label: "status.agentOk", hint: "status.agentOkHint", dotClass: "bg-status-connected", pulse: false } as const;
     case "reconnecting":
       return {
-        label: "Reconnecting",
+        label: "status.reconnecting",
+        hint: "status.reconnectingHint",
         dotClass: "bg-status-reconnecting",
         pulse: true,
-      };
+      } as const;
     default:
       return {
-        label: "Offline",
-        dotClass: "bg-status-offline",
-        pulse: false,
-      };
+        label: "status.connecting",
+        hint: "status.connectingHint",
+        dotClass: "bg-status-reconnecting",
+        pulse: true,
+      } as const;
   }
 }
 
@@ -105,16 +105,19 @@ export function StatusBar() {
             )}
           </button>
         )}
-        <span className="ml-auto flex items-center gap-2 text-text-muted">
+        <span className="ml-auto flex items-center gap-2 text-text-muted" title={t(conn.hint)}>
           <span
             className={`inline-block size-2 rounded-full ${conn.dotClass} ${conn.pulse ? "animate-status-reconnect" : ""}`}
             aria-hidden="true"
           />
-          <span>{conn.label}</span>
+          <span>{t(conn.label)}</span>
         </span>
         {modelLabel ? (
-          <span className="rounded border border-border px-2 py-0.5 font-mono text-xs text-text-muted">
-            {modelLabel}
+          <span
+            className="rounded border border-border px-2 py-0.5 text-xs text-text-muted"
+            title={t("status.aiHint", { name: modelLabel.name, model: modelLabel.model })}
+          >
+            {t("status.ai", { name: modelLabel.name })}
           </span>
         ) : null}
       </header>
