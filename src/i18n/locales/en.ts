@@ -64,6 +64,7 @@ export const en: TranslationSchema = {
     enterKeyInAgentNotice: "Enter the key in the agent window…",
     installingNotice: "Installing the official app… (downloading up to ~300 MB)",
     timedOutNotice: "Sign-in timed out. Please try again.",
+    notConfirmedNotice: "Action was blocked or cancelled in the agent dialog.",
     openRouterKeyRejected: "Key rejected by OpenRouter. Check the key and try again.",
     getFreeKeyLink: "Get a free key",
     openAgent: "Open agent",
@@ -143,6 +144,7 @@ export const en: TranslationSchema = {
     dismissBanner: "Dismiss",
     errorNoConnection: "No connection to local agent.",
     errorProcessFailed: "Build failed. See the log above for details.",
+    errorNotConfirmed: "Build was not confirmed in the agent dialog.",
     errorGeneral: "Failed to execute build.",
   },
   project: {

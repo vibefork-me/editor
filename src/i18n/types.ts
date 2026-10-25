@@ -63,6 +63,7 @@ export interface TranslationSchema {
     enterKeyInAgentNotice: string;
     installingNotice: string;
     timedOutNotice: string;
+    notConfirmedNotice: string;
     openRouterKeyRejected: string;
     getFreeKeyLink: string;
     openAgent: string;
@@ -139,6 +140,7 @@ export interface TranslationSchema {
     dismissBanner: string;
     errorNoConnection: string;
     errorProcessFailed: string;
+    errorNotConfirmed: string;
     errorGeneral: string;
   };
   project: {

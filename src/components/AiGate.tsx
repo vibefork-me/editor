@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import type { AiProvider } from "../client/types.ts";
+import { AgentApiError, type AiProvider } from "../client/types.ts";
 import { useAgentClient } from "../client/react/useAgentClient.ts";
 import { useI18n } from "../i18n/index.ts";
 import { useSessionStore } from "../stores/sessionStore.ts";
@@ -100,7 +100,13 @@ export function AiGate({ children, pollIntervalMs = POLL_INTERVAL_MS }: AiGatePr
           (msg.toLowerCase().includes("openrouter") ||
             msg.toLowerCase().includes("key") ||
             (typeof err === "object" && err !== null && "status" in err && (err as { status?: number }).status === 400));
-        if (isBadKey) {
+        const isNotConfirmed =
+          (err instanceof AgentApiError && err.code === "action_not_confirmed") ||
+          (typeof err === "object" && err !== null && "code" in err && (err as { code?: string }).code === "action_not_confirmed") ||
+          msg.toLowerCase().includes("not confirmed");
+        if (isNotConfirmed) {
+          setErrorMessage(t("connectAi.notConfirmedNotice"));
+        } else if (isBadKey) {
           setErrorMessage(t("connectAi.openRouterKeyRejected"));
         } else {
           setErrorMessage(msg || t("connectAi.errorNotice"));

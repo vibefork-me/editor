@@ -170,7 +170,9 @@ export function DoneSummary({
                 ? t("build.errorNoConnection")
                 : storeErrorKey === "processFailed"
                   ? t("build.errorProcessFailed")
-                  : storeError ?? t("build.failed")}
+                  : storeErrorKey === "buildNotConfirmed"
+                    ? t("build.errorNotConfirmed")
+                    : storeError ?? t("build.failed")}
             </p>
           )}
 
