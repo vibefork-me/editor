@@ -140,3 +140,33 @@ describe("buildLogLine", () => {
     expect(line({ type: "build_done", code: 0 })).toBeNull();
   });
 });
+
+describe("projects", () => {
+  const list = {
+    root: "/p",
+    projects: ["app", "app-2", "other"],
+    details: [
+      { name: "app", source: "Owner/App", commit: "a" },
+      { name: "app-2", source: "fork/app", original: "owner/app", commit: "b" },
+      { name: "other", source: "x/y" },
+    ],
+  };
+  const fetchImpl = sessionFetch((url, init) => {
+    if (url.endsWith("/v1/projects")) return new Response(JSON.stringify(list));
+    if (url.endsWith("/v1/projects/import")) {
+      const body = JSON.parse(String(init?.body)) as { repo: string; ref?: string };
+      return new Response(JSON.stringify({ project: "new", upstream: body.repo, commit: "c" }));
+    }
+    return undefined;
+  });
+
+  it("finds projects taken from a repository or from a fork of it", async () => {
+    const t = transportWithSession(fetchImpl);
+    expect(await t.findProjectsByUpstream("owner/app")).toEqual([{ projectId: "app" }, { projectId: "app-2" }]);
+  });
+
+  it("clones through the agent's import", async () => {
+    const t = transportWithSession(fetchImpl);
+    expect(await t.cloneProject({ upstream: "owner/app", ref: "main" })).toEqual({ projectId: "new" });
+  });
+});
