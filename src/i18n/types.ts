@@ -111,6 +111,24 @@ export interface TranslationSchema {
     buildFailed: string;
     buildCancelled: string;
   };
+  build: {
+    action: string;
+    building: string;
+    rebuild: string;
+    succeeded: string;
+    failed: string;
+    cancelled: string;
+    artifactsPath: string;
+    copyPath: string;
+    pathCopied: string;
+    logTitle: string;
+    toggleLog: string;
+    hideLog: string;
+    showLog: string;
+    confirmNote: string;
+    noArtifacts: string;
+    dismissBanner: string;
+  };
   project: {
     title: string;
     placeholder: string;
