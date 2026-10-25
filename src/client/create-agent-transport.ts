@@ -450,7 +450,7 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
       return agentSession({ type: "build", project }, onMessage, (msg) => {
         if (msg.type === "build_done")
           return { kind: "done", code: msg.code, artifacts: msg.artifacts ?? undefined, files: msg.files };
-        if (msg.type === "error") return { kind: "error", error: msg.error };
+        if (msg.type === "error") return { kind: "error", error: msg.error, code: msg.code ?? undefined };
         if (msg.type === "cancelled") return { kind: "cancelled" };
         return null;
       });
@@ -470,7 +470,7 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
         (msg) => {
           if (msg.type === "done")
             return { kind: "done", code: msg.code, status: msg.status, commit: msg.commit ?? undefined };
-          if (msg.type === "error") return { kind: "error", error: msg.error };
+          if (msg.type === "error") return { kind: "error", error: msg.error, code: msg.code ?? undefined };
           if (msg.type === "cancelled") return { kind: "cancelled" };
           return null;
         },

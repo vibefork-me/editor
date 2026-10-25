@@ -153,7 +153,7 @@ export type BuildMessage = ServerMessage;
 /** How a build ended. */
 export type BuildOutcome =
   | { kind: "done"; code: number; artifacts?: string; files: string[] }
-  | { kind: "error"; error: string }
+  | { kind: "error"; error: string; code?: string }
   | { kind: "cancelled" };
 
 export interface AgentTransport {

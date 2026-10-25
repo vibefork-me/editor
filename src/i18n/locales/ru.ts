@@ -64,6 +64,7 @@ export const ru: TranslationSchema = {
     enterKeyInAgentNotice: "Введите ключ в окне агента…",
     installingNotice: "Устанавливаю официальное приложение… (загрузка до ~300 МБ)",
     timedOutNotice: "Время ожидания входа истекло. Попробуйте снова.",
+    notConfirmedNotice: "Действие заблокировано или отменено в окне агента.",
     openRouterKeyRejected: "Ключ не принят OpenRouter, проверьте и попробуйте снова.",
     getFreeKeyLink: "Получить бесплатный ключ",
     openAgent: "Открыть агент",
@@ -143,6 +144,7 @@ export const ru: TranslationSchema = {
     dismissBanner: "Закрыть",
     errorNoConnection: "Нет связи с локальным агентом.",
     errorProcessFailed: "Сборка завершилась с ошибкой. Подробности — в логе выше.",
+    errorNotConfirmed: "Сборка не была подтверждена в окне агента.",
     errorGeneral: "Не удалось выполнить сборку.",
   },
   project: {

@@ -16,7 +16,7 @@ export function buildLogLine(m: BuildMessage): string | null {
 }
 
 export type BuildStatus = "idle" | "building" | "built" | "failed" | "cancelled";
-export type BuildErrorKind = "noConnection" | "processFailed" | "agentError" | "general";
+export type BuildErrorKind = "noConnection" | "processFailed" | "agentError" | "buildNotConfirmed" | "general";
 
 export interface BuildState {
   activeProjectId: string | null;
@@ -155,10 +155,14 @@ export const useBuildStore = create<BuildState>((set, get) => ({
           });
         }
       } else if (outcome.kind === "error") {
+        const errorKey =
+          outcome.code === "build_not_confirmed" || outcome.error === "build not confirmed"
+            ? "buildNotConfirmed"
+            : "agentError";
         set({
           status: "failed",
           outcome,
-          errorKey: "agentError",
+          errorKey,
           error: outcome.error,
         });
       } else if (outcome.kind === "cancelled") {

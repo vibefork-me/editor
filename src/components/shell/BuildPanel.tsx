@@ -146,7 +146,9 @@ export function BuildPanel() {
                   ? t("build.errorNoConnection")
                   : errorKey === "processFailed"
                     ? t("build.errorProcessFailed")
-                    : error ?? t("build.errorGeneral")}
+                    : errorKey === "buildNotConfirmed"
+                      ? t("build.errorNotConfirmed")
+                      : error ?? t("build.errorGeneral")}
               </span>
             </div>
           )}

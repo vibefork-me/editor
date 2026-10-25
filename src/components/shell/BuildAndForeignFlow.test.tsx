@@ -208,6 +208,40 @@ describe("Workspace build and foreign changes flow", () => {
           screen.getByText(/Сборка завершилась с ошибкой\. Подробности — в логе выше\./i)
         ).toBeTruthy();
       });
+      useI18nStore.getState().setLocale("en");
+    });
+
+    it("displays localized error message when build is not confirmed", async () => {
+      const mockRunBuild = vi.fn(async (): Promise<BuildOutcome> => {
+        return {
+          kind: "error",
+          error: "build not confirmed",
+          code: "build_not_confirmed",
+        };
+      });
+
+      const mockTransport = {
+        runBuild: mockRunBuild,
+      } as unknown as AgentTransport;
+
+      bindAgentTransport(mockTransport);
+
+      render(<BuildPanel />);
+
+      await useBuildStore.getState().startBuild("test-proj");
+
+      await waitFor(() => {
+        expect(screen.getByRole("alert")).toBeTruthy();
+        expect(screen.getByText(/Build was not confirmed in the agent dialog\./i)).toBeTruthy();
+      });
+
+      useI18nStore.getState().setLocale("ru");
+      await waitFor(() => {
+        expect(
+          screen.getByText(/Сборка не была подтверждена в окне агента\./i)
+        ).toBeTruthy();
+      });
+      useI18nStore.getState().setLocale("en");
     });
 
     it("displays localized error message when agent transport is offline", async () => {
