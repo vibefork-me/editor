@@ -29,17 +29,6 @@ class MockWebSocket {
   send(data: string): void {
     this.sent.push(data);
     const msg = JSON.parse(data) as Record<string, unknown>;
-    if (msg.type === "task_start" && typeof msg.requestId === "string") {
-      queueMicrotask(() => {
-        this.emit({
-          type: "task_accepted",
-          requestId: msg.requestId,
-          taskId: "task-1",
-          state: "queued",
-          lastEventId: 0,
-        });
-      });
-    }
     if (msg.type === "graph_focus" && typeof msg.requestId === "string") {
       queueMicrotask(() => {
         this.emit({
@@ -191,7 +180,7 @@ describe("agent-client transport", () => {
     expect(tried.map((u) => new URL(u).port)).toEqual(["47801", "47802", "47803"]);
   });
 
-  it("replays project and task streams with independent cursors", async () => {
+  it("replays project stream with cursor", async () => {
     let ws: MockWebSocket | null = null;
     const fetchMock = vi.fn(async (input: RequestInfo) => {
       if (String(input).endsWith("/v1/hello")) {
@@ -215,17 +204,10 @@ describe("agent-client transport", () => {
     await client.authenticateSession({} as CryptoKey);
 
     const snapshots: GraphSnapshot[] = [];
-    const events: number[] = [];
     client.subscribeProjectResearch({
       projectId: "demo",
       afterCursor: "cur-9",
       onSnapshot: (s) => snapshots.push(s),
-      onGap: () => {},
-    });
-    client.subscribeTask({
-      taskId: "task-1",
-      afterEventId: 42,
-      onEvent: (ev) => events.push(ev.eventId),
       onGap: () => {},
     });
 
@@ -233,11 +215,7 @@ describe("agent-client transport", () => {
     const projectSub = JSON.parse(
       ws!.sent.find((s) => JSON.parse(s).type === "project_research_subscribe")!,
     ) as { afterCursor?: string };
-    const taskSub = JSON.parse(
-      ws!.sent.find((s) => JSON.parse(s).type === "task_subscribe")!,
-    ) as { afterEventId?: number };
     expect(projectSub.afterCursor).toBe("cur-9");
-    expect(taskSub.afterEventId).toBe(42);
 
     ws!.emit({
       type: "project_event",
@@ -246,17 +224,8 @@ describe("agent-client transport", () => {
       eventType: "graph_update",
       data: { revision: 1, nodes: [], edges: [], focus: null, phase: "exploring" },
     });
-    ws!.emit({
-      type: "task_event",
-      taskId: "task-1",
-      eventId: 43,
-      at: "2026-01-01T00:00:00Z",
-      eventType: "step_started",
-      data: {},
-    });
 
     expect(snapshots).toHaveLength(1);
-    expect(events).toEqual([43]);
   });
 
   it("resets project buffer on replay_gap and resubscribes without cursor", async () => {

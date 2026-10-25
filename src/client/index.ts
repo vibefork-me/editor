@@ -9,7 +9,6 @@ export type {
   SaveProjectResult,
   SaveStep,
   Subscription,
-  TaskEvent,
 } from "./types.ts";
 export {
   AGENT_LOOPBACK_HOSTS,

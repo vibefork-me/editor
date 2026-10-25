@@ -37,15 +37,6 @@ export interface ModelInfo {
   tier: number;
 }
 
-export interface TaskStartParams {
-  projectId: string;
-  prompt: string;
-  provider?: string;
-  model?: string;
-  continue?: boolean;
-  mode?: string;
-}
-
 export type SaveStep =
   | "saved"
   | "unchanged"
@@ -74,25 +65,6 @@ export interface PairStartResult {
 export interface PairStatusResult {
   status: "pending" | "approved" | "denied";
   keyId?: string;
-}
-
-export interface TaskAnswerParams {
-  taskId: string;
-  questionId: string;
-  answer: string;
-}
-
-export interface PlanApproveParams {
-  taskId: string;
-  planId: string;
-}
-
-export interface TaskEvent {
-  taskId: string;
-  eventId: number;
-  at: string;
-  type: string;
-  data: unknown;
 }
 
 export interface Subscription {
@@ -151,16 +123,7 @@ export interface AgentTransport {
     onGap: () => void;
   }): Subscription;
 
-  startTask(params: TaskStartParams): Promise<{ taskId: string }>;
   saveProject(params: { projectId: string; copy?: string }): Promise<SaveProjectResult>;
-  subscribeTask(params: {
-    taskId: string;
-    afterEventId?: number;
-    onEvent: (event: TaskEvent) => void;
-    onGap: () => void;
-  }): Subscription;
-  sendAnswer(params: TaskAnswerParams): Promise<void>;
-  approvePlan(params: PlanApproveParams): Promise<void>;
 
   focusNode(params: { projectId: string; nodeId: string }): Promise<{ accepted: boolean }>;
   explainNode(params: { projectId: string; nodeId: string }): Promise<{ explanation: string }>;
