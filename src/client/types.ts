@@ -197,7 +197,14 @@ export interface AgentTransport {
   importProject(req: ImportProjectRequest): Promise<ImportProjectResult>;
   /** Runs a task in a project over the agent's own messages; streams them; resolves when it ends. */
   runTask(
-    params: { projectId: string; prompt: string; provider?: string; model?: string; continue?: boolean },
+    params: {
+      projectId: string;
+      prompt: string;
+      provider?: string;
+      model?: string;
+      continue?: boolean;
+      lang?: string;
+    },
     onMessage: (m: ServerMessage) => void,
   ): Promise<TaskOutcome>;
   /** Builds a project (the agent asks the user in a native dialog); streams its messages. */

@@ -13,7 +13,7 @@ import { useGraphStore } from "../stores/graphStore.ts";
 import { feedLine, phaseFromMessage, type FeedLine } from "../client/task-feed.ts";
 
 export function ProjectPage() {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const { projectId } = useParams<{ projectId: string }>();
   const selectProject = useProjectStore((s) => s.selectProject);
   const currentProjectId = useProjectStore((s) => s.currentProjectId);
@@ -38,7 +38,9 @@ export function ProjectPage() {
     setFeed((f) => [...f, { kind: "status", text: `> ${prompt}` }]);
     try {
       // The agent runs the task over its own messages; each one becomes a chat line.
-      const outcome = await transport.runTask({ projectId: currentProjectId, prompt }, (m) => {
+      const outcome = await transport.runTask(
+        { projectId: currentProjectId, prompt, lang: locale },
+        (m) => {
         const line = feedLine(m);
         if (line) setFeed((f) => [...f.slice(-499), line]);
         const nextPhase = phaseFromMessage(m);

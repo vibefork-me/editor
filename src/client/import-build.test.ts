@@ -189,9 +189,29 @@ describe("runTask", () => {
       provider: null,
       model: null,
       continue: false,
+      lang: null,
     });
     expect(seen).toEqual(["started", "evt", "done"]);
     expect(outcome).toEqual({ kind: "done", code: 0, status: "1 file changed", commit: "abc" });
+  });
+
+  it("passes interface language code in task message", async () => {
+    AgentSocket.script = [
+      { type: "started", project: "demo", provider: "claude", model: "s", resume: false, handoff: false, toolchain: [] },
+      { type: "done", code: 0, diff: "", status: "", commit: "abc" },
+    ];
+    const t = transportWithSession(sessionFetch());
+    await t.authenticateSession({} as CryptoKey);
+    await t.runTask({ projectId: "demo", prompt: "fix it", lang: "ru" }, () => {});
+    expect(AgentSocket.last?.sent[1]).toEqual({
+      type: "task",
+      project: "demo",
+      prompt: "fix it",
+      provider: null,
+      model: null,
+      continue: false,
+      lang: "ru",
+    });
   });
 });
 
