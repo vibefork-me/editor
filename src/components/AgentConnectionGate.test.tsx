@@ -16,6 +16,10 @@ vi.mock("./PairingGate.tsx", () => ({
   PairingGate: ({ children }: { children: ReactNode }) => children,
 }));
 
+vi.mock("./AiGate.tsx", () => ({
+  AiGate: ({ children }: { children: ReactNode }) => children,
+}));
+
 import { useAgentConnectionMonitor } from "../hooks/useAgentConnectionMonitor.ts";
 
 describe("AgentConnectionGate", () => {
