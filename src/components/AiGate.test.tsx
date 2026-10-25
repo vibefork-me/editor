@@ -32,9 +32,9 @@ describe("AiGate", () => {
     mocks.client.getAiStatus.mockResolvedValue({
       ready: false,
       providers: [
-        { id: "claude", kind: "subscription", installed: true, connected: "no" },
-        { id: "codex", kind: "subscription", installed: false, connected: "no" },
-        { id: "openrouter", kind: "free", installed: true, connected: "no" },
+        { id: "claude", kind: "subscription", installed: true, installing: false, connected: "no" },
+        { id: "codex", kind: "subscription", installed: false, installing: false, connected: "no" },
+        { id: "openrouter", kind: "free", installed: true, installing: false, connected: "no" },
       ],
     });
 
@@ -50,15 +50,17 @@ describe("AiGate", () => {
 
     // Claude is installed -> shows "Войти" button
     expect(screen.getByText("Claude")).toBeTruthy();
-    expect(screen.getByRole("button", { name: /Войти/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Войти" })).toBeTruthy();
 
-    // Codex is not installed -> shows "Не установлен (скоро)"
+    // Codex is not installed -> shows "Установить и войти" button
     expect(screen.getByText("ChatGPT (Codex)")).toBeTruthy();
-    expect(screen.getByText(/Не установлен \(скоро\)/i)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Установить и войти" })).toBeTruthy();
 
-    // OpenRouter -> shows "Скоро"
+    // OpenRouter -> shows "Ввести ключ" button and link to get free key
     expect(screen.getByText("OpenRouter")).toBeTruthy();
-    expect(screen.getByText("Скоро")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Ввести ключ/i })).toBeTruthy();
+    const keyLink = screen.getByRole("link", { name: /Получить бесплатный ключ/i });
+    expect(keyLink.getAttribute("href")).toBe("https://openrouter.ai/keys");
 
     // Link to launch agent
     expect(
@@ -105,7 +107,7 @@ describe("AiGate", () => {
       </AiGate>,
     );
 
-    const signInButton = await screen.findByRole("button", { name: /Войти/i });
+    const signInButton = await screen.findByRole("button", { name: "Войти" });
     expect(signInButton).toBeTruthy();
 
     // Setup polling response: next check returns ready: true
@@ -197,12 +199,101 @@ describe("AiGate", () => {
     expect(screen.getByRole("button", { name: /Взять этот код/i })).toBeTruthy();
   });
 
+  it("handles OpenRouter key entry, cancellation, invalid key 400 error, and success", async () => {
+    mocks.client.getAiStatus.mockResolvedValue({
+      ready: false,
+      providers: [
+        { id: "openrouter", kind: "free", installed: true, installing: false, connected: "no" },
+      ],
+    });
+
+    render(
+      <AiGate>
+        <p>Protected editor workspace</p>
+      </AiGate>,
+    );
+
+    const enterKeyBtn = await screen.findByRole("button", { name: /Ввести ключ/i });
+    expect(enterKeyBtn).toBeTruthy();
+
+    // 1. Cancellation / empty key -> started: false (button is restored without error)
+    mocks.client.connectAi.mockResolvedValueOnce({ started: false });
+    fireEvent.click(enterKeyBtn);
+    expect(mocks.client.connectAi).toHaveBeenCalledWith("openrouter");
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /Ввести ключ/i })).toBeTruthy();
+    });
+    expect(screen.queryByRole("alert")).toBeNull();
+
+    // 2. Invalid key -> 400 Bad Request error
+    const badKeyError = new Error("invalid OpenRouter key: 401 Unauthorized");
+    (badKeyError as { status?: number }).status = 400;
+    mocks.client.connectAi.mockRejectedValueOnce(badKeyError);
+
+    fireEvent.click(screen.getByRole("button", { name: /Ввести ключ/i }));
+
+    expect(
+      await screen.findByText(/Ключ не принят OpenRouter, проверьте и попробуйте снова/i),
+    ).toBeTruthy();
+    expect(screen.getByRole("alert")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Ввести ключ/i })).toBeTruthy();
+
+    // 3. Valid key -> started: true, getAiStatus returns ready: true -> unblocks workspace
+    mocks.client.connectAi.mockResolvedValueOnce({ started: true });
+    mocks.client.getAiStatus.mockResolvedValueOnce({
+      ready: true,
+      providers: [
+        { id: "openrouter", kind: "free", installed: true, installing: false, connected: "yes" },
+      ],
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /Ввести ключ/i }));
+
+    expect(await screen.findByText("Protected editor workspace")).toBeTruthy();
+  });
+
+  it("handles uninstalled CLI installation and installing notice", async () => {
+    mocks.client.getAiStatus.mockResolvedValueOnce({
+      ready: false,
+      providers: [
+        { id: "claude", kind: "subscription", installed: false, installing: false, connected: "no" },
+      ],
+    });
+
+    render(
+      <AiGate pollIntervalMs={20}>
+        <p>Protected editor workspace</p>
+      </AiGate>,
+    );
+
+    const installBtn = await screen.findByRole("button", { name: /Установить и войти/i });
+    expect(installBtn).toBeTruthy();
+
+    mocks.client.connectAi.mockResolvedValueOnce({ started: true });
+    // Next poll returns installing: true
+    mocks.client.getAiStatus.mockResolvedValueOnce({
+      ready: false,
+      providers: [
+        { id: "claude", kind: "subscription", installed: false, installing: true, connected: "no" },
+      ],
+    });
+
+    fireEvent.click(installBtn);
+    expect(mocks.client.connectAi).toHaveBeenCalledWith("claude");
+
+    expect(
+      await screen.findByText(/Устанавливаю официальное приложение… \(загрузка до ~300 МБ\)/i),
+    ).toBeTruthy();
+  });
+
   it("supports language switching on the Connect AI screen", async () => {
     mocks.client.getAiStatus.mockResolvedValue({
       ready: false,
       providers: [
-        { id: "claude", kind: "subscription", installed: true, connected: "no" },
-        { id: "codex", kind: "subscription", installed: false, connected: "no" },
+        { id: "claude", kind: "subscription", installed: true, installing: false, connected: "no" },
+        { id: "codex", kind: "subscription", installed: false, installing: false, connected: "no" },
+        { id: "openrouter", kind: "free", installed: true, installing: false, connected: "no" },
       ],
     });
 
@@ -217,6 +308,8 @@ describe("AiGate", () => {
     ).toBeTruthy();
     expect(screen.getAllByText("Подписка").length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "Войти" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Установить и войти" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Ввести ключ" })).toBeTruthy();
 
     // Switch to English
     fireEvent.click(screen.getByRole("button", { name: /English language/i }));
@@ -225,7 +318,9 @@ describe("AiGate", () => {
     });
     expect(screen.getAllByText("Subscription").length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "Sign in" })).toBeTruthy();
-    expect(screen.getByText(/Not installed \(coming soon\)/i)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Install and sign in" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Enter key" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Get a free key" })).toBeTruthy();
 
     // Switch back to Russian
     fireEvent.click(screen.getByRole("button", { name: /Русский язык/i }));
@@ -235,5 +330,7 @@ describe("AiGate", () => {
       ).toBeTruthy();
     });
     expect(screen.getByRole("button", { name: "Войти" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Установить и войти" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Ввести ключ" })).toBeTruthy();
   });
 });

@@ -13,9 +13,9 @@ export type ConnectAiScreenProps = {
 };
 
 const DEFAULT_PROVIDERS: AiProvider[] = [
-  { id: "claude", kind: "subscription", installed: true, connected: "no" },
-  { id: "codex", kind: "subscription", installed: true, connected: "no" },
-  { id: "openrouter", kind: "free", installed: true, connected: "no" },
+  { id: "claude", kind: "subscription", installed: true, installing: false, connected: "no" },
+  { id: "codex", kind: "subscription", installed: true, installing: false, connected: "no" },
+  { id: "openrouter", kind: "free", installed: true, installing: false, connected: "no" },
 ];
 
 const PROVIDER_NAMES: Record<string, string> = {
@@ -64,6 +64,7 @@ export function ConnectAiScreen({
           {list.map((provider) => {
             const isConnecting = connectingProvider === provider.id;
             const isConnected = provider.connected === "yes";
+            const isInstalling = provider.installing;
             const name = PROVIDER_NAMES[provider.id] ?? provider.id;
 
             return (
@@ -108,14 +109,46 @@ export function ConnectAiScreen({
 
                 {/* Status & Actions */}
                 <div>
-                  {isConnected ? null : !provider.installed ? (
-                    <p className="text-xs font-medium text-neutral-500">
-                      {t("connectAi.notInstalledNotice")}
-                    </p>
+                  {isConnected ? null : isInstalling ? (
+                    <div
+                      role="status"
+                      className="flex items-center gap-2 rounded-md border border-blue-900/40 bg-blue-950/30 px-3 py-2 text-xs text-blue-300 animate-slide-up"
+                    >
+                      <span className="h-2 w-2 rounded-full bg-blue-400 animate-ping shrink-0" />
+                      <span>{t("connectAi.installingNotice")}</span>
+                    </div>
                   ) : provider.id === "openrouter" ? (
-                    <p className="text-xs font-medium text-neutral-500">
-                      {t("connectAi.comingSoonNotice")}
-                    </p>
+                    <div className="space-y-2">
+                      {isConnecting && (
+                        <div
+                          role="status"
+                          className="flex items-center gap-2 rounded-md border border-amber-900/40 bg-amber-950/30 px-3 py-2 text-xs text-amber-300 animate-slide-up"
+                        >
+                          <span className="h-2 w-2 rounded-full bg-amber-400 animate-ping shrink-0" />
+                          <span>{t("connectAi.enterKeyInAgentNotice")}</span>
+                        </div>
+                      )}
+                      <div className="flex flex-wrap items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => onConnect?.(provider.id)}
+                          disabled={isConnecting || isChecking}
+                          className="inline-flex items-center justify-center rounded-lg bg-neutral-100 px-4 py-2 text-xs font-semibold text-neutral-950 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-300 disabled:opacity-50 cursor-pointer"
+                        >
+                          {isConnecting
+                            ? t("connectAi.checking")
+                            : t("connectAi.enterKeyAction")}
+                        </button>
+                        <a
+                          href="https://openrouter.ai/keys"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-neutral-400 hover:text-neutral-200 underline underline-offset-2"
+                        >
+                          {t("connectAi.getFreeKeyLink")}
+                        </a>
+                      </div>
+                    </div>
                   ) : (
                     <div className="space-y-2">
                       {isConnecting && (
@@ -135,7 +168,9 @@ export function ConnectAiScreen({
                       >
                         {isConnecting
                           ? t("connectAi.checking")
-                          : t("connectAi.signInAction")}
+                          : !provider.installed
+                            ? t("connectAi.installAndSignInAction")
+                            : t("connectAi.signInAction")}
                       </button>
                     </div>
                   )}
@@ -160,9 +195,7 @@ export function ConnectAiScreen({
           role="alert"
           className="rounded-lg border border-red-900/50 bg-red-950/30 p-3 text-xs text-red-300"
         >
-          {errorMessage === t("connectAi.timedOutNotice")
-            ? errorMessage
-            : t("connectAi.errorNotice")}
+          {errorMessage}
         </div>
       ) : null}
 
