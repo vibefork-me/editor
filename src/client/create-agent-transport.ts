@@ -465,6 +465,7 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
           provider: params.provider ?? null,
           model: params.model ?? null,
           continue: params.continue ?? false,
+          lang: params.lang ?? null,
         },
         onMessage,
         (msg) => {
