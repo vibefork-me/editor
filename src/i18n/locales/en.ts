@@ -181,6 +181,8 @@ export const en: TranslationSchema = {
     viewParts: "Parts",
     viewFolders: "Folders",
     describingMap: "Drawing project map…",
+    partsFailed: "Could not split the project into parts — showing folders.",
+    partsRetry: "Try again",
     doneSummaryTitle: "Task completed",
     doneSummarySubtitle: "All modules verified and ready to commit.",
     saveAction: "Save",

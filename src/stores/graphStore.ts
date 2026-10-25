@@ -6,6 +6,9 @@ import type { GraphPhase } from "./types.ts";
 
 export type GraphViewMode = "parts" | "folders";
 
+/** Why the map shows folders although parts were asked for. */
+export type MapNotice = { kind: "failed"; reason: string };
+
 export const initialGraphState = {
   revision: 0 as number | string,
   nodes: new Map<string, GraphNode>(),
@@ -20,6 +23,7 @@ export const initialGraphState = {
   isDescribing: false,
   partsMap: null as GraphResponse | null,
   folderMap: null as GraphResponse | null,
+  mapNotice: null as MapNotice | null,
 };
 
 export interface GraphState {
@@ -36,11 +40,14 @@ export interface GraphState {
   isDescribing: boolean;
   partsMap: GraphResponse | null;
   folderMap: GraphResponse | null;
+  mapNotice: MapNotice | null;
 
   setPhase: (phase: GraphPhase) => void;
   loadGraph: (projectId: string, view?: GraphViewMode) => Promise<void>;
   refreshGraph: () => Promise<void>;
   setView: (view: GraphViewMode) => Promise<void>;
+  /** Asks the model for the parts again after a failure. */
+  retryParts: () => Promise<void>;
   applyResponse: (res: GraphResponse) => void;
   applySnapshot: (snapshot: GraphSnapshot) => void;
   setHasGraphCapability: (enabled: boolean) => void;
@@ -106,7 +113,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
         set({ folderMap: res });
         // If we are in "parts" view and source is "folders", auto-describe per VF-155
         if (targetView === "parts") {
-          set({ isDescribing: true });
+          set({ isDescribing: true, mapNotice: null });
           const lang = useI18nStore.getState().locale;
           try {
             const modelRes = await transport.describeGraph({ projectId, lang });
@@ -126,6 +133,11 @@ export const useGraphStore = create<GraphState>((set, get) => ({
             }
             console.warn("Auto-describe failed, falling back to folders:", err);
             if (get().currentView === "parts") {
+              // Folders are shown: the switch says so, and the notice says why.
+              set({
+                currentView: "folders",
+                mapNotice: { kind: "failed", reason: err instanceof Error ? err.message : String(err) },
+              });
               get().applyResponse(res);
             }
             set({ isDescribing: false, isLoading: false });
@@ -148,7 +160,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   setView: async (view: GraphViewMode) => {
     if (get().currentView === view) return;
     const projectId = get().currentProjectId;
-    set({ currentView: view });
+    set({ currentView: view, mapNotice: null });
     if (!projectId) return;
 
     if (view === "folders") {
@@ -164,6 +176,13 @@ export const useGraphStore = create<GraphState>((set, get) => ({
         await get().loadGraph(projectId, "parts");
       }
     }
+  },
+
+  retryParts: async () => {
+    const projectId = get().currentProjectId;
+    if (!projectId) return;
+    set({ partsMap: null, mapNotice: null });
+    await get().loadGraph(projectId, "parts");
   },
 
   refreshGraph: async () => {

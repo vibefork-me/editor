@@ -36,6 +36,8 @@ export function CanvasPanel({ className = "", onAskAbout, onSave }: CanvasPanelP
   const currentView = useGraphStore((s) => s.currentView);
   const setView = useGraphStore((s) => s.setView);
   const isDescribing = useGraphStore((s) => s.isDescribing);
+  const mapNotice = useGraphStore((s) => s.mapNotice);
+  const retryParts = useGraphStore((s) => s.retryParts);
 
   const connectionStatus = useSessionStore((s) => s.connectionStatus);
   const currentProjectId = useProjectStore((s) => s.currentProjectId);
@@ -210,6 +212,21 @@ export function CanvasPanel({ className = "", onAskAbout, onSave }: CanvasPanelP
         >
           <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
           <span>{t("canvas.describingMap")}</span>
+        </div>
+      )}
+
+      {/* Why folders are shown although parts were asked for */}
+      {!isDescribing && mapNotice && (
+        <div
+          data-testid="map-notice"
+          role="status"
+          className="absolute top-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 rounded-full border border-border bg-surface-elevated/95 px-4 py-1.5 text-xs text-text-muted shadow-md backdrop-blur"
+          title={mapNotice.reason}
+        >
+          <span>{t("canvas.partsFailed")}</span>
+          <button type="button" className="font-medium text-accent hover:underline" onClick={() => void retryParts()}>
+            {t("canvas.partsRetry")}
+          </button>
         </div>
       )}
 

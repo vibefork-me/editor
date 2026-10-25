@@ -401,3 +401,38 @@ describe("Zustand stores", () => {
     ).toBe(false);
   });
 });
+
+describe("parts map that the model could not draw", () => {
+  it("switches to folders openly, says why and can try again", async () => {
+    let fail = true;
+    bindAgentTransport({
+      getGraph: vi.fn(async () => ({
+        source: "folders" as const,
+        revision: "r1",
+        nodes: [{ id: "src", label: "src", files: 2, changed: 0 }],
+        edges: [],
+      })),
+      describeGraph: vi.fn(async () => {
+        if (fail) throw new Error("claude/sonnet: answer not understood");
+        return {
+          source: "model" as const,
+          revision: "r2",
+          nodes: [{ id: "p1", label: "Parts", files: 2, changed: 0 }],
+          edges: [],
+        };
+      }),
+    } as unknown as AgentTransport);
+
+    await useProjectStore.getState().selectProject("failing-map");
+    const s = useGraphStore.getState();
+    expect(s.currentView).toBe("folders");
+    expect(s.source).toBe("folders");
+    expect(s.mapNotice).toEqual({ kind: "failed", reason: "claude/sonnet: answer not understood" });
+
+    fail = false;
+    await useGraphStore.getState().retryParts();
+    expect(useGraphStore.getState().currentView).toBe("parts");
+    expect(useGraphStore.getState().source).toBe("model");
+    expect(useGraphStore.getState().mapNotice).toBeNull();
+  });
+});
