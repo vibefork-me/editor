@@ -129,6 +129,8 @@ export interface TranslationSchema {
     modeFile: string;
     modeDiff: string;
     tooLargeWarning: string;
+    binaryWarning: string;
+    forbiddenWarning: string;
     loading: string;
     noFileSelected: string;
   };

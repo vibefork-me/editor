@@ -82,12 +82,16 @@ import type { TaskOutcome } from "./task-feed.ts";
 
 // Messages and bodies the agent defines: generated from its schema (src/client/protocol.generated.ts).
 import type {
+  FileDiffResponse,
+  FileResponse,
   ForeignChanges as AgentForeignChanges,
   Hello,
   ImportRequest,
   ImportResponse,
   ServerMessage,
 } from "./protocol.generated.ts";
+
+export type { FileDiffResponse, FileResponse };
 
 /** `GET /v1/hello` of the agent. */
 export type AgentHello = Hello;
@@ -128,11 +132,11 @@ export interface AgentTransport {
   focusNode(params: { projectId: string; nodeId: string }): Promise<{ accepted: boolean }>;
   explainNode(params: { projectId: string; nodeId: string }): Promise<{ explanation: string }>;
 
-  readFile(params: { projectId: string; path: string }): Promise<{ content: string }>;
+  readFile(params: { projectId: string; path: string }): Promise<FileResponse>;
   readDiff(params: {
     projectId: string;
     path: string;
-  }): Promise<{ original: string; modified: string }>;
+  }): Promise<FileDiffResponse>;
 
   getModels(): Promise<ModelInfo[]>;
 

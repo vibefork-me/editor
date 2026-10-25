@@ -131,6 +131,8 @@ export const en: TranslationSchema = {
     modeFile: "File",
     modeDiff: "Diff",
     tooLargeWarning: "File exceeds preview limit (2 MiB).",
+    binaryWarning: "Binary file is not displayed.",
+    forbiddenWarning: "This file is not displayed.",
     loading: "Loading content...",
     noFileSelected: "No file selected.",
   },

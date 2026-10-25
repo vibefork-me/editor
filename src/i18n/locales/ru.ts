@@ -131,6 +131,8 @@ export const ru: TranslationSchema = {
     modeFile: "Файл",
     modeDiff: "Дифф",
     tooLargeWarning: "Файл превышает лимит предпросмотра (2 MiB).",
+    binaryWarning: "Бинарный файл не отображается.",
+    forbiddenWarning: "Этот файл не показывается.",
     loading: "Загрузка содержимого...",
     noFileSelected: "Файл не выбран.",
   },

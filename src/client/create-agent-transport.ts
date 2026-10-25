@@ -21,10 +21,15 @@ import type {
   Subscription,
 } from "./types.ts";
 import { notifyWsConnection } from "./ws-connection-bridge.ts";
-import type { ClientMessage, ProjectsResponse, ServerMessage } from "./protocol.generated.ts";
+import type {
+  ClientMessage,
+  FileDiffResponse,
+  FileResponse,
+  ProjectsResponse,
+  ServerMessage,
+} from "./protocol.generated.ts";
 import type { TaskOutcome } from "./task-feed.ts";
 
-const MAX_TEXT_BYTES = 2 * 1024 * 1024;
 const SECRET_PATH_DENY = /(?:^|\/)(?:\.env|id_rsa|credentials\.json|\.pem)(?:$|\/)/i;
 
 export type AgentTransportDeps = {
@@ -66,9 +71,6 @@ function assertSafePath(path: string): void {
   }
 }
 
-function utf8ByteLength(text: string): number {
-  return new TextEncoder().encode(text).length;
-}
 
 export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransport {
   const fetchFn = deps.fetch ?? fetch.bind(globalThis);
@@ -460,27 +462,32 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
       return { explanation: String(result.summary ?? "") };
     },
 
-    async readFile(params) {
+    async readFile(params): Promise<FileResponse> {
       assertSafePath(params.path);
       const res = await apiFetch(
-        `/v1/projects/${encodeURIComponent(params.projectId)}/file?path=${encodeURIComponent(params.path)}`,
+        `/v1/file?project=${encodeURIComponent(params.projectId)}&path=${encodeURIComponent(params.path)}`,
       );
-      if (!res.ok) throw new Error("read file failed");
-      const body = (await res.json()) as { content: string };
-      if (utf8ByteLength(body.content) > MAX_TEXT_BYTES) {
-        throw new Error("file too large");
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        const error = new Error(err.error ?? `read file failed (${res.status})`);
+        (error as { status?: number }).status = res.status;
+        throw error;
       }
-      return { content: body.content };
+      return (await res.json()) as FileResponse;
     },
 
-    async readDiff(params) {
+    async readDiff(params): Promise<FileDiffResponse> {
       assertSafePath(params.path);
       const res = await apiFetch(
-        `/v1/projects/${encodeURIComponent(params.projectId)}/git/diff?path=${encodeURIComponent(params.path)}`,
+        `/v1/diff?project=${encodeURIComponent(params.projectId)}&path=${encodeURIComponent(params.path)}`,
       );
-      if (!res.ok) throw new Error("read diff failed");
-      const body = (await res.json()) as { original: string; modified: string };
-      return body;
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        const error = new Error(err.error ?? `read diff failed (${res.status})`);
+        (error as { status?: number }).status = res.status;
+        throw error;
+      }
+      return (await res.json()) as FileDiffResponse;
     },
 
     async getModels() {

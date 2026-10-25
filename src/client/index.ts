@@ -1,5 +1,7 @@
 export type {
   AgentTransport,
+  FileDiffResponse,
+  FileResponse,
   GraphSnapshot,
   ModelInfo,
   PairStartResult,

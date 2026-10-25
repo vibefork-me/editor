@@ -58,8 +58,20 @@ describe("Zustand stores", () => {
 
   it("clears graph, task, and viewer state when selecting another project", async () => {
     bindAgentTransport({
-      readFile: vi.fn(async () => ({ content: "secret from project-a" })),
-      readDiff: vi.fn(async () => ({ original: "a", modified: "b" })),
+      readFile: vi.fn(async () => ({
+        path: "src/main.ts",
+        size: 21,
+        tooLarge: false,
+        binary: false,
+        content: "secret from project-a",
+      })),
+      readDiff: vi.fn(async () => ({
+        path: "src/main.ts",
+        tooLarge: false,
+        binary: false,
+        original: "a",
+        modified: "b",
+      })),
     } as unknown as AgentTransport);
 
     await useProjectStore.getState().selectProject("project-a");
@@ -93,5 +105,66 @@ describe("Zustand stores", () => {
     expect(sessionStorage.length).toBe(0);
 
     setItem.mockRestore();
+  });
+
+  it("handles too-large, binary, forbidden, and missing diff sides in viewerStore", async () => {
+    await useProjectStore.getState().selectProject("demo");
+
+    // too-large file
+    bindAgentTransport({
+      readFile: vi.fn(async () => ({
+        path: "big.dat",
+        size: 3000000,
+        tooLarge: true,
+        binary: false,
+        content: null,
+      })),
+      readDiff: vi.fn(),
+    } as unknown as AgentTransport);
+    await useViewerStore.getState().openFile("big.dat");
+    expect(useViewerStore.getState().isTooLarge).toBe(true);
+    expect(useViewerStore.getState().content).toBeNull();
+
+    // binary file
+    bindAgentTransport({
+      readFile: vi.fn(async () => ({
+        path: "image.png",
+        size: 1024,
+        tooLarge: false,
+        binary: true,
+        content: null,
+      })),
+      readDiff: vi.fn(),
+    } as unknown as AgentTransport);
+    await useViewerStore.getState().openFile("image.png");
+    expect(useViewerStore.getState().isBinary).toBe(true);
+
+    // forbidden file (403)
+    const forbiddenErr = new Error("this file is not shown");
+    (forbiddenErr as { status?: number }).status = 403;
+    bindAgentTransport({
+      readFile: vi.fn(async () => {
+        throw forbiddenErr;
+      }),
+      readDiff: vi.fn(),
+    } as unknown as AgentTransport);
+    await useViewerStore.getState().openFile(".env");
+    expect(useViewerStore.getState().isForbidden).toBe(true);
+    expect(useViewerStore.getState().error).toBeNull();
+
+    // diff with missing sides
+    bindAgentTransport({
+      readFile: vi.fn(),
+      readDiff: vi.fn(async () => ({
+        path: "new.ts",
+        tooLarge: false,
+        binary: false,
+        original: null,
+        modified: "console.log(1);",
+      })),
+    } as unknown as AgentTransport);
+    await useViewerStore.getState().openDiff("new.ts");
+    expect(useViewerStore.getState().diffOriginal).toBe("");
+    expect(useViewerStore.getState().diffModified).toBe("console.log(1);");
   });
 });

@@ -87,6 +87,59 @@ describe("ViewerLayoutContainer", () => {
     expect(screen.getByText(/превышает лимит|exceeds preview limit/i)).toBeTruthy();
   });
 
+  it("renders too-large banner when isTooLarge is set", () => {
+    useViewerStore.setState({
+      isOpen: true,
+      activePath: "huge.dat",
+      mode: "file",
+      isTooLarge: true,
+    });
+
+    render(<ViewerLayoutContainer />);
+    expect(screen.getByTestId("too-large-banner")).toBeTruthy();
+    expect(screen.getByText(/превышает лимит|exceeds preview limit/i)).toBeTruthy();
+  });
+
+  it("renders binary banner when file is binary", () => {
+    useViewerStore.setState({
+      isOpen: true,
+      activePath: "image.png",
+      mode: "file",
+      isBinary: true,
+    });
+
+    render(<ViewerLayoutContainer />);
+    expect(screen.getByTestId("binary-banner")).toBeTruthy();
+    expect(screen.getByText(/бинарный файл|binary file/i)).toBeTruthy();
+  });
+
+  it("renders forbidden banner when file is not displayed", () => {
+    useViewerStore.setState({
+      isOpen: true,
+      activePath: ".env",
+      mode: "file",
+      isForbidden: true,
+    });
+
+    render(<ViewerLayoutContainer />);
+    expect(screen.getByTestId("forbidden-banner")).toBeTruthy();
+    expect(screen.getByText(/не показывается|not displayed/i)).toBeTruthy();
+  });
+
+  it("renders diff viewer with empty string when one side is missing", async () => {
+    useViewerStore.setState({
+      isOpen: true,
+      activePath: "new-file.ts",
+      mode: "diff",
+      diffOriginal: "",
+      diffModified: "console.log('new');",
+    });
+
+    render(<ViewerLayoutContainer />);
+    expect(screen.getByRole("complementary")).toBeTruthy();
+    expect(await screen.findByText(/console\.log\('new'\);/)).toBeTruthy();
+  });
+
   it("renders error banner when error occurs", () => {
     useViewerStore.setState({
       isOpen: true,
