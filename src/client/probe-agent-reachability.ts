@@ -3,7 +3,7 @@ import { discoverAgentBaseUrl, fetchAgentHello } from "./agent-base-url.ts";
 export type AgentOfflineReason = "agent-not-running" | "local-network-blocked";
 
 export type AgentReachability =
-  | { status: "online"; extraOrigins?: string[] }
+  | { status: "online"; extraOriginsActive?: boolean }
   | { status: "offline"; reason: AgentOfflineReason };
 
 export const WINDOWS_INSTALL_PS_COMMAND = "irm https://vibefork.me/install.ps1 | iex";
@@ -32,9 +32,7 @@ export async function probeAgentReachability(
       if (hello) {
         return {
           status: "online",
-          ...(hello.extraOrigins && hello.extraOrigins.length > 0
-            ? { extraOrigins: hello.extraOrigins }
-            : {}),
+          ...(hello.extraOriginsActive ? { extraOriginsActive: true } : {}),
         };
       }
     }

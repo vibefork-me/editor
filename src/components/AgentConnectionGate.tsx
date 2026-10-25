@@ -12,7 +12,7 @@ export type AgentConnectionGateProps = {
 
 export function AgentConnectionGate({ children }: AgentConnectionGateProps) {
   const mobileUnsupported = useMobileUnsupported();
-  const { online, offlineReason, exiting, extraOrigins } = useAgentConnectionMonitor();
+  const { online, offlineReason, exiting, extraOriginsActive } = useAgentConnectionMonitor();
 
   if (mobileUnsupported) {
     return (
@@ -32,7 +32,7 @@ export function AgentConnectionGate({ children }: AgentConnectionGateProps) {
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      <SecurityWarningBanner extraOrigins={extraOrigins} />
+      <SecurityWarningBanner active={extraOriginsActive} />
       <PairingGate>{children}</PairingGate>
     </div>
   );

@@ -6,7 +6,6 @@ import {
   resolveAgentBaseUrlFromLocation,
 } from "./agent-base-url.ts";
 import type {
-  AgentCapabilities,
   AgentHealth,
   AgentTransport,
   BuildMessage,
@@ -342,19 +341,11 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
         return {
           ok: true,
           version: hello.version,
-          ...(hello.extraOrigins && hello.extraOrigins.length > 0
-            ? { extraOrigins: hello.extraOrigins }
-            : {}),
+          ...(hello.extraOriginsActive ? { extraOriginsActive: true } : {}),
         };
       } catch {
         return { ok: false };
       }
-    },
-
-    async getCapabilities() {
-      const res = await apiFetch("/v1/capabilities");
-      if (!res.ok) throw new Error(`capabilities failed: ${res.status}`);
-      return (await res.json()) as AgentCapabilities;
     },
 
     async authenticateSession(clientKey: CryptoKey) {
@@ -626,12 +617,12 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
               if (msg.type === "build_done") {
                 finish({
                   kind: "done",
-                  code: Number(msg.code ?? 1),
-                  artifacts: typeof msg.artifacts === "string" ? msg.artifacts : undefined,
-                  files: Array.isArray(msg.files) ? msg.files.map(String) : [],
+                  code: msg.code,
+                  artifacts: msg.artifacts ?? undefined,
+                  files: msg.files,
                 });
               }
-              else if (msg.type === "error") finish({ kind: "error", error: String(msg.error ?? "build failed") });
+              else if (msg.type === "error") finish({ kind: "error", error: msg.error });
               else if (msg.type === "cancelled") finish({ kind: "cancelled" });
             };
             socket.onerror = () => finish({ kind: "error", error: "connection to the agent failed" });

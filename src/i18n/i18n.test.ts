@@ -48,11 +48,10 @@ describe("i18n system", () => {
     });
     expect(textRu).toContain("для сайта code.vibefork.me");
 
-    const textEn = translate("en", "security.compactNotice", {
-      count: 2,
-      origins: "http://localhost:5173, http://127.0.0.1:3000",
+    const textEn = translate("en", "agentOffline.networkBlockedDescription", {
+      domain: "code.vibefork.me",
     });
-    expect(textEn).toBe("External origins allowed (2): http://localhost:5173, http://127.0.0.1:3000");
+    expect(textEn).toContain("for site code.vibefork.me");
   });
 
   it("falls back to key string when translation key does not exist", () => {

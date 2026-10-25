@@ -44,16 +44,16 @@ export const en: TranslationSchema = {
     warningTitle: "Security warning: external web origins enabled (extraOrigins)",
     currentOriginAllowed: "Current origin is allowed",
     description:
-      "The Vibefork agent is configured with additional trusted origins: {origins}. Any web page hosted on these origins has access to your local agent and project files.",
+      "This is a development build of the Vibefork agent that allows additional web origins. Any page on those origins has access to your local agent and project files.",
     detailsSecurityTitle: "Security:",
     detailsSecurityText:
       "The extraOrigins mode is intended solely for local development (e.g. Vite dev server on localhost:5173).",
     detailsDisableText:
-      "To disable, remove the extraOrigins field from settings.json or unset the VF_EXTRA_ORIGINS environment variable and restart the agent.",
+      "Release builds ignore extraOrigins. To turn it off in a development build, remove extraOrigins from settings.json or unset VF_EXTRA_ORIGINS and restart the agent.",
     showRiskDetails: "Details on risks",
     hideRiskDetails: "Hide details",
     dismissTitle: "Dismiss warning",
-    compactNotice: "External origins allowed ({count}): {origins}",
+    compactNotice: "Development build: extra web origins are allowed",
     showWarning: "Show warning",
   },
   home: {

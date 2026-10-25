@@ -16,18 +16,13 @@ const REPO_RE = /^[A-Za-z0-9_.-]{1,100}\/[A-Za-z0-9_.-]{1,100}$/;
 
 /** One readable line of a build message (agent `ServerMessage`). */
 export function buildLogLine(m: BuildMessage): string | null {
-  const text = typeof m.text === "string" ? m.text : null;
   switch (m.type) {
     case "estimate":
     case "build_log":
     case "stderr":
-      return text;
-    case "toolchain": {
-      const tool = typeof m.tool === "string" ? m.tool : "toolchain";
-      const status = typeof m.status === "string" ? m.status : "";
-      const error = typeof m.error === "string" ? ` — ${m.error}` : "";
-      return `${tool}: ${status}${error}`;
-    }
+      return m.text;
+    case "toolchain":
+      return `${m.tool}: ${m.status}${m.error ? ` — ${m.error}` : ""}`;
     default:
       return null;
   }
