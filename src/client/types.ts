@@ -1,6 +1,8 @@
 import type {
   AiConnectResponse,
   AiResponse,
+  GithubConnectResponse,
+  GithubStatusResponse,
 } from "./protocol.generated.ts";
 
 export type {
@@ -10,7 +12,27 @@ export type {
   AiKind,
   AiProvider,
   AiResponse,
+  GithubConnectResponse,
+  GithubStatusResponse,
 } from "./protocol.generated.ts";
+
+export class AgentApiError extends Error {
+  readonly status: number;
+  readonly code?: string | null;
+  readonly resetMinutes?: number | null;
+
+  constructor(
+    message: string,
+    status: number,
+    options?: { code?: string | null; resetMinutes?: number | null },
+  ) {
+    super(message);
+    this.name = "AgentApiError";
+    this.status = status;
+    this.code = options?.code;
+    this.resetMinutes = options?.resetMinutes;
+  }
+}
 
 export interface GraphNode {
   id: string;
@@ -165,6 +187,11 @@ export interface AgentTransport {
   getModels(): Promise<ModelInfo[]>;
   getAiStatus(): Promise<AiResponse>;
   connectAi(provider: string): Promise<AiConnectResponse>;
+
+  /** Starts GitHub device authorization flow. */
+  connectGithub(): Promise<GithubConnectResponse>;
+  /** Checks current GitHub authorization status. */
+  getGithubStatus(): Promise<GithubStatusResponse>;
 
   /** Takes a project from GitHub, optionally at a ref of a fork or a pull request. */
   importProject(req: ImportProjectRequest): Promise<ImportProjectResult>;
