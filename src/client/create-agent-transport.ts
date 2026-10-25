@@ -25,6 +25,7 @@ import type {
   TaskStartParams,
 } from "./types.ts";
 import { notifyWsConnection } from "./ws-connection-bridge.ts";
+import type { ProjectsResponse } from "./protocol.generated.ts";
 
 const MAX_TEXT_BYTES = 2 * 1024 * 1024;
 const SECRET_PATH_DENY = /(?:^|\/)(?:\.env|id_rsa|credentials\.json|\.pem)(?:$|\/)/i;
@@ -328,6 +329,12 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
     });
   }
 
+  async function fetchProjects(): Promise<ProjectsResponse> {
+    const res = await apiFetch("/v1/projects");
+    if (!res.ok) throw new Error("list projects failed");
+    return (await res.json()) as ProjectsResponse;
+  }
+
   const transport: AgentTransport = {
     async getHealth(): Promise<AgentHealth> {
       try {
@@ -384,9 +391,7 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
     },
 
     async listProjects() {
-      const res = await apiFetch("/v1/projects");
-      if (!res.ok) throw new Error("list projects failed");
-      const body = (await res.json()) as { projects: string[] };
+      const body = await fetchProjects();
       return body.projects.map((projectId) => ({ projectId }));
     },
 
@@ -398,19 +403,17 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
     },
 
     async findProjectsByUpstream(upstream: string) {
-      const res = await apiFetch(`/v1/projects?upstream=${encodeURIComponent(upstream)}`);
-      if (!res.ok) throw new Error("upstream lookup failed");
-      const body = (await res.json()) as { projects: { projectId: string }[] };
-      return body.projects;
+      // Projects whose code comes from this repository, or from a fork / pull request of it.
+      const wanted = upstream.toLowerCase();
+      const body = await fetchProjects();
+      return (body.details ?? [])
+        .filter((p) => p.source?.toLowerCase() === wanted || p.original?.toLowerCase() === wanted)
+        .map((p) => ({ projectId: p.name }));
     },
 
     async cloneProject(params: { upstream: string; ref?: string }) {
-      const res = await apiFetch("/v1/projects", {
-        method: "POST",
-        body: JSON.stringify(params),
-      });
-      if (!res.ok) throw new Error("clone failed");
-      return (await res.json()) as { projectId: string };
+      const res = await transport.importProject({ repo: params.upstream, ref: params.ref });
+      return { projectId: res.project };
     },
 
     subscribeProjectResearch(params) {
