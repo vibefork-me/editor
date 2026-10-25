@@ -194,3 +194,20 @@ describe("runTask", () => {
     expect(outcome).toEqual({ kind: "done", code: 0, status: "1 file changed", commit: "abc" });
   });
 });
+
+describe("connectGithub", () => {
+  it("posts JSON with the agent header (the agent's guard refuses a POST without it)", async () => {
+    let headers: Headers | null = null;
+    const fetchImpl = sessionFetch((url, init) => {
+      if (url.endsWith("/v1/github/connect")) {
+        headers = new Headers(init?.headers);
+        return new Response(JSON.stringify({ userCode: "ABCD-1234", verificationUri: "https://github.com/login/device", expiresIn: 900 }));
+      }
+      return undefined;
+    });
+    const r = await transportWithSession(fetchImpl).connectGithub();
+    expect(r.userCode).toBe("ABCD-1234");
+    expect(headers!.get("Content-Type")).toBe("application/json");
+    expect(headers!.get("x-vibefork")).toBe("1");
+  });
+});

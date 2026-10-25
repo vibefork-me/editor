@@ -401,6 +401,7 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
     async connectGithub(): Promise<GithubConnectResponse> {
       const res = await apiFetch("/v1/github/connect", {
         method: "POST",
+        body: "{}",
       });
       if (!res.ok) {
         const err = (await res.json().catch(() => ({}))) as { error?: string };
