@@ -25,6 +25,8 @@ import { notifyWsConnection } from "./ws-connection-bridge.ts";
 import type {
   AiConnectRequest,
   AiConnectResponse,
+  AiDisconnectRequest,
+  AiDisconnectResponse,
   AiResponse,
   CliHomeMode,
   ClientMessage,
@@ -400,6 +402,22 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
         });
       }
       return (await res.json()) as AiConnectResponse;
+    },
+
+    async disconnectAi(provider: string): Promise<AiDisconnectResponse> {
+      const payload: AiDisconnectRequest = { provider };
+      const res = await apiFetch("/v1/ai/disconnect", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string; code?: string };
+        const msg = err.error ?? `disconnect AI failed (${res.status})`;
+        throw new AgentApiError(msg, res.status, {
+          code: err.code,
+        });
+      }
+      return (await res.json()) as AiDisconnectResponse;
     },
 
     async connectGithub(): Promise<GithubConnectResponse> {

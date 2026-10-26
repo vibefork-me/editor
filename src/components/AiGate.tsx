@@ -126,6 +126,23 @@ export function AiGate({ children, pollIntervalMs = POLL_INTERVAL_MS }: AiGatePr
     [checkStatus, client, t],
   );
 
+  const handleDisconnect = useCallback(
+    async (providerId: string) => {
+      setConnectingProvider(providerId);
+      setErrorMessage(null);
+      try {
+        await client.disconnectAi(providerId);
+        await checkStatus();
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        setErrorMessage(msg || t("connectAi.errorNotice"));
+      } finally {
+        setConnectingProvider(null);
+      }
+    },
+    [checkStatus, client, t],
+  );
+
   // Poll GET /v1/ai every 3 seconds for up to 10 minutes when sign-in is started
   useEffect(() => {
     if (!connectingProvider) return;
@@ -206,6 +223,7 @@ export function AiGate({ children, pollIntervalMs = POLL_INTERVAL_MS }: AiGatePr
                 providers={providers}
                 connectingProvider={connectingProvider}
                 onConnect={handleConnect}
+                onDisconnect={handleDisconnect}
                 isChecking={isChecking}
                 errorMessage={errorMessage}
                 onRetry={checkStatus}
@@ -231,6 +249,7 @@ export function AiGate({ children, pollIntervalMs = POLL_INTERVAL_MS }: AiGatePr
         providers={providers}
         connectingProvider={connectingProvider}
         onConnect={handleConnect}
+        onDisconnect={handleDisconnect}
         isChecking={isChecking}
         errorMessage={errorMessage}
         onRetry={checkStatus}
