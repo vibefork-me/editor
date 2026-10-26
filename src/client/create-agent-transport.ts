@@ -26,6 +26,7 @@ import type {
   AiConnectRequest,
   AiConnectResponse,
   AiResponse,
+  CliHomeMode,
   ClientMessage,
   FileDiffResponse,
   FileResponse,
@@ -385,15 +386,18 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
       return (await res.json()) as AiResponse;
     },
 
-    async connectAi(provider: string): Promise<AiConnectResponse> {
-      const body: AiConnectRequest = { provider };
+    async connectAi(provider: string, mode?: CliHomeMode): Promise<AiConnectResponse> {
+      const body: AiConnectRequest = { provider, ...(mode ? { mode } : {}) };
       const res = await apiFetch("/v1/ai/connect", {
         method: "POST",
         body: JSON.stringify(body),
       });
       if (!res.ok) {
-        const err = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(err.error ?? `connect AI failed (${res.status})`);
+        const err = (await res.json().catch(() => ({}))) as { error?: string; code?: string };
+        const msg = err.error ?? `connect AI failed (${res.status})`;
+        throw new AgentApiError(msg, res.status, {
+          code: err.code,
+        });
       }
       return (await res.json()) as AiConnectResponse;
     },

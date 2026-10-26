@@ -87,17 +87,19 @@ export function AiGate({ children, pollIntervalMs = POLL_INTERVAL_MS }: AiGatePr
   }, [bearerToken, client]);
 
   const handleConnect = useCallback(
-    async (providerId: string) => {
+    async (providerId: string, mode?: "agent" | "user") => {
       setConnectingProvider(providerId);
       setErrorMessage(null);
       try {
-        const res = await client.connectAi(providerId);
+        const res = await (mode !== undefined
+          ? client.connectAi(providerId, mode)
+          : client.connectAi(providerId));
         if (!res.started) {
           setConnectingProvider(null);
           return;
         }
         const status = await checkStatus();
-        if (status && connectedNow(status.providers, providerId)) {
+        if (status && (connectedNow(status.providers, providerId) || mode !== undefined)) {
           setConnectingProvider(null);
         }
       } catch (err: unknown) {
