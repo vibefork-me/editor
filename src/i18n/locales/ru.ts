@@ -41,6 +41,8 @@ export const ru: TranslationSchema = {
     retry: "Повторить",
   },
   connectAi: {
+    replaceKeyAction: "Заменить ключ",
+    close: "Закрыть",
     title: "Подключите искусственный интеллект",
     description:
       "Без подключённого ИИ редактор не может работать: нейросеть разбирается в коде, объясняет риски и помогает вносить изменения.",
@@ -214,6 +216,8 @@ export const ru: TranslationSchema = {
     selectLanguage: "Сменить язык",
   },
   status: {
+    aiConnect: "Подключить ИИ",
+    aiManage: "Подключить ИИ, сменить или ввести ключ заново",
     agentOk: "Агент работает",
     agentOkHint: "Vibefork на вашем компьютере запущен и отвечает.",
     reconnecting: "Связь прервалась",

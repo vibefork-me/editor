@@ -5,6 +5,7 @@ import { useModelLabel } from "../../hooks/useModelLabel.ts";
 import { useBuildStore } from "../../stores/buildStore.ts";
 import { useProjectStore } from "../../stores/projectStore.ts";
 import { useSessionStore } from "../../stores/sessionStore.ts";
+import { useAiPanelStore } from "../../stores/aiPanelStore.ts";
 import { IconCheck } from "./icons.tsx";
 import { ProjectPickerModal } from "./ProjectPickerModal.tsx";
 
@@ -40,6 +41,7 @@ export function StatusBar() {
   const buildStatus = useBuildStore((s) => s.status);
   const startBuild = useBuildStore((s) => s.startBuild);
   const modelLabel = useModelLabel();
+  const openAiPanel = useAiPanelStore((s) => s.setOpen);
   const conn = connectionPresentation(connectionStatus);
   const projectLabel = projectMeta?.upstream ?? projectMeta?.projectId ?? "Project";
 
@@ -112,14 +114,19 @@ export function StatusBar() {
           />
           <span>{t(conn.label)}</span>
         </span>
-        {modelLabel ? (
-          <span
-            className="rounded border border-border px-2 py-0.5 text-xs text-text-muted"
-            title={t("status.aiHint", { name: modelLabel.name, model: modelLabel.model })}
-          >
-            {t("status.ai", { name: modelLabel.name })}
-          </span>
-        ) : null}
+        <button
+          type="button"
+          data-testid="ai-badge"
+          onClick={() => openAiPanel(true)}
+          className="rounded border border-border px-2 py-0.5 text-xs text-text-muted hover:text-text hover:border-accent"
+          title={
+            modelLabel
+              ? `${t("status.aiHint", { name: modelLabel.name, model: modelLabel.model })} ${t("status.aiManage")}`
+              : t("status.aiManage")
+          }
+        >
+          {modelLabel ? t("status.ai", { name: modelLabel.name }) : t("status.aiConnect")}
+        </button>
       </header>
       <ProjectPickerModal open={pickerOpen} onOpenChange={setPickerOpen} />
     </>

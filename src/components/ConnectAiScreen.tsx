@@ -109,7 +109,16 @@ export function ConnectAiScreen({
 
                 {/* Status & Actions */}
                 <div>
-                  {isConnected ? null : isInstalling ? (
+                  {isConnected && provider.id === "openrouter" ? (
+                    <button
+                      type="button"
+                      onClick={() => onConnect?.(provider.id)}
+                      disabled={isConnecting || isChecking}
+                      className="text-xs text-neutral-400 hover:text-neutral-200 underline underline-offset-2 disabled:opacity-50"
+                    >
+                      {t("connectAi.replaceKeyAction")}
+                    </button>
+                  ) : isConnected ? null : isInstalling ? (
                     <div
                       role="status"
                       className="flex items-center gap-2 rounded-md border border-blue-900/40 bg-blue-950/30 px-3 py-2 text-xs text-blue-300 animate-slide-up"

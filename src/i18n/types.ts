@@ -42,6 +42,8 @@ export interface TranslationSchema {
     retry: string;
   };
   connectAi: {
+    replaceKeyAction: string;
+    close: string;
     title: string;
     description: string;
     whatWorksTitle: string;
@@ -210,6 +212,8 @@ export interface TranslationSchema {
     selectLanguage: string;
   };
   status: {
+    aiConnect: string;
+    aiManage: string;
     agentOk: string;
     agentOkHint: string;
     reconnecting: string;
