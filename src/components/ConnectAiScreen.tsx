@@ -17,6 +17,7 @@ const DEFAULT_PROVIDERS: AiProvider[] = [
   { id: "claude", kind: "subscription", installed: true, installing: false, connected: "no" },
   { id: "codex", kind: "subscription", installed: true, installing: false, connected: "no" },
   { id: "custom", kind: "custom", installed: true, installing: false, connected: "no" },
+  { id: "gemini", kind: "free", installed: true, installing: false, connected: "no" },
   { id: "openrouter", kind: "free", installed: true, installing: false, connected: "no" },
 ];
 
@@ -24,6 +25,13 @@ const PROVIDER_NAMES: Record<string, string> = {
   claude: "Claude",
   codex: "ChatGPT (Codex)",
   openrouter: "OpenRouter",
+  gemini: "Google AI Studio (Gemini)",
+};
+
+/** Providers connected with an API key the person gets on the provider's site. */
+const KEY_LINKS: Record<string, { href: string; label: string }> = {
+  openrouter: { href: "https://openrouter.ai/keys", label: "connectAi.getFreeKeyLink" },
+  gemini: { href: "https://aistudio.google.com/app/apikey", label: "connectAi.geminiGetKeyLink" },
 };
 
 /** Groups of the catalog, in order; a provider's group is its `kind`. */
@@ -82,7 +90,9 @@ export function ConnectAiScreen({
         ? t("connectAi.codexDescription")
         : p.id === "custom"
           ? t("connectAi.optionCustomDescription")
-          : t("connectAi.optionOpenRouterDescription");
+          : p.id === "gemini"
+            ? t("connectAi.optionGeminiDescription")
+            : t("connectAi.optionOpenRouterDescription");
   const busy = (p: AiProvider) => connectingProvider === p.id || isChecking;
 
   const connected = list.filter((p) => p.connected === "yes");
@@ -139,7 +149,7 @@ export function ConnectAiScreen({
           text={t(
             p.id === "custom"
               ? "connectAi.enterCustomInAgentNotice"
-              : p.id === "openrouter"
+              : KEY_LINKS[p.id]
                 ? "connectAi.enterKeyInAgentNotice"
                 : "connectAi.confirmAndSignInNotice",
           )}
@@ -155,7 +165,7 @@ export function ConnectAiScreen({
       ? t("connectAi.checking")
       : p.id === "custom"
         ? t("connectAi.connectAction")
-        : p.id === "openrouter"
+        : KEY_LINKS[p.id]
           ? t("connectAi.enterKeyAction")
           : !p.installed
             ? t("connectAi.installAndSignInAction")
@@ -220,8 +230,14 @@ export function ConnectAiScreen({
                     <div className="mt-2 space-y-2 pl-4">
                       {modeChoice(p)}
                       <div className="flex flex-wrap items-center gap-3">
-                        {p.id === "openrouter" ? (
-                          <button type="button" disabled={busy(p)} onClick={() => onConnect?.(p.id)} className={linkButton}>
+                        {KEY_LINKS[p.id] ? (
+                          <button
+                            type="button"
+                            disabled={busy(p)}
+                            onClick={() => onConnect?.(p.id)}
+                            className={linkButton}
+                            data-testid={`change-${p.id}`}
+                          >
                             {t("connectAi.replaceKeyAction")}
                           </button>
                         ) : null}
@@ -295,20 +311,20 @@ export function ConnectAiScreen({
                               disabled={busy(p)}
                               onClick={() => onConnect?.(p.id)}
                               className={primaryButton}
-                              data-testid={p.id === "custom" ? "connect-custom" : undefined}
+                              data-testid={`connect-${p.id}`}
                             >
                               {connectLabel(p)}
                             </button>
                           )}
                         </div>
-                        {p.id === "openrouter" ? (
+                        {KEY_LINKS[p.id] ? (
                           <a
-                            href="https://openrouter.ai/keys"
+                            href={KEY_LINKS[p.id].href}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="mt-1 inline-block text-xs text-neutral-400 underline underline-offset-2 hover:text-neutral-200"
                           >
-                            {t("connectAi.getFreeKeyLink")}
+                            {t(KEY_LINKS[p.id].label as "connectAi.getFreeKeyLink")}
                           </a>
                         ) : null}
                         {modeChoice(p)}
