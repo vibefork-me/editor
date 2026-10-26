@@ -85,7 +85,7 @@ export function ConnectAiScreen({
         : t("connectAi.freeBadge");
   const descriptionOf = (p: AiProvider) =>
     p.id === "claude"
-      ? t("connectAi.optionSubscriptionDescription")
+      ? t("connectAi.claudeDescription")
       : p.id === "codex"
         ? t("connectAi.codexDescription")
         : p.id === "custom"
