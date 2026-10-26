@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { useAiPanelStore } from "../../stores/aiPanelStore.ts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import { useProjectStore } from "../../stores/projectStore.ts";
@@ -57,5 +58,11 @@ describe("StatusBar", () => {
     renderBar();
     const ai = screen.getByText(/(ИИ|AI): Claude/);
     expect(ai.getAttribute("title")).toContain("Claude 3.5 Sonnet");
+  });
+  it("opens the AI panel from the AI badge", () => {
+    useAiPanelStore.setState({ open: false });
+    renderBar();
+    fireEvent.click(screen.getByTestId("ai-badge"));
+    expect(useAiPanelStore.getState().open).toBe(true);
   });
 });

@@ -41,6 +41,8 @@ export const en: TranslationSchema = {
     retry: "Try again",
   },
   connectAi: {
+    replaceKeyAction: "Replace the key",
+    close: "Close",
     title: "Connect an AI model",
     description:
       "The editor requires AI to operate: the model understands foreign code, explains risks, and helps apply changes.",
@@ -214,6 +216,8 @@ export const en: TranslationSchema = {
     selectLanguage: "Switch language",
   },
   status: {
+    aiConnect: "Connect AI",
+    aiManage: "Connect an AI, switch or enter the key again",
     agentOk: "Agent is running",
     agentOkHint: "Vibefork on your computer is running and responding.",
     reconnecting: "Connection lost",

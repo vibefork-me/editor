@@ -3,6 +3,7 @@ import { AgentApiError, type AiProvider } from "../client/types.ts";
 import { useAgentClient } from "../client/react/useAgentClient.ts";
 import { useI18n } from "../i18n/index.ts";
 import { useSessionStore } from "../stores/sessionStore.ts";
+import { useAiPanelStore } from "../stores/aiPanelStore.ts";
 import { ConnectAiScreen } from "./ConnectAiScreen.tsx";
 
 export type AiGateProps = {
@@ -19,6 +20,8 @@ export function AiGate({ children, pollIntervalMs = POLL_INTERVAL_MS }: AiGatePr
   const client = useAgentClient();
   const bearerToken = useSessionStore((state) => state.bearerToken);
   const { t } = useI18n();
+  const panelOpen = useAiPanelStore((s) => s.open);
+  const setPanelOpen = useAiPanelStore((s) => s.setOpen);
 
   const [phase, setPhase] = useState<AiGatePhase>("loading");
   const [providers, setProviders] = useState<AiProvider[]>([]);
@@ -166,8 +169,44 @@ export function AiGate({ children, pollIntervalMs = POLL_INTERVAL_MS }: AiGatePr
     };
   }, [checkStatus, phase]);
 
+  // Opened from the status bar: fresh statuses each time.
+  useEffect(() => {
+    if (panelOpen) void checkStatus();
+  }, [panelOpen, checkStatus]);
+
   if (phase === "ready") {
-    return <>{children}</>;
+    return (
+      <>
+        {children}
+        {panelOpen ? (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6"
+            data-testid="ai-panel"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setPanelOpen(false);
+            }}
+          >
+            <div className="relative w-full max-w-xl">
+              <button
+                type="button"
+                onClick={() => setPanelOpen(false)}
+                className="absolute -top-9 right-0 rounded px-2 py-1 text-sm text-neutral-300 hover:text-white"
+              >
+                {t("connectAi.close")}
+              </button>
+              <ConnectAiScreen
+                providers={providers}
+                connectingProvider={connectingProvider}
+                onConnect={handleConnect}
+                isChecking={isChecking}
+                errorMessage={errorMessage}
+                onRetry={checkStatus}
+              />
+            </div>
+          </div>
+        ) : null}
+      </>
+    );
   }
 
   if (phase === "loading") {
