@@ -7,6 +7,7 @@ export type ConnectAiScreenProps = {
   providers?: AiProvider[];
   connectingProvider?: string | null;
   onConnect?: (providerId: string, mode?: "agent" | "user") => void;
+  onDisconnect?: (providerId: string) => void;
   isChecking?: boolean;
   errorMessage?: string | null;
   onRetry?: () => void;
@@ -15,6 +16,7 @@ export type ConnectAiScreenProps = {
 const DEFAULT_PROVIDERS: AiProvider[] = [
   { id: "claude", kind: "subscription", installed: true, installing: false, connected: "no" },
   { id: "codex", kind: "subscription", installed: true, installing: false, connected: "no" },
+  { id: "custom", kind: "custom", installed: true, installing: false, connected: "no" },
   { id: "openrouter", kind: "free", installed: true, installing: false, connected: "no" },
 ];
 
@@ -22,12 +24,14 @@ const PROVIDER_NAMES: Record<string, string> = {
   claude: "Claude",
   codex: "ChatGPT (Codex)",
   openrouter: "OpenRouter",
+  custom: "OpenAI-compatible API",
 };
 
 export function ConnectAiScreen({
   providers = DEFAULT_PROVIDERS,
   connectingProvider = null,
   onConnect,
+  onDisconnect,
   isChecking = false,
   errorMessage = null,
   onRetry,
@@ -65,7 +69,10 @@ export function ConnectAiScreen({
             const isConnecting = connectingProvider === provider.id;
             const isConnected = provider.connected === "yes";
             const isInstalling = provider.installing;
-            const name = PROVIDER_NAMES[provider.id] ?? provider.id;
+            const name =
+              provider.id === "custom"
+                ? t("connectAi.optionCustomTitle")
+                : PROVIDER_NAMES[provider.id] ?? provider.id;
 
             return (
               <div
@@ -82,13 +89,25 @@ export function ConnectAiScreen({
                       className={`rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
                         provider.kind === "subscription"
                           ? "border border-blue-900/60 bg-blue-950/50 text-blue-300"
-                          : "border border-emerald-900/60 bg-emerald-950/50 text-emerald-300"
+                          : provider.kind === "custom"
+                            ? "border border-amber-900/60 bg-amber-950/50 text-amber-300"
+                            : "border border-emerald-900/60 bg-emerald-950/50 text-emerald-300"
                       }`}
                     >
                       {provider.kind === "subscription"
                         ? t("connectAi.subscriptionBadge")
-                        : t("connectAi.freeBadge")}
+                        : provider.kind === "custom"
+                          ? t("connectAi.customBadge")
+                          : t("connectAi.freeBadge")}
                     </span>
+                    {provider.host && (
+                      <span
+                        data-testid={`host-badge-${provider.id}`}
+                        className="rounded border border-neutral-700 bg-neutral-800/80 px-2 py-0.5 font-mono text-[11px] text-neutral-300"
+                      >
+                        {provider.host}
+                      </span>
+                    )}
                     {provider.userSignedIn && (
                       <span
                         data-testid={`mode-badge-${provider.id}`}
@@ -114,7 +133,9 @@ export function ConnectAiScreen({
                     ? t("connectAi.optionSubscriptionDescription")
                     : provider.id === "codex"
                       ? "ChatGPT Plus / Codex (OpenAI)"
-                      : t("connectAi.optionOpenRouterDescription")}
+                      : provider.id === "custom"
+                        ? t("connectAi.optionCustomDescription")
+                        : t("connectAi.optionOpenRouterDescription")}
                 </p>
 
                 {provider.userSignedIn && (
@@ -188,12 +209,33 @@ export function ConnectAiScreen({
 
                 {/* Status & Actions */}
                 <div>
-                  {isConnected && provider.id === "openrouter" ? (
+                  {isConnected && provider.id === "custom" ? (
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => onConnect?.(provider.id)}
+                        disabled={isConnecting || isChecking}
+                        className="text-xs text-neutral-400 hover:text-neutral-200 underline underline-offset-2 disabled:opacity-50 cursor-pointer"
+                        data-testid={`change-${provider.id}`}
+                      >
+                        {t("connectAi.changeAction")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onDisconnect?.(provider.id)}
+                        disabled={isConnecting || isChecking}
+                        className="text-xs text-red-400 hover:text-red-300 underline underline-offset-2 disabled:opacity-50 cursor-pointer"
+                        data-testid={`disconnect-${provider.id}`}
+                      >
+                        {t("connectAi.disconnectAction")}
+                      </button>
+                    </div>
+                  ) : isConnected && provider.id === "openrouter" ? (
                     <button
                       type="button"
                       onClick={() => onConnect?.(provider.id)}
                       disabled={isConnecting || isChecking}
-                      className="text-xs text-neutral-400 hover:text-neutral-200 underline underline-offset-2 disabled:opacity-50"
+                      className="text-xs text-neutral-400 hover:text-neutral-200 underline underline-offset-2 disabled:opacity-50 cursor-pointer"
                     >
                       {t("connectAi.replaceKeyAction")}
                     </button>
@@ -204,6 +246,29 @@ export function ConnectAiScreen({
                     >
                       <span className="h-2 w-2 rounded-full bg-blue-400 animate-ping shrink-0" />
                       <span>{t("connectAi.installingNotice")}</span>
+                    </div>
+                  ) : provider.id === "custom" ? (
+                    <div className="space-y-2">
+                      {isConnecting && (
+                        <div
+                          role="status"
+                          className="flex items-center gap-2 rounded-md border border-amber-900/40 bg-amber-950/30 px-3 py-2 text-xs text-amber-300 animate-slide-up"
+                        >
+                          <span className="h-2 w-2 rounded-full bg-amber-400 animate-ping shrink-0" />
+                          <span>{t("connectAi.enterCustomInAgentNotice")}</span>
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => onConnect?.(provider.id)}
+                        disabled={isConnecting || isChecking}
+                        className="inline-flex items-center justify-center rounded-lg bg-neutral-100 px-4 py-2 text-xs font-semibold text-neutral-950 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-300 disabled:opacity-50 cursor-pointer"
+                        data-testid={`connect-${provider.id}`}
+                      >
+                        {isConnecting
+                          ? t("connectAi.checking")
+                          : t("connectAi.connectAction")}
+                      </button>
                     </div>
                   ) : provider.id === "openrouter" ? (
                     <div className="space-y-2">

@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   client: {
     getAiStatus: vi.fn(),
     connectAi: vi.fn(),
+    disconnectAi: vi.fn(),
     getModels: vi.fn(),
     importProject: vi.fn(),
     runBuild: vi.fn(),
@@ -464,5 +465,80 @@ describe("AiGate", () => {
     expect(
       await screen.findByText("Действие заблокировано или отменено в окне агента."),
     ).toBeTruthy();
+  });
+
+  it("renders custom OpenAI API card and supports connect, change, and disconnect", async () => {
+    const { useAiPanelStore } = await import("../stores/aiPanelStore.ts");
+    mocks.client.getAiStatus.mockResolvedValue({
+      ready: true,
+      providers: [
+        {
+          id: "custom",
+          kind: "custom",
+          installed: true,
+          installing: false,
+          connected: "yes",
+          host: "localhost:11434",
+        },
+      ],
+    });
+    mocks.client.connectAi.mockResolvedValue({ started: true });
+    mocks.client.disconnectAi.mockResolvedValue({ ok: true });
+    useAiPanelStore.setState({ open: true });
+
+    render(
+      <AiGate>
+        <p>Protected editor workspace</p>
+      </AiGate>,
+    );
+
+    // Check custom card rendered with host
+    expect(await screen.findByText("Свой OpenAI-совместимый API")).toBeTruthy();
+    expect(await screen.findByText("Свой API")).toBeTruthy();
+    expect(await screen.findByText("localhost:11434")).toBeTruthy();
+
+    // Change action triggers connectAi("custom")
+    const changeBtn = screen.getByTestId("change-custom");
+    fireEvent.click(changeBtn);
+    expect(mocks.client.connectAi).toHaveBeenCalledWith("custom");
+
+    // Wait for connect operation to complete and button to be enabled
+    await waitFor(() => {
+      expect((screen.getByTestId("disconnect-custom") as HTMLButtonElement).disabled).toBe(false);
+    });
+
+    // Disconnect action triggers disconnectAi("custom")
+    const disconnectBtn = screen.getByTestId("disconnect-custom");
+    fireEvent.click(disconnectBtn);
+    expect(mocks.client.disconnectAi).toHaveBeenCalledWith("custom");
+
+    useAiPanelStore.setState({ open: false });
+  });
+
+  it("supports connecting disconnected custom OpenAI API", async () => {
+    mocks.client.getAiStatus.mockResolvedValue({
+      ready: false,
+      providers: [
+        {
+          id: "custom",
+          kind: "custom",
+          installed: true,
+          installing: false,
+          connected: "no",
+        },
+      ],
+    });
+    mocks.client.connectAi.mockResolvedValue({ started: true });
+
+    render(
+      <AiGate>
+        <p>Protected editor workspace</p>
+      </AiGate>,
+    );
+
+    expect(await screen.findByText("Свой OpenAI-совместимый API")).toBeTruthy();
+    const connectBtn = screen.getByTestId("connect-custom");
+    fireEvent.click(connectBtn);
+    expect(mocks.client.connectAi).toHaveBeenCalledWith("custom");
   });
 });

@@ -55,6 +55,13 @@ export interface TranslationSchema {
     howToConnectDescription: string;
     subscriptionBadge: string;
     freeBadge: string;
+    customBadge: string;
+    optionCustomTitle: string;
+    optionCustomDescription: string;
+    connectAction: string;
+    changeAction: string;
+    disconnectAction: string;
+    enterCustomInAgentNotice: string;
     signInAction: string;
     enterKeyAction: string;
     installAndSignInAction: string;
