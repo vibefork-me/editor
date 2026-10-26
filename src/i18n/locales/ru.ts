@@ -63,6 +63,7 @@ export const ru: TranslationSchema = {
     notInstalledNotice: "Не установлен (скоро)",
     comingSoonNotice: "Скоро",
     confirmAndSignInNotice: "Подтвердите в окне агента и войдите в браузере…",
+    claudeConsentNote: "Откроется страница Anthropic: «Claude Code запрашивает подключение к Claude chat account». Claude Code — официальная программа Claude, через неё работает Vibefork; Claude chat account — ваша подписка Claude. Нажмите «Разрешить».",
     enterKeyInAgentNotice: "Введите ключ в окне агента…",
     installingNotice: "Устанавливаю официальное приложение… (загрузка до ~300 МБ)",
     timedOutNotice: "Время ожидания входа истекло. Попробуйте снова.",

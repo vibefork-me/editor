@@ -62,6 +62,7 @@ export interface TranslationSchema {
     notInstalledNotice: string;
     comingSoonNotice: string;
     confirmAndSignInNotice: string;
+    claudeConsentNote: string;
     enterKeyInAgentNotice: string;
     installingNotice: string;
     timedOutNotice: string;
