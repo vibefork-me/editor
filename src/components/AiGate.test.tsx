@@ -543,4 +543,80 @@ describe("AiGate", () => {
     fireEvent.click(connectBtn);
     expect(mocks.client.connectAi).toHaveBeenCalledWith("custom");
   });
+
+  it("renders Google AI Studio (Gemini) card and supports connect, change, and disconnect", async () => {
+    const { useAiPanelStore } = await import("../stores/aiPanelStore.ts");
+    mocks.client.getAiStatus.mockResolvedValue({
+      ready: true,
+      providers: [
+        {
+          id: "gemini",
+          kind: "free",
+          installed: true,
+          installing: false,
+          connected: "yes",
+        },
+      ],
+    });
+    mocks.client.connectAi.mockResolvedValue({ started: true });
+    mocks.client.disconnectAi.mockResolvedValue({ ok: true });
+    useAiPanelStore.setState({ open: true });
+
+    render(
+      <AiGate>
+        <p>Protected editor workspace</p>
+      </AiGate>,
+    );
+
+    // Check Gemini card rendered with warning description
+    expect(await screen.findByText("Google AI Studio (Gemini)")).toBeTruthy();
+    // Connected: a compact row; the training warning is shown before connecting (catalog).
+
+    // Change action triggers connectAi("gemini")
+    fireEvent.click(screen.getByTestId("actions-gemini"));
+    const changeBtn = screen.getByTestId("change-gemini");
+    fireEvent.click(changeBtn);
+    expect(mocks.client.connectAi).toHaveBeenCalledWith("gemini");
+
+    // Wait for connect operation to complete and button to be enabled
+    await waitFor(() => {
+      expect((screen.getByTestId("disconnect-gemini") as HTMLButtonElement).disabled).toBe(false);
+    });
+
+    // Disconnect action triggers disconnectAi("gemini")
+    const disconnectBtn = screen.getByTestId("disconnect-gemini");
+    fireEvent.click(disconnectBtn);
+    expect(mocks.client.disconnectAi).toHaveBeenCalledWith("gemini");
+
+    useAiPanelStore.setState({ open: false });
+  });
+
+  it("supports connecting disconnected Gemini", async () => {
+    mocks.client.getAiStatus.mockResolvedValue({
+      ready: false,
+      providers: [
+        {
+          id: "gemini",
+          kind: "free",
+          installed: true,
+          installing: false,
+          connected: "no",
+        },
+      ],
+    });
+    mocks.client.connectAi.mockResolvedValue({ started: true });
+
+    render(
+      <AiGate>
+        <p>Protected editor workspace</p>
+      </AiGate>,
+    );
+
+    expect(await screen.findByText("Google AI Studio (Gemini)")).toBeTruthy();
+    expect(await screen.findByText(/обучения моделей/i)).toBeTruthy();
+    expect(await screen.findByText("Получить бесплатный ключ в Google AI Studio")).toBeTruthy();
+    const connectBtn = screen.getByTestId("connect-gemini");
+    fireEvent.click(connectBtn);
+    expect(mocks.client.connectAi).toHaveBeenCalledWith("gemini");
+  });
 });
