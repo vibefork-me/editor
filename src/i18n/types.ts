@@ -50,6 +50,7 @@ export interface TranslationSchema {
     groupCustom: string;
     actionsFor: string;
     nothingFound: string;
+    claudeDescription: string;
     codexDescription: string;
     moreAction: string;
     replaceKeyAction: string;
