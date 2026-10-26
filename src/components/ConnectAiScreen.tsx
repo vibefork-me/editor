@@ -90,7 +90,7 @@ export function ConnectAiScreen({
                         provider.kind === "subscription"
                           ? "border border-blue-900/60 bg-blue-950/50 text-blue-300"
                           : provider.kind === "custom"
-                            ? "border border-amber-900/60 bg-amber-950/50 text-amber-300"
+                            ? "border border-neutral-700 bg-neutral-800/60 text-neutral-300"
                             : "border border-emerald-900/60 bg-emerald-950/50 text-emerald-300"
                       }`}
                     >
