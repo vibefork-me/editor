@@ -1,6 +1,6 @@
+import { useState } from "react";
 import type { AiProvider } from "../client/types.ts";
 import { useI18n } from "../i18n/index.ts";
-import { IconCheck } from "./shell/icons.tsx";
 import { LanguageSwitcher } from "./LanguageSwitcher.tsx";
 
 export type ConnectAiScreenProps = {
@@ -24,8 +24,34 @@ const PROVIDER_NAMES: Record<string, string> = {
   claude: "Claude",
   codex: "ChatGPT (Codex)",
   openrouter: "OpenRouter",
-  custom: "OpenAI-compatible API",
 };
+
+/** Groups of the catalog, in order; a provider's group is its `kind`. */
+const GROUPS = [
+  { kind: "subscription", title: "connectAi.groupSubscription" },
+  { kind: "free", title: "connectAi.groupFree" },
+  { kind: "custom", title: "connectAi.groupCustom" },
+] as const;
+
+/** The search field appears once the catalog is longer than this. */
+const SEARCH_FROM = 6;
+
+const primaryButton =
+  "inline-flex shrink-0 items-center justify-center rounded-md bg-neutral-100 px-3 py-1.5 text-xs font-semibold text-neutral-950 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-300 disabled:opacity-50 cursor-pointer";
+const linkButton =
+  "text-xs text-neutral-400 hover:text-neutral-200 underline underline-offset-2 disabled:opacity-50 cursor-pointer";
+
+function Notice({ text }: { text: string }) {
+  return (
+    <div
+      role="status"
+      className="mt-2 flex items-center gap-2 rounded-md border border-amber-900/40 bg-amber-950/30 px-3 py-1.5 text-xs text-amber-300"
+    >
+      <span className="h-2 w-2 shrink-0 rounded-full bg-amber-400 animate-ping" />
+      <span>{text}</span>
+    </div>
+  );
+}
 
 export function ConnectAiScreen({
   providers = DEFAULT_PROVIDERS,
@@ -38,336 +64,288 @@ export function ConnectAiScreen({
 }: ConnectAiScreenProps) {
   const { t } = useI18n();
   const list = providers.length > 0 ? providers : DEFAULT_PROVIDERS;
+  const [openActions, setOpenActions] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+
+  const nameOf = (p: AiProvider) =>
+    p.id === "custom" ? t("connectAi.optionCustomTitle") : (PROVIDER_NAMES[p.id] ?? p.id);
+  const kindLabel = (p: AiProvider) =>
+    p.kind === "subscription"
+      ? t("connectAi.subscriptionBadge")
+      : p.kind === "custom"
+        ? t("connectAi.customBadge")
+        : t("connectAi.freeBadge");
+  const descriptionOf = (p: AiProvider) =>
+    p.id === "claude"
+      ? t("connectAi.optionSubscriptionDescription")
+      : p.id === "codex"
+        ? t("connectAi.codexDescription")
+        : p.id === "custom"
+          ? t("connectAi.optionCustomDescription")
+          : t("connectAi.optionOpenRouterDescription");
+  const busy = (p: AiProvider) => connectingProvider === p.id || isChecking;
+
+  const connected = list.filter((p) => p.connected === "yes");
+  const catalog = list.filter((p) => p.connected !== "yes");
+  const q = query.trim().toLowerCase();
+  const shown = q
+    ? catalog.filter((p) => `${nameOf(p)} ${descriptionOf(p)}`.toLowerCase().includes(q))
+    : catalog;
+
+  /** Separate Vibefork sign-in or the user's own (only when the user's CLI is signed in). */
+  const modeChoice = (p: AiProvider) =>
+    p.userSignedIn ? (
+      <div className="mt-2 space-y-2" data-testid={`cli-home-choice-${p.id}`}>
+        {(
+          [
+            ["agent", "connectAi.modeSeparateTitle", "connectAi.modeSeparateDescription", "connectAi.switchToAgentAction"],
+            ["user", "connectAi.modeUserTitle", "connectAi.modeUserDescription", "connectAi.switchToUserAction"],
+          ] as const
+        ).map(([mode, title, description, action]) => {
+          const current = mode === "user" ? p.mode === "user" : p.mode !== "user";
+          return (
+            <div
+              key={mode}
+              data-testid={`mode-option-${mode}-${p.id}`}
+              className={`rounded-md border p-2.5 ${current ? "border-neutral-600 bg-neutral-800/50" : "border-neutral-800 bg-neutral-950/30"}`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-semibold text-neutral-200">{t(title)}</span>
+                {current ? (
+                  <span className="text-[10px] font-medium text-emerald-400">✓</span>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={busy(p)}
+                    onClick={() => onConnect?.(p.id, mode)}
+                    className="text-[11px] text-blue-400 hover:text-blue-300 underline underline-offset-2 disabled:opacity-50 cursor-pointer"
+                    data-testid={`switch-to-${mode}-${p.id}`}
+                  >
+                    {t(action)}
+                  </button>
+                )}
+              </div>
+              <p className="mt-1 text-[11px] leading-relaxed text-neutral-400">{t(description)}</p>
+            </div>
+          );
+        })}
+      </div>
+    ) : null;
+
+  const connectingNotice = (p: AiProvider) =>
+    connectingProvider !== p.id ? null : (
+      <>
+        <Notice
+          text={t(
+            p.id === "custom"
+              ? "connectAi.enterCustomInAgentNotice"
+              : p.id === "openrouter"
+                ? "connectAi.enterKeyInAgentNotice"
+                : "connectAi.confirmAndSignInNotice",
+          )}
+        />
+        {p.id === "claude" ? (
+          <p className="mt-2 text-xs leading-relaxed text-neutral-400">{t("connectAi.claudeConsentNote")}</p>
+        ) : null}
+      </>
+    );
+
+  const connectLabel = (p: AiProvider) =>
+    busy(p) && connectingProvider === p.id
+      ? t("connectAi.checking")
+      : p.id === "custom"
+        ? t("connectAi.connectAction")
+        : p.id === "openrouter"
+          ? t("connectAi.enterKeyAction")
+          : !p.installed
+            ? t("connectAi.installAndSignInAction")
+            : t("connectAi.signInAction");
 
   return (
     <div
-      className="mx-auto w-full max-w-xl rounded-xl border border-neutral-800 bg-neutral-900/90 p-6 sm:p-8 shadow-xl space-y-6 text-neutral-100"
+      className="mx-auto flex max-h-[85vh] w-full max-w-xl flex-col rounded-xl border border-neutral-800 bg-neutral-900/95 text-neutral-100 shadow-xl"
       role="region"
       aria-live="polite"
       aria-label={t("connectAi.title")}
     >
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-4 border-b border-neutral-800 px-5 py-4">
         <div className="space-y-1">
-          <h2 className="text-xl font-semibold leading-snug text-neutral-100">
-            {t("connectAi.title")}
-          </h2>
-          <p className="text-sm text-neutral-400 leading-relaxed">
-            {t("connectAi.description")}
-          </p>
+          <h2 className="text-lg font-semibold leading-snug">{t("connectAi.title")}</h2>
+          {connected.length === 0 ? (
+            <p className="text-xs leading-relaxed text-neutral-400">{t("connectAi.description")}</p>
+          ) : null}
         </div>
         <div className="shrink-0">
           <LanguageSwitcher />
         </div>
       </div>
 
-      <div className="space-y-3">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
-          {t("connectAi.whatWorksTitle")}
-        </h3>
-        <div className="grid gap-3">
-          {list.map((provider) => {
-            const isConnecting = connectingProvider === provider.id;
-            const isConnected = provider.connected === "yes";
-            const isInstalling = provider.installing;
-            const name =
-              provider.id === "custom"
-                ? t("connectAi.optionCustomTitle")
-                : PROVIDER_NAMES[provider.id] ?? provider.id;
-
-            return (
-              <div
-                key={provider.id}
-                className="rounded-lg border border-neutral-800 bg-neutral-950/60 p-4 space-y-3"
-                data-testid={`provider-card-${provider.id}`}
-              >
-                <div className="flex items-center justify-between gap-2">
+      <div className="flex-1 space-y-5 overflow-y-auto px-5 py-4">
+        {connected.length > 0 ? (
+          <section className="space-y-1.5">
+            <h3 className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500">
+              {t("connectAi.connectedTitle")}
+            </h3>
+            <ul className="divide-y divide-neutral-800 rounded-lg border border-neutral-800">
+              {connected.map((p) => (
+                <li key={p.id} data-testid={`provider-card-${p.id}`} className="px-3 py-2">
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-neutral-100 text-sm">
-                      {name}
-                    </span>
-                    <span
-                      className={`rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
-                        provider.kind === "subscription"
-                          ? "border border-blue-900/60 bg-blue-950/50 text-blue-300"
-                          : provider.kind === "custom"
-                            ? "border border-neutral-700 bg-neutral-800/60 text-neutral-300"
-                            : "border border-emerald-900/60 bg-emerald-950/50 text-emerald-300"
-                      }`}
-                    >
-                      {provider.kind === "subscription"
-                        ? t("connectAi.subscriptionBadge")
-                        : provider.kind === "custom"
-                          ? t("connectAi.customBadge")
-                          : t("connectAi.freeBadge")}
-                    </span>
-                    {provider.host && (
-                      <span
-                        data-testid={`host-badge-${provider.id}`}
-                        className="rounded border border-neutral-700 bg-neutral-800/80 px-2 py-0.5 font-mono text-[11px] text-neutral-300"
-                      >
-                        {provider.host}
+                    <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-400" aria-hidden="true" />
+                    <span className="text-sm font-medium">{nameOf(p)}</span>
+                    <span className="text-[11px] text-neutral-500">{kindLabel(p)}</span>
+                    {p.host ? (
+                      <span data-testid={`host-badge-${p.id}`} className="truncate font-mono text-[11px] text-neutral-400">
+                        {p.host}
                       </span>
-                    )}
-                    {provider.userSignedIn && (
-                      <span
-                        data-testid={`mode-badge-${provider.id}`}
-                        className="rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider border border-purple-900/60 bg-purple-950/50 text-purple-300"
-                      >
-                        {provider.mode === "user"
-                          ? t("connectAi.modeBadgeUser")
-                          : t("connectAi.modeBadgeSeparate")}
+                    ) : null}
+                    {p.userSignedIn ? (
+                      <span data-testid={`mode-badge-${p.id}`} className="text-[11px] text-neutral-400">
+                        {p.mode === "user" ? t("connectAi.modeBadgeUser") : t("connectAi.modeBadgeSeparate")}
                       </span>
-                    )}
-                  </div>
-
-                  {isConnected && (
-                    <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-400">
-                      <IconCheck className="w-3.5 h-3.5 text-emerald-400" />
-                      {t("connectAi.connectedBadge")}
-                    </span>
-                  )}
-                </div>
-
-                <p className="text-xs text-neutral-400 leading-relaxed">
-                  {provider.id === "claude"
-                    ? t("connectAi.optionSubscriptionDescription")
-                    : provider.id === "codex"
-                      ? "ChatGPT Plus / Codex (OpenAI)"
-                      : provider.id === "custom"
-                        ? t("connectAi.optionCustomDescription")
-                        : t("connectAi.optionOpenRouterDescription")}
-                </p>
-
-                {provider.userSignedIn && (
-                  <div
-                    className="rounded-lg border border-neutral-800/80 bg-neutral-900/40 p-3 space-y-2.5 text-left"
-                    data-testid={`cli-home-choice-${provider.id}`}
-                  >
-                    <div
-                      className={`rounded-md border p-2.5 transition-colors ${
-                        provider.mode !== "user"
-                          ? "border-neutral-700 bg-neutral-800/50"
-                          : "border-neutral-800/50 bg-neutral-950/30"
-                      }`}
-                      data-testid={`mode-option-agent-${provider.id}`}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-semibold text-neutral-200">
-                          {t("connectAi.modeSeparateTitle")}
-                        </span>
-                        {provider.mode !== "user" ? (
-                          <span className="text-[10px] text-emerald-400 font-medium">✓ {t("connectAi.modeBadgeSeparate")}</span>
-                        ) : (
-                          <button
-                            type="button"
-                            disabled={isConnecting || isChecking}
-                            onClick={() => onConnect?.(provider.id, "agent")}
-                            className="text-[11px] text-blue-400 hover:text-blue-300 underline underline-offset-2 disabled:opacity-50 cursor-pointer"
-                            data-testid={`switch-to-agent-${provider.id}`}
-                          >
-                            {t("connectAi.switchToAgentAction")}
-                          </button>
-                        )}
-                      </div>
-                      <p className="mt-1 text-[11px] text-neutral-400 leading-relaxed">
-                        {t("connectAi.modeSeparateDescription")}
-                      </p>
-                    </div>
-
-                    <div
-                      className={`rounded-md border p-2.5 transition-colors ${
-                        provider.mode === "user"
-                          ? "border-neutral-700 bg-neutral-800/50"
-                          : "border-neutral-800/50 bg-neutral-950/30"
-                      }`}
-                      data-testid={`mode-option-user-${provider.id}`}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-semibold text-neutral-200">
-                          {t("connectAi.modeUserTitle")}
-                        </span>
-                        {provider.mode === "user" ? (
-                          <span className="text-[10px] text-emerald-400 font-medium">✓ {t("connectAi.modeBadgeUser")}</span>
-                        ) : (
-                          <button
-                            type="button"
-                            disabled={isConnecting || isChecking}
-                            onClick={() => onConnect?.(provider.id, "user")}
-                            className="text-[11px] text-blue-400 hover:text-blue-300 underline underline-offset-2 disabled:opacity-50 cursor-pointer"
-                            data-testid={`switch-to-user-${provider.id}`}
-                          >
-                            {t("connectAi.switchToUserAction")}
-                          </button>
-                        )}
-                      </div>
-                      <p className="mt-1 text-[11px] text-neutral-400 leading-relaxed">
-                        {t("connectAi.modeUserDescription")}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Status & Actions */}
-                <div>
-                  {isConnected && provider.id === "custom" ? (
-                    <div className="flex items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() => onConnect?.(provider.id)}
-                        disabled={isConnecting || isChecking}
-                        className="text-xs text-neutral-400 hover:text-neutral-200 underline underline-offset-2 disabled:opacity-50 cursor-pointer"
-                        data-testid={`change-${provider.id}`}
-                      >
-                        {t("connectAi.changeAction")}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onDisconnect?.(provider.id)}
-                        disabled={isConnecting || isChecking}
-                        className="text-xs text-red-400 hover:text-red-300 underline underline-offset-2 disabled:opacity-50 cursor-pointer"
-                        data-testid={`disconnect-${provider.id}`}
-                      >
-                        {t("connectAi.disconnectAction")}
-                      </button>
-                    </div>
-                  ) : isConnected && provider.id === "openrouter" ? (
+                    ) : null}
+                    <span className="sr-only">{t("connectAi.connectedBadge")}</span>
+                    <span className="ml-auto" />
                     <button
                       type="button"
-                      onClick={() => onConnect?.(provider.id)}
-                      disabled={isConnecting || isChecking}
-                      className="text-xs text-neutral-400 hover:text-neutral-200 underline underline-offset-2 disabled:opacity-50 cursor-pointer"
+                      aria-expanded={openActions === p.id}
+                      aria-label={t("connectAi.actionsFor", { name: nameOf(p) })}
+                      data-testid={`actions-${p.id}`}
+                      onClick={() => setOpenActions(openActions === p.id ? null : p.id)}
+                      className="rounded px-2 text-neutral-400 hover:bg-neutral-800 hover:text-neutral-100 cursor-pointer"
                     >
-                      {t("connectAi.replaceKeyAction")}
+                      …
                     </button>
-                  ) : isConnected ? null : isInstalling ? (
-                    <div
-                      role="status"
-                      className="flex items-center gap-2 rounded-md border border-blue-900/40 bg-blue-950/30 px-3 py-2 text-xs text-blue-300 animate-slide-up"
-                    >
-                      <span className="h-2 w-2 rounded-full bg-blue-400 animate-ping shrink-0" />
-                      <span>{t("connectAi.installingNotice")}</span>
-                    </div>
-                  ) : provider.id === "custom" ? (
-                    <div className="space-y-2">
-                      {isConnecting && (
-                        <div
-                          role="status"
-                          className="flex items-center gap-2 rounded-md border border-amber-900/40 bg-amber-950/30 px-3 py-2 text-xs text-amber-300 animate-slide-up"
-                        >
-                          <span className="h-2 w-2 rounded-full bg-amber-400 animate-ping shrink-0" />
-                          <span>{t("connectAi.enterCustomInAgentNotice")}</span>
-                        </div>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => onConnect?.(provider.id)}
-                        disabled={isConnecting || isChecking}
-                        className="inline-flex items-center justify-center rounded-lg bg-neutral-100 px-4 py-2 text-xs font-semibold text-neutral-950 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-300 disabled:opacity-50 cursor-pointer"
-                        data-testid={`connect-${provider.id}`}
-                      >
-                        {isConnecting
-                          ? t("connectAi.checking")
-                          : t("connectAi.connectAction")}
-                      </button>
-                    </div>
-                  ) : provider.id === "openrouter" ? (
-                    <div className="space-y-2">
-                      {isConnecting && (
-                        <div
-                          role="status"
-                          className="flex items-center gap-2 rounded-md border border-amber-900/40 bg-amber-950/30 px-3 py-2 text-xs text-amber-300 animate-slide-up"
-                        >
-                          <span className="h-2 w-2 rounded-full bg-amber-400 animate-ping shrink-0" />
-                          <span>{t("connectAi.enterKeyInAgentNotice")}</span>
-                        </div>
-                      )}
+                  </div>
+                  {openActions === p.id ? (
+                    <div className="mt-2 space-y-2 pl-4">
+                      {modeChoice(p)}
                       <div className="flex flex-wrap items-center gap-3">
+                        {p.id === "openrouter" ? (
+                          <button type="button" disabled={busy(p)} onClick={() => onConnect?.(p.id)} className={linkButton}>
+                            {t("connectAi.replaceKeyAction")}
+                          </button>
+                        ) : null}
+                        {p.id === "custom" ? (
+                          <button
+                            type="button"
+                            disabled={busy(p)}
+                            onClick={() => onConnect?.(p.id)}
+                            className={linkButton}
+                            data-testid={`change-${p.id}`}
+                          >
+                            {t("connectAi.changeAction")}
+                          </button>
+                        ) : null}
                         <button
                           type="button"
-                          onClick={() => onConnect?.(provider.id)}
-                          disabled={isConnecting || isChecking}
-                          className="inline-flex items-center justify-center rounded-lg bg-neutral-100 px-4 py-2 text-xs font-semibold text-neutral-950 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-300 disabled:opacity-50 cursor-pointer"
+                          disabled={busy(p)}
+                          onClick={() => onDisconnect?.(p.id)}
+                          className="text-xs text-red-400 hover:text-red-300 underline underline-offset-2 disabled:opacity-50 cursor-pointer"
+                          data-testid={`disconnect-${p.id}`}
                         >
-                          {isConnecting
-                            ? t("connectAi.checking")
-                            : t("connectAi.enterKeyAction")}
+                          {t("connectAi.disconnectAction")}
                         </button>
-                        <a
-                          href="https://openrouter.ai/keys"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-neutral-400 hover:text-neutral-200 underline underline-offset-2"
-                        >
-                          {t("connectAi.getFreeKeyLink")}
-                        </a>
                       </div>
                     </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {isConnecting && (
-                        <div
-                          role="status"
-                          className="flex items-center gap-2 rounded-md border border-amber-900/40 bg-amber-950/30 px-3 py-2 text-xs text-amber-300 animate-slide-up"
-                        >
-                          <span className="h-2 w-2 rounded-full bg-amber-400 animate-ping shrink-0" />
-                          <span>{t("connectAi.confirmAndSignInNotice")}</span>
+                  ) : null}
+                  {connectingNotice(p)}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+
+        {catalog.length > 0 ? (
+          <section className="space-y-2">
+            <h3 className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500">
+              {connected.length > 0 ? t("connectAi.addTitle") : t("connectAi.whatWorksTitle")}
+            </h3>
+            {catalog.length > SEARCH_FROM ? (
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={t("connectAi.searchPlaceholder")}
+                aria-label={t("connectAi.searchPlaceholder")}
+                className="w-full rounded-md border border-neutral-800 bg-neutral-950 px-3 py-1.5 text-sm text-neutral-100 placeholder:text-neutral-500"
+              />
+            ) : null}
+            {shown.length === 0 ? <p className="text-xs text-neutral-500">{t("connectAi.nothingFound")}</p> : null}
+            {GROUPS.map((g) => {
+              const items = shown.filter((p) => p.kind === g.kind);
+              if (items.length === 0) return null;
+              return (
+                <div key={g.kind} className="space-y-1">
+                  <h4 className="text-[11px] text-neutral-500">{t(g.title)}</h4>
+                  <ul className="divide-y divide-neutral-800 rounded-lg border border-neutral-800">
+                    {items.map((p) => (
+                      <li key={p.id} data-testid={`provider-card-${p.id}`} className="px-3 py-2">
+                        <div className="flex items-center gap-3">
+                          <div className="min-w-0 flex-1">
+                            <div className="text-sm font-medium">{nameOf(p)}</div>
+                            <div className="truncate text-xs text-neutral-400">{descriptionOf(p)}</div>
+                          </div>
+                          {p.installing ? (
+                            <span role="status" className="text-xs text-blue-300">
+                              {t("connectAi.installingNotice")}
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled={busy(p)}
+                              onClick={() => onConnect?.(p.id)}
+                              className={primaryButton}
+                              data-testid={p.id === "custom" ? "connect-custom" : undefined}
+                            >
+                              {connectLabel(p)}
+                            </button>
+                          )}
                         </div>
-                      )}
-                      {isConnecting && provider.id === "claude" && (
-                        <p className="text-xs text-neutral-400 leading-relaxed">{t("connectAi.claudeConsentNote")}</p>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => onConnect?.(provider.id)}
-                        disabled={isConnecting || isChecking}
-                        className="inline-flex items-center justify-center rounded-lg bg-neutral-100 px-4 py-2 text-xs font-semibold text-neutral-950 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-300 disabled:opacity-50 cursor-pointer"
-                      >
-                        {isConnecting
-                          ? t("connectAi.checking")
-                          : !provider.installed
-                            ? t("connectAi.installAndSignInAction")
-                            : t("connectAi.signInAction")}
-                      </button>
-                    </div>
-                  )}
+                        {p.id === "openrouter" ? (
+                          <a
+                            href="https://openrouter.ai/keys"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-1 inline-block text-xs text-neutral-400 underline underline-offset-2 hover:text-neutral-200"
+                          >
+                            {t("connectAi.getFreeKeyLink")}
+                          </a>
+                        ) : null}
+                        {modeChoice(p)}
+                        {connectingNotice(p)}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </section>
+        ) : null}
+
+        <details className="rounded-lg border border-neutral-800/80 bg-neutral-950/40 px-3 py-2 text-xs text-neutral-400">
+          <summary className="cursor-pointer select-none font-medium text-neutral-300">
+            {t("connectAi.howToConnectTitle")}
+          </summary>
+          <p className="mt-1.5 leading-relaxed">{t("connectAi.howToConnectDescription")}</p>
+        </details>
+
+        {errorMessage ? (
+          <div role="alert" className="rounded-lg border border-red-900/50 bg-red-950/30 p-3 text-xs text-red-300">
+            {errorMessage}
+          </div>
+        ) : null}
       </div>
 
-      <div className="rounded-lg border border-neutral-800/80 bg-neutral-950/40 p-4 space-y-1.5 text-left">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
-          {t("connectAi.howToConnectTitle")}
-        </h3>
-        <p className="text-xs text-neutral-400 leading-relaxed">
-          {t("connectAi.howToConnectDescription")}
-        </p>
-      </div>
-
-      {errorMessage ? (
-        <div
-          role="alert"
-          className="rounded-lg border border-red-900/50 bg-red-950/30 p-3 text-xs text-red-300"
-        >
-          {errorMessage}
-        </div>
-      ) : null}
-
-      <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
+      <div className="flex items-center gap-3 border-t border-neutral-800 px-5 py-3">
         <button
           type="button"
           onClick={onRetry}
           disabled={isChecking}
-          className="w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-neutral-100 px-5 py-2.5 text-sm font-semibold text-neutral-950 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-300 disabled:opacity-50 cursor-pointer"
+          className="inline-flex items-center justify-center rounded-md border border-neutral-700 px-3 py-1.5 text-xs font-medium text-neutral-200 hover:bg-neutral-800 disabled:opacity-50 cursor-pointer"
         >
           {isChecking ? t("connectAi.checking") : t("connectAi.checkAgain")}
         </button>
-        <a
-          href="vibefork://start"
-          className="w-full sm:w-auto inline-flex items-center justify-center rounded-lg border border-neutral-700 bg-transparent px-4 py-2.5 text-sm font-medium text-neutral-300 hover:bg-neutral-800 hover:text-neutral-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400"
-        >
+        <a href="vibefork://start" className="text-xs text-neutral-400 underline underline-offset-2 hover:text-neutral-200">
           {t("connectAi.openAgent")}
         </a>
       </div>
