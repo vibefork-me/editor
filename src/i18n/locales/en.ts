@@ -51,6 +51,10 @@ export const en: TranslationSchema = {
     optionSubscriptionDescription: "Claude Pro / Team (Anthropic) or ChatGPT Plus / Codex (OpenAI).",
     optionOpenRouterTitle: "Free OpenRouter model",
     optionOpenRouterDescription: "Quick start without a paid subscription, or your own API key.",
+    optionGeminiTitle: "Google AI Studio (Gemini)",
+    optionGeminiDescription:
+      "Free tier (15 RPM, 1500/day). Gemini 2.0/1.5 Flash models. Note: Google free tier terms allow using inputs to train models.",
+    geminiGetKeyLink: "Get a free key in Google AI Studio",
     howToConnectTitle: "How to connect",
     howToConnectDescription:
       "Configuration is done in the Vibefork Agent app on your computer. Keys and tokens are never entered in the browser — they remain stored locally in your agent.",

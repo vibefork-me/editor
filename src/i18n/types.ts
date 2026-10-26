@@ -51,6 +51,9 @@ export interface TranslationSchema {
     optionSubscriptionDescription: string;
     optionOpenRouterTitle: string;
     optionOpenRouterDescription: string;
+    optionGeminiTitle: string;
+    optionGeminiDescription: string;
+    geminiGetKeyLink: string;
     howToConnectTitle: string;
     howToConnectDescription: string;
     subscriptionBadge: string;

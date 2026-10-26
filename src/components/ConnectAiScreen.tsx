@@ -17,12 +17,14 @@ const DEFAULT_PROVIDERS: AiProvider[] = [
   { id: "claude", kind: "subscription", installed: true, installing: false, connected: "no" },
   { id: "codex", kind: "subscription", installed: true, installing: false, connected: "no" },
   { id: "custom", kind: "custom", installed: true, installing: false, connected: "no" },
+  { id: "gemini", kind: "free", installed: true, installing: false, connected: "no" },
   { id: "openrouter", kind: "free", installed: true, installing: false, connected: "no" },
 ];
 
 const PROVIDER_NAMES: Record<string, string> = {
   claude: "Claude",
   codex: "ChatGPT (Codex)",
+  gemini: "Google AI Studio (Gemini)",
   openrouter: "OpenRouter",
   custom: "OpenAI-compatible API",
 };
@@ -72,7 +74,9 @@ export function ConnectAiScreen({
             const name =
               provider.id === "custom"
                 ? t("connectAi.optionCustomTitle")
-                : PROVIDER_NAMES[provider.id] ?? provider.id;
+                : provider.id === "gemini"
+                  ? t("connectAi.optionGeminiTitle")
+                  : PROVIDER_NAMES[provider.id] ?? provider.id;
 
             return (
               <div
@@ -135,7 +139,9 @@ export function ConnectAiScreen({
                       ? "ChatGPT Plus / Codex (OpenAI)"
                       : provider.id === "custom"
                         ? t("connectAi.optionCustomDescription")
-                        : t("connectAi.optionOpenRouterDescription")}
+                        : provider.id === "gemini"
+                          ? t("connectAi.optionGeminiDescription")
+                          : t("connectAi.optionOpenRouterDescription")}
                 </p>
 
                 {provider.userSignedIn && (
@@ -209,7 +215,7 @@ export function ConnectAiScreen({
 
                 {/* Status & Actions */}
                 <div>
-                  {isConnected && provider.id === "custom" ? (
+                  {isConnected && (provider.id === "custom" || provider.id === "gemini") ? (
                     <div className="flex items-center gap-3">
                       <button
                         type="button"
@@ -269,6 +275,39 @@ export function ConnectAiScreen({
                           ? t("connectAi.checking")
                           : t("connectAi.connectAction")}
                       </button>
+                    </div>
+                  ) : provider.id === "gemini" ? (
+                    <div className="space-y-2">
+                      {isConnecting && (
+                        <div
+                          role="status"
+                          className="flex items-center gap-2 rounded-md border border-amber-900/40 bg-amber-950/30 px-3 py-2 text-xs text-amber-300 animate-slide-up"
+                        >
+                          <span className="h-2 w-2 rounded-full bg-amber-400 animate-ping shrink-0" />
+                          <span>{t("connectAi.enterKeyInAgentNotice")}</span>
+                        </div>
+                      )}
+                      <div className="flex flex-wrap items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => onConnect?.(provider.id)}
+                          disabled={isConnecting || isChecking}
+                          className="inline-flex items-center justify-center rounded-lg bg-neutral-100 px-4 py-2 text-xs font-semibold text-neutral-950 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-300 disabled:opacity-50 cursor-pointer"
+                          data-testid={`connect-${provider.id}`}
+                        >
+                          {isConnecting
+                            ? t("connectAi.checking")
+                            : t("connectAi.enterKeyAction")}
+                        </button>
+                        <a
+                          href="https://aistudio.google.com/app/apikey"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-neutral-400 hover:text-neutral-200 underline underline-offset-2"
+                        >
+                          {t("connectAi.geminiGetKeyLink")}
+                        </a>
+                      </div>
                     </div>
                   ) : provider.id === "openrouter" ? (
                     <div className="space-y-2">
