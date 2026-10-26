@@ -6,7 +6,7 @@ import { LanguageSwitcher } from "./LanguageSwitcher.tsx";
 export type ConnectAiScreenProps = {
   providers?: AiProvider[];
   connectingProvider?: string | null;
-  onConnect?: (providerId: string) => void;
+  onConnect?: (providerId: string, mode?: "agent" | "user") => void;
   isChecking?: boolean;
   errorMessage?: string | null;
   onRetry?: () => void;
@@ -89,6 +89,16 @@ export function ConnectAiScreen({
                         ? t("connectAi.subscriptionBadge")
                         : t("connectAi.freeBadge")}
                     </span>
+                    {provider.userSignedIn && (
+                      <span
+                        data-testid={`mode-badge-${provider.id}`}
+                        className="rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider border border-purple-900/60 bg-purple-950/50 text-purple-300"
+                      >
+                        {provider.mode === "user"
+                          ? t("connectAi.modeBadgeUser")
+                          : t("connectAi.modeBadgeSeparate")}
+                      </span>
+                    )}
                   </div>
 
                   {isConnected && (
@@ -106,6 +116,75 @@ export function ConnectAiScreen({
                       ? "ChatGPT Plus / Codex (OpenAI)"
                       : t("connectAi.optionOpenRouterDescription")}
                 </p>
+
+                {provider.userSignedIn && (
+                  <div
+                    className="rounded-lg border border-neutral-800/80 bg-neutral-900/40 p-3 space-y-2.5 text-left"
+                    data-testid={`cli-home-choice-${provider.id}`}
+                  >
+                    <div
+                      className={`rounded-md border p-2.5 transition-colors ${
+                        provider.mode !== "user"
+                          ? "border-neutral-700 bg-neutral-800/50"
+                          : "border-neutral-800/50 bg-neutral-950/30"
+                      }`}
+                      data-testid={`mode-option-agent-${provider.id}`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-semibold text-neutral-200">
+                          {t("connectAi.modeSeparateTitle")}
+                        </span>
+                        {provider.mode !== "user" ? (
+                          <span className="text-[10px] text-emerald-400 font-medium">✓ {t("connectAi.modeBadgeSeparate")}</span>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled={isConnecting || isChecking}
+                            onClick={() => onConnect?.(provider.id, "agent")}
+                            className="text-[11px] text-blue-400 hover:text-blue-300 underline underline-offset-2 disabled:opacity-50 cursor-pointer"
+                            data-testid={`switch-to-agent-${provider.id}`}
+                          >
+                            {t("connectAi.switchToAgentAction")}
+                          </button>
+                        )}
+                      </div>
+                      <p className="mt-1 text-[11px] text-neutral-400 leading-relaxed">
+                        {t("connectAi.modeSeparateDescription")}
+                      </p>
+                    </div>
+
+                    <div
+                      className={`rounded-md border p-2.5 transition-colors ${
+                        provider.mode === "user"
+                          ? "border-neutral-700 bg-neutral-800/50"
+                          : "border-neutral-800/50 bg-neutral-950/30"
+                      }`}
+                      data-testid={`mode-option-user-${provider.id}`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-semibold text-neutral-200">
+                          {t("connectAi.modeUserTitle")}
+                        </span>
+                        {provider.mode === "user" ? (
+                          <span className="text-[10px] text-emerald-400 font-medium">✓ {t("connectAi.modeBadgeUser")}</span>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled={isConnecting || isChecking}
+                            onClick={() => onConnect?.(provider.id, "user")}
+                            className="text-[11px] text-blue-400 hover:text-blue-300 underline underline-offset-2 disabled:opacity-50 cursor-pointer"
+                            data-testid={`switch-to-user-${provider.id}`}
+                          >
+                            {t("connectAi.switchToUserAction")}
+                          </button>
+                        )}
+                      </div>
+                      <p className="mt-1 text-[11px] text-neutral-400 leading-relaxed">
+                        {t("connectAi.modeUserDescription")}
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 {/* Status & Actions */}
                 <div>

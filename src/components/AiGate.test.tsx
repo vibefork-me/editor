@@ -2,6 +2,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { AgentApiError } from "../client/types.ts";
 import { AiGate } from "./AiGate.tsx";
 import { OpenPage } from "../pages/OpenPage.tsx";
 import { useSessionStore } from "../stores/sessionStore.ts";
@@ -374,5 +375,94 @@ describe("AiGate", () => {
     expect(screen.getByRole("button", { name: "Войти" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Установить и войти" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Ввести ключ" })).toBeTruthy();
+  });
+
+  it("renders cli home choices and switches mode when userSignedIn is true", async () => {
+    mocks.client.getAiStatus.mockResolvedValue({
+      ready: false,
+      providers: [
+        {
+          id: "claude",
+          kind: "subscription",
+          installed: true,
+          installing: false,
+          connected: "no",
+          userSignedIn: true,
+          mode: "agent",
+        },
+      ],
+    });
+    mocks.client.connectAi.mockResolvedValue({ started: true });
+
+    render(
+      <AiGate>
+        <p>Protected editor workspace</p>
+      </AiGate>,
+    );
+
+    expect(await screen.findByTestId("cli-home-choice-claude")).toBeTruthy();
+    expect(screen.getByTestId("mode-badge-claude").textContent).toBe("Отдельный вход");
+    expect(screen.getByText("Отдельный вход для Vibefork")).toBeTruthy();
+    expect(screen.getByText("Ваш существующий вход")).toBeTruthy();
+
+    const switchToUserBtn = screen.getByTestId("switch-to-user-claude");
+    expect(switchToUserBtn).toBeTruthy();
+
+    // Setup polling response on successful switch: now mode: "user" and connected: "yes"
+    mocks.client.getAiStatus.mockResolvedValue({
+      ready: true,
+      providers: [
+        {
+          id: "claude",
+          kind: "subscription",
+          installed: true,
+          installing: false,
+          connected: "yes",
+          userSignedIn: true,
+          mode: "user",
+        },
+      ],
+    });
+
+    fireEvent.click(switchToUserBtn);
+
+    expect(mocks.client.connectAi).toHaveBeenCalledWith("claude", "user");
+    await waitFor(() => {
+      expect(screen.getByText("Protected editor workspace")).toBeTruthy();
+    });
+  });
+
+  it("handles unconfirmed native dialog when switching to user mode", async () => {
+    mocks.client.getAiStatus.mockResolvedValue({
+      ready: false,
+      providers: [
+        {
+          id: "claude",
+          kind: "subscription",
+          installed: true,
+          installing: false,
+          connected: "no",
+          userSignedIn: true,
+          mode: "agent",
+        },
+      ],
+    });
+    mocks.client.connectAi.mockRejectedValue(
+      new AgentApiError("not confirmed", 403, { code: "action_not_confirmed" }),
+    );
+
+    render(
+      <AiGate>
+        <p>Protected editor workspace</p>
+      </AiGate>,
+    );
+
+    const switchToUserBtn = await screen.findByTestId("switch-to-user-claude");
+    fireEvent.click(switchToUserBtn);
+
+    expect(mocks.client.connectAi).toHaveBeenCalledWith("claude", "user");
+    expect(
+      await screen.findByText("Действие заблокировано или отменено в окне агента."),
+    ).toBeTruthy();
   });
 });

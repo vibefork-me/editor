@@ -2,7 +2,7 @@
 // Generated from protocol.schema.json by vf-server/tests/schema.rs. Do not edit.
 
 /** Request of `POST /v1/ai/connect`: sign in to a subscription through its official CLI (the agent installs a pinned official release first when the CLI is missing). */
-export type AiConnectRequest = { provider: string };
+export type AiConnectRequest = { mode?: CliHomeMode | null; provider: string };
 
 /** Response of `POST /v1/ai/connect`: the sign-in opened in the browser; `GET /v1/ai` tells when it is done. */
 export type AiConnectResponse = { started: boolean };
@@ -14,7 +14,7 @@ export type AiConnected = "yes" | "no" | "unknown";
 export type AiKind = "subscription" | "free";
 
 /** One way to connect AI. */
-export type AiProvider = { connected: AiConnected; id: string; installed: boolean; installing: boolean; kind: AiKind };
+export type AiProvider = { connected: AiConnected; id: string; installed: boolean; installing: boolean; kind: AiKind; mode?: CliHomeMode | null; userSignedIn?: boolean | null };
 
 /** `GET /v1/ai`: whether AI is connected — the editor is not usable without it. */
 export type AiResponse = { providers: (AiProvider)[]; ready: boolean };
@@ -24,6 +24,9 @@ export type ChallengeRequest = { keyId: string };
 
 /** Response of `POST /v1/auth/challenge`: a one-time nonce, valid for 60 s. */
 export type ChallengeResponse = { nonce: string };
+
+/** Where a CLI keeps its sign-in, settings, and sessions. */
+export type CliHomeMode = "agent" | "user";
 
 /** Messages from the browser. */
 export type ClientMessage = { token: string; type: "auth" } | { continue?: boolean; lang?: string | null; model?: string | null; project: string; prompt: string; provider?: string | null; type: "task" } | { project: string; type: "build" } | { type: "cancel" };
@@ -77,7 +80,7 @@ export type ImportRequest = { ref?: string | null; repo: string; upstream?: stri
 export type ImportResponse = { commit: string; foreign?: ForeignChanges | null; project: string; upstream: string };
 
 /** One journal entry: a task or a plan step. */
-export type JournalEntry = { at: string; commit?: string | null; commits?: (string)[]; costUsd?: number | null; files?: string; handoff?: boolean; model: string; ms?: number | null; prompt: string; provider: string; session?: string | null; summary?: string; usage?: Usage | null };
+export type JournalEntry = { at: string; commit?: string | null; commits?: (string)[]; costUsd?: number | null; files?: string; handoff?: boolean; model: string; ms?: number | null; prompt: string; promptVersion?: string | null; provider: string; session?: string | null; summary?: string; usage?: Usage | null };
 
 /** Response of `GET /v1/journal?project=…`. */
 export type JournalResponse = { entries: (JournalEntry)[] };

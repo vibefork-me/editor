@@ -1,6 +1,7 @@
 import type {
   AiConnectResponse,
   AiResponse,
+  CliHomeMode,
   GithubConnectResponse,
   GithubStatusResponse,
 } from "./protocol.generated.ts";
@@ -12,6 +13,7 @@ export type {
   AiKind,
   AiProvider,
   AiResponse,
+  CliHomeMode,
   GithubConnectResponse,
   GithubStatusResponse,
 } from "./protocol.generated.ts";
@@ -186,7 +188,7 @@ export interface AgentTransport {
 
   getModels(): Promise<ModelInfo[]>;
   getAiStatus(): Promise<AiResponse>;
-  connectAi(provider: string): Promise<AiConnectResponse>;
+  connectAi(provider: string, mode?: CliHomeMode): Promise<AiConnectResponse>;
 
   /** Starts GitHub device authorization flow. */
   connectGithub(): Promise<GithubConnectResponse>;

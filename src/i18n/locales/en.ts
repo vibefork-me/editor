@@ -74,6 +74,16 @@ export const en: TranslationSchema = {
     checkAgain: "Check again",
     checking: "Checking…",
     errorNotice: "Could not retrieve the models list from the agent. Please try again.",
+    modeSeparateTitle: "Separate login for Vibefork",
+    modeSeparateDescription:
+      "Login and settings are kept in the agent's folder. Personal MCP servers, plugins, and rules do not affect the agent. Agent sessions do not appear in your profile. Requires signing in once.",
+    modeUserTitle: "Your existing login",
+    modeUserDescription:
+      "No need to sign in again. The agent uses your personal login: its sessions will appear in your history. Personal settings are still not applied by the agent.",
+    modeBadgeSeparate: "Separate login",
+    modeBadgeUser: "Your login",
+    switchToAgentAction: "Switch to separate login",
+    switchToUserAction: "Use your login",
   },
   security: {
     warningTitle: "Security warning: external web origins enabled (extraOrigins)",

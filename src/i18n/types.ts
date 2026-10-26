@@ -73,6 +73,14 @@ export interface TranslationSchema {
     checkAgain: string;
     checking: string;
     errorNotice: string;
+    modeSeparateTitle: string;
+    modeSeparateDescription: string;
+    modeUserTitle: string;
+    modeUserDescription: string;
+    modeBadgeSeparate: string;
+    modeBadgeUser: string;
+    switchToAgentAction: string;
+    switchToUserAction: string;
   };
   security: {
     warningTitle: string;
