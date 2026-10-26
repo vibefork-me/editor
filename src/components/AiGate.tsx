@@ -14,6 +14,11 @@ export type AiGateProps = {
 type AiGatePhase = "loading" | "no-ai" | "ready" | "error";
 
 const POLL_INTERVAL_MS = 3000;
+
+/** Whether the AI the person is connecting is connected now (another AI may be ready already). */
+function connectedNow(providers: AiProvider[], id: string): boolean {
+  return providers.some((p) => p.id === id && p.connected === "yes");
+}
 const MAX_POLL_MS = 10 * 60 * 1000;
 
 export function AiGate({ children, pollIntervalMs = POLL_INTERVAL_MS }: AiGateProps) {
@@ -92,7 +97,7 @@ export function AiGate({ children, pollIntervalMs = POLL_INTERVAL_MS }: AiGatePr
           return;
         }
         const status = await checkStatus();
-        if (status?.ready) {
+        if (status && connectedNow(status.providers, providerId)) {
           setConnectingProvider(null);
         }
       } catch (err: unknown) {
@@ -139,7 +144,8 @@ export function AiGate({ children, pollIntervalMs = POLL_INTERVAL_MS }: AiGatePr
         const res = await client.getAiStatus();
         if (cancelled) return;
         setProviders(res.providers);
-        if (res.ready) {
+        // Wait for the AI being connected, not for any AI: one may be ready already.
+        if (connectingProvider && connectedNow(res.providers, connectingProvider)) {
           window.clearInterval(interval);
           setConnectingProvider(null);
           setPhase("ready");

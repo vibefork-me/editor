@@ -169,6 +169,9 @@ export function ConnectAiScreen({
                           <span>{t("connectAi.confirmAndSignInNotice")}</span>
                         </div>
                       )}
+                      {isConnecting && provider.id === "claude" && (
+                        <p className="text-xs text-neutral-400 leading-relaxed">{t("connectAi.claudeConsentNote")}</p>
+                      )}
                       <button
                         type="button"
                         onClick={() => onConnect?.(provider.id)}

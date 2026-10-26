@@ -63,6 +63,7 @@ export const en: TranslationSchema = {
     notInstalledNotice: "Not installed (coming soon)",
     comingSoonNotice: "Coming soon",
     confirmAndSignInNotice: "Confirm in the agent window and sign in using your browser…",
+    claudeConsentNote: "An Anthropic page opens: \"Claude Code wants to connect to your Claude chat account\". Claude Code is Claude's official program Vibefork works through; the Claude chat account is your Claude subscription. Click Allow.",
     enterKeyInAgentNotice: "Enter the key in the agent window…",
     installingNotice: "Installing the official app… (downloading up to ~300 MB)",
     timedOutNotice: "Sign-in timed out. Please try again.",

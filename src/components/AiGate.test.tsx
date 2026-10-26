@@ -132,6 +132,48 @@ describe("AiGate", () => {
     });
   });
 
+  it("keeps waiting for Claude when another AI is ready already (panel from the status bar)", async () => {
+    const { useAiPanelStore } = await import("../stores/aiPanelStore.ts");
+    const openrouterOnly = {
+      ready: true,
+      providers: [
+        { id: "claude", kind: "subscription", installed: true, connected: "no" },
+        { id: "openrouter", kind: "free", installed: true, connected: "yes" },
+      ],
+    };
+    mocks.client.getAiStatus.mockResolvedValue(openrouterOnly);
+    mocks.client.connectAi.mockResolvedValue({ started: true });
+    useAiPanelStore.setState({ open: true });
+
+    render(
+      <AiGate pollIntervalMs={30}>
+        <p>Protected editor workspace</p>
+      </AiGate>,
+    );
+
+    const signIn = await screen.findByRole("button", { name: "Войти" });
+    fireEvent.click(signIn);
+    expect(await screen.findByText(/Подтвердите в окне агента/i)).toBeTruthy();
+
+    // A few polls with Claude still signing in: the card keeps waiting.
+    await new Promise((r) => setTimeout(r, 120));
+    expect(screen.getByText(/Подтвердите в окне агента/i)).toBeTruthy();
+
+    // Claude signed in: the card shows it without reopening the panel.
+    mocks.client.getAiStatus.mockResolvedValue({
+      ready: true,
+      providers: [
+        { id: "claude", kind: "subscription", installed: true, connected: "yes" },
+        { id: "openrouter", kind: "free", installed: true, connected: "yes" },
+      ],
+    });
+    await waitFor(() => {
+      const card = screen.getByTestId("provider-card-claude");
+      expect(card.textContent).toMatch(/Подключено|Connected/);
+    });
+    useAiPanelStore.setState({ open: false });
+  });
+
   it("displays error notice when getAiStatus fails and allows retry", async () => {
     mocks.client.getAiStatus.mockRejectedValueOnce(new Error("Network failure"));
 
