@@ -350,7 +350,7 @@ describe("AiGate", () => {
     expect(
       await screen.findByRole("heading", { name: /Подключите искусственный интеллект/i }),
     ).toBeTruthy();
-    expect(screen.getAllByText("Подписка").length).toBeGreaterThan(0);
+    expect(screen.getByText("По подписке")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Войти" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Установить и войти" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Ввести ключ" })).toBeTruthy();
@@ -360,7 +360,7 @@ describe("AiGate", () => {
     await waitFor(() => {
       expect(screen.getByRole("heading", { name: /Connect an AI model/i })).toBeTruthy();
     });
-    expect(screen.getAllByText("Subscription").length).toBeGreaterThan(0);
+    expect(screen.getByText("With a subscription")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Sign in" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Install and sign in" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Enter key" })).toBeTruthy();
@@ -402,7 +402,8 @@ describe("AiGate", () => {
     );
 
     expect(await screen.findByTestId("cli-home-choice-claude")).toBeTruthy();
-    expect(screen.getByTestId("mode-badge-claude").textContent).toBe("Отдельный вход");
+    // Not connected yet: the current choice is marked in the catalog row.
+    expect(screen.getByTestId("mode-option-agent-claude").textContent).toContain("✓");
     expect(screen.getByText("Отдельный вход для Vibefork")).toBeTruthy();
     expect(screen.getByText("Ваш существующий вход")).toBeTruthy();
 
@@ -498,6 +499,7 @@ describe("AiGate", () => {
     expect(await screen.findByText("localhost:11434")).toBeTruthy();
 
     // Change action triggers connectAi("custom")
+    fireEvent.click(screen.getByTestId("actions-custom"));
     const changeBtn = screen.getByTestId("change-custom");
     fireEvent.click(changeBtn);
     expect(mocks.client.connectAi).toHaveBeenCalledWith("custom");

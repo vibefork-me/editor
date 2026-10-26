@@ -42,6 +42,16 @@ export interface TranslationSchema {
     retry: string;
   };
   connectAi: {
+    connectedTitle: string;
+    addTitle: string;
+    searchPlaceholder: string;
+    groupSubscription: string;
+    groupFree: string;
+    groupCustom: string;
+    actionsFor: string;
+    nothingFound: string;
+    codexDescription: string;
+    moreAction: string;
     replaceKeyAction: string;
     close: string;
     title: string;
