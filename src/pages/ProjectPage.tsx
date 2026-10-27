@@ -10,7 +10,10 @@ import { PartCallout, PartPanel, type PartActions } from "../canvas/card/PartCar
 import { TaskLayer } from "../canvas/task/TaskLayer.tsx";
 import type { GraphApi } from "../canvas/graph/GraphCanvas.tsx";
 import { useViewerStore } from "../stores/viewerStore.ts";
-import type { TaskControl } from "../client/types.ts";
+import type { NoteAttachment, TaskControl } from "../client/types.ts";
+import { MessagesDock } from "../canvas/messages/MessagesDock.tsx";
+import { NoteCapsule } from "../canvas/messages/NoteCapsule.tsx";
+import { conversation, markNotDelivered, promptWithText, waitingCount, type PersonMessage } from "../canvas/messages/messages.ts";
 import { StatusBar } from "../components/shell/StatusBar.tsx";
 import { ViewerLayoutContainer } from "../components/viewer/index.ts";
 import { useProjectShellSync } from "../hooks/useProjectShellSync.ts";
@@ -45,9 +48,10 @@ export function ProjectPage() {
   const [graphApi, setGraphApi] = useState<GraphApi | null>(null);
   // How to pause, resume or cancel the running task; null when none runs.
   const [taskControl, setTaskControl] = useState<TaskControl | null>(null);
+  // What the person wrote to the agent on the canvas, this visit.
+  const [messages, setMessages] = useState<PersonMessage[]>([]);
 
-  const sendMessage = useCallback(async () => {
-    const prompt = chatDraft.trim();
+  const startTask = useCallback(async (prompt: string) => {
     if (!prompt || !currentProjectId || isSending) return;
     const transport = getAgentTransport();
     if (!transport) {
@@ -63,6 +67,11 @@ export function ProjectPage() {
       const outcome = await transport.runTask(
         { projectId: currentProjectId, prompt, lang: locale },
         (m) => {
+        // The agent did not take a note (it has no notes yet): the person sees it was not delivered.
+        if (m.type === "error" && m.code === "not_supported") {
+          setMessages(markNotDelivered);
+          return;
+        }
         if (m.type === "canvas") {
           useCanvasStore.getState().ingest(m);
           return;
@@ -96,7 +105,30 @@ export function ProjectPage() {
       setIsSending(false);
       setTaskControl(null);
     }
-  }, [chatDraft, currentProjectId, isSending, t]);
+  }, [currentProjectId, isSending, t, locale]);
+
+  const sendMessage = useCallback(() => void startTask(chatDraft.trim()), [chatDraft, startTask]);
+
+  // The field on the canvas: a note to the running task, or a new task.
+  const sendFromCanvas = useCallback(
+    (text: string, attachments: NoteAttachment[]) => {
+      if (isSending && !taskControl) return;
+      const message: PersonMessage = {
+        id: `m${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        text,
+        attachments: attachments.map((a) => a.name),
+        at: Date.now(),
+        kind: taskControl ? "note" : "task",
+        takenBefore: canvas.notesTaken.length,
+      };
+      setMessages((all) => [...all, message]);
+      setChatDraft("");
+      if (taskControl) taskControl.note(text, attachments);
+      else void startTask(promptWithText(text, attachments));
+    },
+    [isSending, taskControl, canvas.notesTaken.length, startTask],
+  );
+  const waitingNotes = waitingCount(conversation(messages, canvas.notesTaken));
 
   const handleAskAbout = useCallback((prefix: string) => {
     setChatDraft(prefix);
@@ -168,11 +200,25 @@ export function ProjectPage() {
                 <div className="pointer-events-none absolute inset-x-4 top-4 z-10">
                   <StageRail state={canvas} now={now} onStop={taskControl ? () => taskControl.stop() : undefined} />
                 </div>
-                {canvas.paused && taskControl && (
-                  <div className="absolute inset-x-0 bottom-6 z-10 flex justify-center">
-                    <StopBanner onResume={() => taskControl.resume()} onCancel={() => taskControl.cancel()} />
-                  </div>
-                )}
+                <NoteCapsule api={graphApi} nodeId={canvas.focusedId} count={waitingNotes} />
+                <div className="pointer-events-none absolute inset-x-0 bottom-4 z-10 flex justify-center px-4">
+                  <MessagesDock
+                    state={canvas}
+                    running={taskControl !== null}
+                    messages={messages}
+                    draft={chatDraft}
+                    onDraftChange={setChatDraft}
+                    onSend={sendFromCanvas}
+                    onGoTo={partActions.onGoTo}
+                    inputRef={chatInputRef}
+                  >
+                    {canvas.paused && taskControl && (
+                      <div className="flex justify-center">
+                        <StopBanner onResume={() => taskControl.resume()} onCancel={() => taskControl.cancel()} />
+                      </div>
+                    )}
+                  </MessagesDock>
+                </div>
               </Suspense>
             ) : (
               <CanvasPanel onAskAbout={handleAskAbout} />
@@ -185,14 +231,17 @@ export function ProjectPage() {
                 <FeedLineView key={i} line={line} />
               ))}
             </div>
-            <ChatComposer
-              value={chatDraft}
-              onChange={setChatDraft}
-              onSend={() => void sendMessage()}
-              isSending={isSending}
-              statusMessage={chatStatus}
-              inputRef={chatInputRef}
-            />
+            {/* With the living canvas the field is on the canvas. */}
+            {!hasStream && (
+              <ChatComposer
+                value={chatDraft}
+                onChange={setChatDraft}
+                onSend={sendMessage}
+                isSending={isSending}
+                statusMessage={chatStatus}
+                inputRef={chatInputRef}
+              />
+            )}
           </aside>
         </div>
       </div>

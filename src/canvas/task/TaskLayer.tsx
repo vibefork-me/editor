@@ -24,7 +24,8 @@ export function TaskLayer({ state }: { state: CanvasState }) {
         <TaskPanel state={state} />
       </div>
       {state.result && resultAt !== closedAt && !open && !history && (
-        <div className="absolute inset-x-0 bottom-6 z-10 flex justify-center">
+        // Above the message field at the bottom of the canvas.
+        <div className="absolute inset-x-0 bottom-40 z-10 flex justify-center">
           <ResultScreen state={state} onOpen={setOpen} onClose={() => setClosedAt(resultAt)} />
         </div>
       )}
