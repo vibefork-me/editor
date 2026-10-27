@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { Artifact } from "../../client/protocol.generated.ts";
 import { useTranslation } from "../../i18n/i18nStore.ts";
 import type { CanvasState } from "../canvasState.ts";
-import { ArtifactWindow, HistoryPanel, ResultScreen, TaskPanel } from "./TaskViews.tsx";
+import { ArtifactWindow, HistoryPanel, ResultScreen, TaskPanel, type HistoryVersions } from "./TaskViews.tsx";
 
 /**
  * The task over the canvas: its panel bottom left while it runs, the "Done" screen at its end, the history
@@ -12,8 +12,11 @@ export function TaskLayer({
   state,
   history: shownHistory,
   onHistoryChange,
+  versions,
 }: {
   state: CanvasState;
+  /** Versions of the project to return to, in the history. */
+  versions?: HistoryVersions;
   /** With `onHistoryChange` the history is opened from outside (the project menu), without its own button. */
   history?: boolean;
   onHistoryChange?: (open: boolean) => void;
@@ -53,7 +56,7 @@ export function TaskLayer({
       )}
       {history && (
         <div className="absolute bottom-4 left-4 top-14 z-20">
-          <HistoryPanel state={state} onOpen={setOpen} onClose={() => setHistory(false)} />
+          <HistoryPanel state={state} versions={versions} onOpen={setOpen} onClose={() => setHistory(false)} />
         </div>
       )}
       {open && (
