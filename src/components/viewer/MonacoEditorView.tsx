@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "../../i18n/i18nStore.ts";
 import type { CodeViewerProps } from "./types.ts";
 
 function detectLanguage(path: string | null): string {
@@ -35,6 +36,7 @@ export function MonacoEditorView({
   readOnly = true,
   onlyChanges = false,
 }: CodeViewerProps) {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const [monacoLoaded, setMonacoLoaded] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -109,7 +111,7 @@ export function MonacoEditorView({
       })
       .catch((err) => {
         if (!isMounted) return;
-        setLoadError(err instanceof Error ? err.message : "Failed to load editor");
+        setLoadError(err instanceof Error ? err.message : String(err));
       });
 
     return () => {
@@ -131,16 +133,16 @@ export function MonacoEditorView({
           {mode === "diff" ? (
             <div className="space-y-4">
               <div className="border border-border rounded p-2">
-                <span className="text-text-muted text-[11px] block mb-1">Original:</span>
-                <pre className="text-danger whitespace-pre-wrap">{diffOriginal || "(empty)"}</pre>
+                <span className="text-text-muted text-[11px] block mb-1">{t("viewer.original")}</span>
+                <pre className="text-danger whitespace-pre-wrap">{diffOriginal || t("viewer.empty")}</pre>
               </div>
               <div className="border border-border rounded p-2">
-                <span className="text-text-muted text-[11px] block mb-1">Modified:</span>
-                <pre className="text-success whitespace-pre-wrap">{diffModified || "(empty)"}</pre>
+                <span className="text-text-muted text-[11px] block mb-1">{t("viewer.modified")}</span>
+                <pre className="text-success whitespace-pre-wrap">{diffModified || t("viewer.empty")}</pre>
               </div>
             </div>
           ) : (
-            <pre className="whitespace-pre-wrap">{content || "(empty file)"}</pre>
+            <pre className="whitespace-pre-wrap">{content || t("viewer.emptyFile")}</pre>
           )}
         </div>
       )}

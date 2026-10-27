@@ -10,15 +10,14 @@ import { useLayoutStore, type PanelId } from "../stores/layoutStore.ts";
 import { useSessionStore } from "../stores/sessionStore.ts";
 import { useViewerStore } from "../stores/viewerStore.ts";
 
-/** The map a made-up session describes, as `GET /v1/graph` would answer it. */
+/** The map a made-up session describes, as `GET /v1/graph` would answer it: its parts, without the project root. */
 export function graphOf(records: CanvasRecord[]): GraphResponse {
   const nodes: GraphResponse["nodes"] = [];
   const edges: GraphResponse["edges"] = [];
   for (const { ev } of records) {
-    if (ev.type === "project" && !ev.versionOf) nodes.push({ id: ev.id, label: ev.label, summary: ev.summary, files: ev.files?.length ?? 0, changed: 0 });
     if (ev.type === "found" || ev.type === "subsystem") {
       nodes.push({ id: ev.id, label: ev.label, summary: ev.summary, files: ev.files?.length ?? 0, changed: 0 });
-      edges.push({ from: ev.parent, to: ev.id });
+      if (ev.parent !== "root") edges.push({ from: ev.parent, to: ev.id });
     }
   }
   return { nodes, edges, source: "model", revision: "dev" };

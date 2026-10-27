@@ -1,10 +1,14 @@
 // @vitest-environment jsdom
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AgentOfflineScreen } from "./AgentOfflineScreen.tsx";
+import { useI18nStore } from "../i18n/i18nStore.ts";
 import { WINDOWS_INSTALL_PS_COMMAND } from "../client/probe-agent-reachability.ts";
 
 describe("AgentOfflineScreen", () => {
+  // The texts checked here are the Russian ones.
+  beforeEach(() => useI18nStore.getState().setLocale("ru"));
+
   it("renders agent-not-running state with deep link and install command", () => {
     render(<AgentOfflineScreen reason="agent-not-running" />);
 

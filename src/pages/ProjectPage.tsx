@@ -1,8 +1,8 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useParams } from "react-router-dom";
-import { CanvasPanel } from "../components/canvas/index.ts";
-import { ChatComposer } from "../components/chat/ChatComposer.tsx";
-import { PhaseRail } from "../components/shell/PhaseRail.tsx";
+import { ForeignChangesBanner } from "../components/shell/ForeignChangesBanner.tsx";
+import { MapControls } from "../canvas/MapControls.tsx";
+import { mapCanvasState, withMap } from "../canvas/mapState.ts";
 import { StageRail, useNow } from "../canvas/rail/StageRail.tsx";
 import { StopBanner } from "../canvas/rail/StopBanner.tsx";
 import { PartCallout, PartPanel, type PartActions } from "../canvas/card/PartCard.tsx";
@@ -30,11 +30,10 @@ import { getAgentTransport } from "../stores/agent-bridge.ts";
 import { useProjectStore } from "../stores/projectStore.ts";
 import { useGraphStore } from "../stores/graphStore.ts";
 import { useCanvasStore } from "../stores/canvasStore.ts";
-import { isCanvasStreamEnabled } from "../flags.ts";
 
 // The living map of the session stream; loaded on demand, it is not part of the first screen.
 const GraphCanvas = lazy(() => import("../canvas/graph/GraphCanvas.tsx").then((m) => ({ default: m.GraphCanvas })));
-import { feedLine, phaseFromMessage, type FeedLine } from "../client/task-feed.ts";
+import { feedLine, type FeedLine } from "../client/task-feed.ts";
 import type { Offer, ServerMessage } from "../client/protocol.generated.ts";
 
 // Errors of `choose_offer` that mean the offer did not start: an older agent, or stale offers.
@@ -55,8 +54,27 @@ export function ProjectPage() {
   const activePath = useViewerStore((s) => s.activePath);
   const buildFailed = useBuildStore((s) => s.status === "failed");
   const chatInputRef = useRef<HTMLTextAreaElement>(null);
-  const canvas = useCanvasStore((s) => s.canvas);
-  const hasStream = isCanvasStreamEnabled() && canvas.order.length > 0;
+  const stream = useCanvasStore((s) => s.canvas);
+  const projectMeta = useProjectStore((s) => s.projectMeta);
+  const foreign = useProjectStore((s) => s.foreignChanges);
+  const clearForeignChanges = useProjectStore((s) => s.clearForeignChanges);
+  const buildIdle = useBuildStore((s) => s.status === "idle");
+  const graphNodes = useGraphStore((s) => s.nodes);
+  const graphEdges = useGraphStore((s) => s.edges);
+  const graphSource = useGraphStore((s) => s.source);
+  const showFolders = useGraphStore((s) => s.currentView === "folders");
+  const graphLoading = useGraphStore((s) => s.isLoading || s.isDescribing);
+  // The map of the project is on the canvas without a session stream too; the stream goes over it.
+  // Folders are a different map: the parts the stream talks about are not on it.
+  const projectLabel = projectMeta?.upstream ?? projectMeta?.projectId ?? projectId ?? "";
+  const map = useMemo(
+    () => mapCanvasState([...graphNodes.values()], graphEdges, graphSource === "folders", projectLabel),
+    [graphNodes, graphEdges, graphSource, projectLabel],
+  );
+  const canvas = useMemo(
+    () => (showFolders ? withMap({ ...stream, nodes: {}, order: [], links: {} }, map) : withMap(stream, map)),
+    [stream, map, showFolders],
+  );
   const now = useNow();
   // The part the person opened on the canvas: its card next to the node, or the panel with everything.
   const [selectedPart, setSelectedPart] = useState<string | null>(null);
@@ -93,10 +111,6 @@ export function ProjectPage() {
         }
         const line = feedLine(m);
         if (line) setFeed((f) => [...f.slice(-499), line]);
-        const nextPhase = phaseFromMessage(m);
-        if (nextPhase) {
-          useGraphStore.getState().setPhase(nextPhase);
-        }
         if (m.type === "step-done" || m.type === "done") {
           void useGraphStore.getState().refreshGraph();
         }
@@ -111,10 +125,7 @@ export function ProjectPage() {
         chatInputRef.current?.focus();
         return;
       }
-      if (outcome.kind === "done") {
-        useGraphStore.getState().setPhase("done");
-        void useGraphStore.getState().refreshGraph();
-      }
+      if (outcome.kind === "done") void useGraphStore.getState().refreshGraph();
       setChatStatus(
         outcome.kind === "done" && outcome.code === 0
           ? t("project.taskDone")
@@ -129,8 +140,6 @@ export function ProjectPage() {
       setTaskControl(null);
     }
   }, [currentProjectId, isSending, t, locale]);
-
-  const sendMessage = useCallback(() => void startTask(chatDraft.trim()), [chatDraft, startTask]);
 
   // The field on the canvas: a note to the running task, or a new task.
   const sendFromCanvas = useCallback(
@@ -248,71 +257,85 @@ export function ProjectPage() {
       )}
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <section aria-label={t("project.mapTab")} className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-          {!hasStream && <PhaseRail />}
           <div className="relative min-h-0 flex-1">
-            {hasStream ? (
-              <Suspense fallback={null}>
-                <GraphCanvas
+            <Suspense fallback={null}>
+              <GraphCanvas
+                state={canvas}
+                selectedId={selectedPart}
+                onSelect={(id) => {
+                  setSelectedPart(id);
+                  setPartPanel(false);
+                }}
+                onReady={setGraphApi}
+                onGraph={
+                  import.meta.env.DEV
+                    ? (graph, stable) => {
+                        // For headless checks of the page in development builds.
+                        window.__vfCanvas = { stable, played: () => true, size: stable.nodes.size, toScreen: (x, y) => graph.graph2ScreenCoords(x, y) };
+                      }
+                    : undefined
+                }
+              />
+              {selectedPart && !partPanel && (
+                <PartCallout state={canvas} nodeId={selectedPart} api={graphApi} onMore={() => setPartPanel(true)} {...partActions} />
+              )}
+              {selectedPart && partPanel && <PartPanel state={canvas} nodeId={selectedPart} {...partActions} />}
+              <TaskLayer state={canvas} history={historyOpen} onHistoryChange={setHistoryOpen} />
+              <div className="pointer-events-none absolute inset-x-4 top-16 z-10">
+                <StageRail state={canvas} now={now} onStop={taskControl ? () => taskControl.stop() : undefined} />
+              </div>
+              <NoteCapsule api={graphApi} nodeId={canvas.focusedId} count={waitingNotes} />
+              <div className="pointer-events-none absolute inset-x-0 bottom-4 z-10 flex justify-center px-16">
+                <MessagesDock
                   state={canvas}
-                  selectedId={selectedPart}
-                  onSelect={(id) => {
-                    setSelectedPart(id);
-                    setPartPanel(false);
-                  }}
-                  onReady={setGraphApi}
-                />
-                {selectedPart && !partPanel && (
-                  <PartCallout state={canvas} nodeId={selectedPart} api={graphApi} onMore={() => setPartPanel(true)} {...partActions} />
-                )}
-                {selectedPart && partPanel && <PartPanel state={canvas} nodeId={selectedPart} {...partActions} />}
-                <TaskLayer state={canvas} history={historyOpen} onHistoryChange={setHistoryOpen} />
-                <div className="pointer-events-none absolute inset-x-4 top-16 z-10">
-                  <StageRail state={canvas} now={now} onStop={taskControl ? () => taskControl.stop() : undefined} />
-                </div>
-                <NoteCapsule api={graphApi} nodeId={canvas.focusedId} count={waitingNotes} />
-                <div className="pointer-events-none absolute inset-x-0 bottom-4 z-10 flex justify-center px-16">
-                  <MessagesDock
-                    state={canvas}
-                    running={taskControl !== null}
-                    messages={messages}
-                    draft={chatDraft}
-                    onDraftChange={setChatDraft}
-                    onSend={sendFromCanvas}
-                    onChooseOffer={chooseOffer}
-                    onGoTo={partActions.onGoTo}
-                    inputRef={chatInputRef}
-                  >
-                    {canvas.paused && taskControl && (
-                      <div className="flex justify-center">
-                        <StopBanner onResume={() => taskControl.resume()} onCancel={() => taskControl.cancel()} />
-                      </div>
-                    )}
-                  </MessagesDock>
-                </div>
-              </Suspense>
-            ) : (
-              <CanvasPanel onAskAbout={handleAskAbout} />
+                  running={taskControl !== null}
+                  messages={messages}
+                  draft={chatDraft}
+                  onDraftChange={setChatDraft}
+                  onSend={sendFromCanvas}
+                  onChooseOffer={chooseOffer}
+                  onGoTo={partActions.onGoTo}
+                  inputRef={chatInputRef}
+                >
+                  {canvas.paused && taskControl && (
+                    <div className="flex justify-center">
+                      <StopBanner onResume={() => taskControl.resume()} onCancel={() => taskControl.cancel()} />
+                    </div>
+                  )}
+                </MessagesDock>
+              </div>
+            </Suspense>
+            {canvas.order.length === 0 && !graphLoading && (
+              <div data-testid="empty-canvas" className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center p-8 text-center text-text-muted">
+                <h4 className="text-sm font-semibold text-text">{t("canvas.emptyCanvasTitle")}</h4>
+                <p className="mt-1 max-w-sm text-xs leading-relaxed">{t("canvas.emptyCanvasDescription")}</p>
+              </div>
+            )}
+            {foreign && foreign.project === currentProjectId && buildIdle && (
+              <ForeignChangesBanner
+                foreign={foreign.foreign}
+                onDismiss={clearForeignChanges}
+                onBuild={() => {
+                  if (!currentProjectId) return;
+                  clearForeignChanges();
+                  setPanelOpen("journal", true);
+                  useLayoutStore.getState().setJournalTab("build");
+                  void useBuildStore.getState().startBuild(currentProjectId);
+                }}
+              />
             )}
             {/* Islands in the corners: the project with its menu and the panel buttons; help. */}
             <div className="pointer-events-none absolute left-3 top-3 z-30 flex items-center gap-2">
               <ProjectMenu onHistory={canvas.history.length > 0 ? () => setHistoryOpen(true) : undefined} />
               <PanelToggles journalError={errors.agent || errors.build || errors.program} />
             </div>
+            <div className="pointer-events-none absolute right-3 top-3 z-30">
+              <MapControls />
+            </div>
             <div className="pointer-events-none absolute bottom-4 right-4 z-30">
               <HelpButton />
             </div>
           </div>
-          {/* Until the living canvas shows the map, the field is under it. */}
-          {!hasStream && (
-            <ChatComposer
-              value={chatDraft}
-              onChange={setChatDraft}
-              onSend={sendMessage}
-              isSending={isSending}
-              statusMessage={chatStatus}
-              inputRef={chatInputRef}
-            />
-          )}
         </section>
         {panels.journal.open && (
           <>

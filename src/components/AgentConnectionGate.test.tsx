@@ -21,10 +21,13 @@ vi.mock("./AiGate.tsx", () => ({
 }));
 
 import { useAgentConnectionMonitor } from "../hooks/useAgentConnectionMonitor.ts";
+import { useI18nStore } from "../i18n/i18nStore.ts";
 
 describe("AgentConnectionGate", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // The texts checked here are the Russian ones.
+    useI18nStore.getState().setLocale("ru");
   });
 
   it("shows workspace when agent is online", () => {

@@ -1,8 +1,10 @@
 // @vitest-environment jsdom
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  LOCALES,
   STORAGE_KEY,
   detectInitialLocale,
+  localeForLanguage,
   translate,
   useI18nStore,
 } from "./i18nStore.ts";
@@ -75,5 +77,48 @@ describe("i18n system", () => {
     expect(useI18nStore.getState().locale).toBe("en");
     expect(useI18nStore.getState().t("common.copy")).toBe("Copy");
     expect(localStorage.getItem(STORAGE_KEY)).toBe("en");
+  });
+
+  describe("the language of a first visit", () => {
+    afterEach(() => vi.restoreAllMocks());
+    const browser = (languages: string[]) => {
+      localStorage.clear();
+      vi.spyOn(navigator, "languages", "get").mockReturnValue(languages);
+      vi.spyOn(navigator, "language", "get").mockReturnValue(languages[0] ?? "");
+    };
+
+    it("is Russian for Russian, Belarusian and Kazakh browsers", () => {
+      for (const tag of ["ru", "ru-RU", "be-BY", "kk"]) {
+        browser([tag]);
+        expect(detectInitialLocale()).toBe("ru");
+      }
+    });
+
+    it("is English for Ukrainian and for any language it does not know", () => {
+      for (const tag of ["uk", "uk-UA", "de-DE", "fr", "zh-CN", "en-GB", ""]) {
+        browser([tag]);
+        expect(detectInitialLocale()).toBe("en");
+      }
+      browser([]);
+      expect(detectInitialLocale()).toBe("en");
+      expect(localeForLanguage("pt_BR")).toBe("en");
+    });
+
+    it("keeps the person's choice over the browser", () => {
+      browser(["de"]);
+      localStorage.setItem(STORAGE_KEY, "ru");
+      expect(detectInitialLocale()).toBe("ru");
+    });
+  });
+
+  it("falls back to English for a key missing in Russian", () => {
+    const ruCommon = LOCALES.ru.common as Record<string, string>;
+    const saved = ruCommon.copy;
+    delete ruCommon.copy;
+    try {
+      expect(translate("ru", "common.copy")).toBe("Copy");
+    } finally {
+      ruCommon.copy = saved!;
+    }
   });
 });

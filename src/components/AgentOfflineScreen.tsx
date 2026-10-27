@@ -16,6 +16,7 @@ export function AgentOfflineScreen({
   installCommand = WINDOWS_INSTALL_PS_COMMAND,
   exiting = false,
 }: AgentOfflineScreenProps) {
+  const { t } = useI18n();
   const [copied, setCopied] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
 
@@ -37,7 +38,7 @@ export function AgentOfflineScreen({
       }`}
       role="region"
       aria-live="polite"
-      aria-label="Agent connection"
+      aria-label={t("agentOffline.regionLabel")}
     >
       {reason === "agent-not-running" ? (
         <AgentNotRunningPanel

@@ -1,9 +1,13 @@
 // @vitest-environment jsdom
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
+import { useI18nStore } from "../i18n/i18nStore.ts";
 import { SecurityWarningBanner } from "./SecurityWarningBanner.tsx";
 
 describe("SecurityWarningBanner", () => {
+  // The texts checked here are the Russian ones.
+  beforeEach(() => useI18nStore.getState().setLocale("ru"));
+
   it("renders nothing when extra origins are not active", () => {
     const { container: c1 } = render(<SecurityWarningBanner active={false} />);
     expect(c1.firstChild).toBeNull();

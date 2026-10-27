@@ -356,7 +356,7 @@ describe("AiGate", () => {
     expect(screen.getByRole("button", { name: "Ввести ключ" })).toBeTruthy();
 
     // Switch to English
-    fireEvent.click(screen.getByRole("button", { name: /English language/i }));
+    fireEvent.click(screen.getByRole("button", { name: /English/i }));
     await waitFor(() => {
       expect(screen.getByRole("heading", { name: /Connect an AI model/i })).toBeTruthy();
     });
@@ -367,7 +367,7 @@ describe("AiGate", () => {
     expect(screen.getByRole("link", { name: "Get a free key" })).toBeTruthy();
 
     // Switch back to Russian
-    fireEvent.click(screen.getByRole("button", { name: /Русский язык/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Русский/i }));
     await waitFor(() => {
       expect(
         screen.getByRole("heading", { name: /Подключите искусственный интеллект/i }),

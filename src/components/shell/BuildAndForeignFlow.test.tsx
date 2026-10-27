@@ -7,7 +7,6 @@ import { useBuildStore } from "../../stores/buildStore.ts";
 import { useProjectStore } from "../../stores/projectStore.ts";
 import { bindAgentTransport } from "../../stores/agent-bridge.ts";
 import { ForeignChangesBanner } from "./ForeignChangesBanner.tsx";
-import { BuildPanel } from "./BuildPanel.tsx";
 import { JournalPanel } from "../workspace/JournalPanel.tsx";
 import { useLayoutStore } from "../../stores/layoutStore.ts";
 import { initialCanvasState } from "../../canvas/canvasState.ts";
@@ -22,6 +21,12 @@ vi.mock("../../client/react/useAgentClient.ts", () => ({
     listProjects: vi.fn().mockResolvedValue([]),
   }),
 }));
+
+/** The Journal open on its build section. */
+function BuildJournal() {
+  useLayoutStore.getState().setJournalTab("build");
+  return <JournalPanel feed={[]} taskStatus={null} state={initialCanvasState} errors={{ agent: false, build: false, program: false }} />;
+}
 
 describe("Workspace build and foreign changes flow", () => {
   beforeEach(() => {
@@ -94,7 +99,7 @@ describe("Workspace build and foreign changes flow", () => {
     });
   });
 
-  describe("BuildPanel and buildStore in workspace", () => {
+  describe("Journal build section and buildStore in workspace", () => {
     it("runs build, streams logs, and shows artifact path with copy button on success", async () => {
       const mockRunBuild = vi.fn(async (_project: string, onMessage: (m: BuildMessage) => void): Promise<BuildOutcome> => {
         onMessage({ type: "estimate", verdict: "ok", text: "Toolchain ready" });
@@ -113,13 +118,13 @@ describe("Workspace build and foreign changes flow", () => {
 
       bindAgentTransport(mockTransport);
 
-      render(<BuildPanel />);
+      render(<BuildJournal />);
 
       // Starts build
       const buildPromise = useBuildStore.getState().startBuild("test-proj");
 
       await waitFor(() => {
-        expect(screen.getByTestId("build-panel")).toBeTruthy();
+        expect(screen.getByTestId("build-section")).toBeTruthy();
         expect(screen.getByText(/Compiling crates.../)).toBeTruthy();
       });
 
@@ -163,7 +168,7 @@ describe("Workspace build and foreign changes flow", () => {
 
       bindAgentTransport(mockTransport);
 
-      render(<BuildPanel />);
+      render(<BuildJournal />);
 
       await useBuildStore.getState().startBuild("test-proj");
 
@@ -191,7 +196,7 @@ describe("Workspace build and foreign changes flow", () => {
 
       bindAgentTransport(mockTransport);
 
-      render(<BuildPanel />);
+      render(<BuildJournal />);
 
       await useBuildStore.getState().startBuild("test-proj");
 
@@ -228,7 +233,7 @@ describe("Workspace build and foreign changes flow", () => {
 
       bindAgentTransport(mockTransport);
 
-      render(<BuildPanel />);
+      render(<BuildJournal />);
 
       await useBuildStore.getState().startBuild("test-proj");
 
@@ -249,7 +254,7 @@ describe("Workspace build and foreign changes flow", () => {
     it("displays localized error message when agent transport is offline", async () => {
       bindAgentTransport(null as unknown as AgentTransport);
 
-      render(<BuildPanel />);
+      render(<BuildJournal />);
 
       await useBuildStore.getState().startBuild("test-proj");
 

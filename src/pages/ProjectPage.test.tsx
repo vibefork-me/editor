@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AgentTransport } from "../client/types.ts";
+import type { CanvasState } from "../canvas/canvasState.ts";
 import { useI18nStore } from "../i18n/i18nStore.ts";
 import { bindAgentTransport } from "../stores/agent-bridge.ts";
 import { useBuildStore } from "../stores/buildStore.ts";
@@ -13,8 +14,16 @@ import { useViewerStore } from "../stores/viewerStore.ts";
 
 vi.mock("../hooks/useProjectShellSync.ts", () => ({ useProjectShellSync: () => undefined }));
 vi.mock("../hooks/useModelLabel.ts", () => ({ useModelLabel: () => ({ name: "Claude", model: "Claude Sonnet" }) }));
-vi.mock("../components/canvas/index.ts", () => ({ CanvasPanel: () => <div data-testid="canvas" /> }));
-vi.mock("../components/shell/PhaseRail.tsx", () => ({ PhaseRail: () => null }));
+// The canvas shows the parts it is given.
+vi.mock("../canvas/graph/GraphCanvas.tsx", () => ({
+  GraphCanvas: ({ state }: { state: CanvasState }) => (
+    <ul data-testid="graph">
+      {state.order.map((id) => (
+        <li key={id}>{state.nodes[id]?.label}</li>
+      ))}
+    </ul>
+  ),
+}));
 
 import { ProjectPage } from "./ProjectPage.tsx";
 
@@ -41,7 +50,14 @@ describe("ProjectPage shell", () => {
     useProjectStore.setState({ currentProjectId: "demo", projectMeta: { projectId: "demo", upstream: "owner/notes-app" } });
     bindAgentTransport({
       getCanvas: async () => ({ events: [], next: 1 }),
-      getGraph: async () => ({ nodes: [], edges: [], source: "model" }),
+      getGraph: async () => ({
+        nodes: [
+          { id: "p1", label: "Editor screen", files: 3, changed: 0 },
+          { id: "p2", label: "Note storage", files: 2, changed: 1 },
+        ],
+        edges: [{ from: "p1", to: "p2" }],
+        source: "model",
+      }),
       listProjects: async () => [
         { projectId: "demo", upstream: "owner/notes-app" },
         { projectId: "other", upstream: "owner/todo" },
@@ -110,5 +126,12 @@ describe("ProjectPage shell", () => {
     act(() => useBuildStore.setState({ status: "failed", errorKey: "processFailed" }));
     expect(screen.getByTestId("journal-error-badge")).toBeTruthy();
     expect(screen.queryByTestId("journal-panel")).toBeNull();
+  });
+
+  it("shows the map of the project without a session stream", async () => {
+    renderPage();
+    const graph = await screen.findByTestId("graph");
+    await waitFor(() => expect([...graph.querySelectorAll("li")].map((li) => li.textContent)).toEqual(["owner/notes-app", "Editor screen", "Note storage"]));
+    expect(screen.queryByTestId("empty-canvas")).toBeNull();
   });
 });

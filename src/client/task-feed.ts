@@ -18,41 +18,6 @@ export type TaskOutcome =
   | { kind: "error"; error: string; code?: string }
   | { kind: "cancelled" };
 
-export type GraphPhase = "exploring" | "edit" | "build" | "test" | "check" | "done";
-
-/** Infers the task phase from an agent message. */
-export function phaseFromMessage(m: ServerMessage): GraphPhase | null {
-  switch (m.type) {
-    case "routing":
-    case "planning":
-    case "plan":
-      return "exploring";
-    case "started": {
-      const title = m.step?.title.toLowerCase() ?? "";
-      if (title.includes("test") || title.includes("тест")) return "test";
-      if (title.includes("build") || title.includes("сбор")) return "build";
-      if (title.includes("check") || title.includes("lint") || title.includes("провер")) return "check";
-      return "edit";
-    }
-    case "evt": {
-      if (m.ev.kind === "tool") {
-        const text = `${m.ev.tool} ${m.ev.detail}`.toLowerCase();
-        if (text.includes("test") || text.includes("vitest") || text.includes("pytest")) return "test";
-        if (text.includes("build") || text.includes("cargo build") || text.includes("npm run build")) return "build";
-        if (text.includes("check") || text.includes("clippy") || text.includes("lint")) return "check";
-        if (m.ev.tool === "edit" || m.ev.tool === "write") return "edit";
-      }
-      return null;
-    }
-    case "toolchain":
-      return "build";
-    case "done":
-      return "done";
-    default:
-      return null;
-  }
-}
-
 /** A readable chat line for an agent message, or null for messages the chat does not show. */
 export function feedLine(m: ServerMessage): FeedLine | null {
   switch (m.type) {
