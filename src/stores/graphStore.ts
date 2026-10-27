@@ -74,6 +74,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
         changed: n.changed,
         status: n.changed > 0 ? "changed" : "unchanged",
         summary: n.summary ?? undefined,
+        parent: n.parent ?? undefined,
       });
     }
     set({

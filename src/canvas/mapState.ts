@@ -4,13 +4,13 @@ import { initialCanvasState, type CanvasLink, type CanvasNode, type CanvasState 
 /** The id of the project root on the canvas, as the agent names it in the session stream. */
 export const ROOT = "root";
 
-function node(id: string, label: string, summary: string, parent: string | null, depth: number): CanvasNode {
+function node(id: string, label: string, summary: string, parent: string | null, depth: number, piece = false): CanvasNode {
   return {
     id,
     label,
     summary,
     parent,
-    kind: parent ? "part" : "project",
+    kind: !parent ? "project" : piece ? "subsystem" : "part",
     files: [],
     insights: [],
     discoveredAt: 0,
@@ -27,8 +27,9 @@ function treeLink(source: string, target: string): CanvasLink {
 /**
  * The canvas of a project map (`GET /v1/graph`) without a session stream: its parts under the project root,
  * with the ids of the map (the parts of the model's map are `p1`, `p2`… in the stream too). Folders keep
- * their nesting (`from` contains `to`); the model's links between parts are links the agent has not
- * moved along yet. Parts that changed since the project was taken are marked changed.
+ * their nesting (`from` contains `to`); smaller pieces of a model's part (`p1.1`…, with `parent`) sit
+ * inside it, as in the stream; the model's links between parts are links the agent has not moved along
+ * yet. Parts that changed since the project was taken are marked changed.
  */
 export function mapCanvasState(nodes: GraphNode[], edges: GraphEdge[], folders: boolean, projectLabel: string): CanvasState {
   if (nodes.length === 0) return initialCanvasState;
@@ -36,6 +37,15 @@ export function mapCanvasState(nodes: GraphNode[], edges: GraphEdge[], folders: 
   const root = ids.has(ROOT) ? `${ROOT}:project` : ROOT;
   const parentOf = new Map<string, string>();
   if (folders) for (const e of edges) if (ids.has(e.from) && ids.has(e.to) && e.from !== e.to) parentOf.set(e.to, e.from);
+  const pieces = new Set<string>();
+  if (!folders) {
+    for (const n of nodes) {
+      if (n.parent && n.parent !== n.id && ids.has(n.parent)) {
+        parentOf.set(n.id, n.parent);
+        pieces.add(n.id);
+      }
+    }
+  }
 
   const state: CanvasState = { ...initialCanvasState, nodes: {}, order: [], links: {}, changed: [] };
   state.nodes[root] = node(root, projectLabel, "", null, 0);
@@ -50,7 +60,7 @@ export function mapCanvasState(nodes: GraphNode[], edges: GraphEdge[], folders: 
   const sorted = [...nodes].sort((a, b) => depthOf(a.id) - depthOf(b.id));
   for (const n of sorted) {
     const parent = parentOf.get(n.id) ?? root;
-    state.nodes[n.id] = node(n.id, n.label, n.summary ?? "", parent, depthOf(n.id));
+    state.nodes[n.id] = node(n.id, n.label, n.summary ?? "", parent, depthOf(n.id), pieces.has(n.id));
     state.order.push(n.id);
     const link = treeLink(parent, n.id);
     state.links[link.id] = link;
