@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { translate } from "../i18n/i18nStore.ts";
 import { feedLine } from "./task-feed.ts";
 import type { ServerMessage } from "./protocol.generated.ts";
 
@@ -37,5 +38,39 @@ describe("feedLine", () => {
   it("skips what the chat does not show", () => {
     expect(line({ type: "stderr", text: "noise" })).toBeNull();
     expect(line({ type: "evt", provider: "claude", ev: { kind: "init", cli: "claude" } })).toBeNull();
+  });
+
+  it("gives status lines a readable phrase and keeps the raw text", () => {
+    const phrase = (m: ServerMessage) => {
+      const l = line(m);
+      if (!l?.key) throw new Error(`no phrase for ${m.type}`);
+      return { text: l.text, ru: translate("ru", l.key, l.params), en: translate("en", l.key, l.params) };
+    };
+    expect(phrase({ type: "planning" })).toEqual({
+      text: "planning",
+      ru: "Агент составляет план",
+      en: "The agent is planning",
+    });
+    expect(phrase({ type: "step-done", n: 1, of: 3, ok: true })).toEqual({
+      text: "1/3 done",
+      ru: "Шаг 1 из 3 готов",
+      en: "Step 1 of 3 done",
+    });
+    expect(phrase({ type: "step-done", n: 2, of: 3, ok: false })).toEqual({
+      text: "2/3 failed",
+      ru: "Шаг 2 из 3 не удался",
+      en: "Step 2 of 3 failed",
+    });
+    expect(phrase({ type: "done", code: 2, diff: "", status: "" })).toEqual({
+      text: "exit 2",
+      ru: "Задача завершилась с ошибкой (код 2)",
+      en: "The task ended with an error (code 2)",
+    });
+    expect(phrase({ type: "done", code: 0, diff: "", status: "" })).toEqual({
+      text: "exit 0",
+      ru: "Агент выполнил задачу.",
+      en: "The agent finished the task.",
+    });
+    expect(line({ type: "done", code: 0, diff: "", status: "2 files changed" })?.key).toBeUndefined();
   });
 });

@@ -197,6 +197,12 @@ export const en: TranslationSchema = {
     mapTab: "Map",
     chatTab: "Chat",
   },
+  feed: {
+    planning: "The agent is planning",
+    stepDone: "Step {n} of {of} done",
+    stepFailed: "Step {n} of {of} failed",
+    exitCode: "The task ended with an error (code {code})",
+  },
   canvas: {
     agentHere: "now here",
     focusHere: "Direct here",
