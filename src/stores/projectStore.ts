@@ -2,6 +2,7 @@ import { create } from "zustand";
 import type { ForeignChanges, ProjectMetadata, ProjectSummary } from "../client/types.ts";
 import { getAgentTransport } from "./agent-bridge.ts";
 import { useBuildStore } from "./buildStore.ts";
+import { useProgramStore } from "./programStore.ts";
 import { useGraphStore } from "./graphStore.ts";
 import { useTaskStore } from "./taskStore.ts";
 import { useViewerStore } from "./viewerStore.ts";
@@ -49,6 +50,7 @@ export const useProjectStore = create<ProjectState>((set) => ({
     useTaskStore.getState().resetTask();
     useViewerStore.getState().resetViewer();
     useBuildStore.getState().setActiveProject(projectId);
+    useProgramStore.getState().setActiveProject(projectId);
     set((s) => ({
       currentProjectId: projectId,
       projectMeta: meta ?? { projectId },

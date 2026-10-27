@@ -19,6 +19,7 @@ import {
   type ModelInfo,
   type PairStartResult,
   type PairStatusResult,
+  type ProgramOutcome,
   type ProjectMetadata,
   type SaveProjectResult,
   type TaskControl,
@@ -541,6 +542,20 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
         if (msg.type === "cancelled") return { kind: "cancelled" };
         return null;
       });
+    },
+
+    runProgram(project, onMessage, onStop): Promise<ProgramOutcome> {
+      return agentSession(
+        { type: "run", project },
+        onMessage,
+        (msg) => {
+          if (msg.type === "program_done") return { kind: "done", code: msg.code, cut: msg.cut };
+          if (msg.type === "error") return { kind: "error", error: msg.error, code: msg.code ?? undefined };
+          if (msg.type === "cancelled") return { kind: "cancelled" };
+          return null;
+        },
+        (send) => onStop?.(() => send({ type: "cancel" })),
+      );
     },
 
     runTask(params, onMessage, onControl): Promise<TaskOutcome> {

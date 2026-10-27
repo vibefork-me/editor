@@ -5,6 +5,7 @@ import { useTranslation } from "../../i18n/i18nStore.ts";
 import type { TranslationKey } from "../../i18n/types.ts";
 import { useBuildStore } from "../../stores/buildStore.ts";
 import { useLayoutStore, type JournalTab } from "../../stores/layoutStore.ts";
+import { useProgramStore, type ProgramErrorKind } from "../../stores/programStore.ts";
 import { useProjectStore } from "../../stores/projectStore.ts";
 import { FeedLineView } from "../chat/FeedLineView.tsx";
 import { IconCheck, IconTriangleAlert } from "../shell/icons.tsx";
@@ -17,12 +18,12 @@ const TABS: [JournalTab, TranslationKey][] = [
 ];
 
 /** Which sections of the Journal have an error to look at. */
-export function journalErrors(feed: FeedLine[], buildFailed: boolean, state: CanvasState): Record<JournalTab, boolean> {
+export function journalErrors(feed: FeedLine[], buildFailed: boolean, state: CanvasState, programFailed = false): Record<JournalTab, boolean> {
   const last = feed[feed.length - 1];
   return {
     agent: last?.kind === "error",
     build: buildFailed || (state.result === null && state.failed.length > 0),
-    program: false,
+    program: programFailed,
   };
 }
 
@@ -137,6 +138,84 @@ function BuildSection({ state }: { state: CanvasState }) {
   );
 }
 
+const PROGRAM_ERRORS: Record<ProgramErrorKind, TranslationKey> = {
+  noConnection: "build.errorNoConnection",
+  notConfirmed: "program.errorNotConfirmed",
+  noRecipe: "program.errorNoRecipe",
+  notSupported: "program.errorNotSupported",
+  agentError: "program.errorGeneral",
+};
+
+function ProgramSection() {
+  const { t } = useTranslation();
+  const projectId = useProjectStore((s) => s.currentProjectId);
+  const status = useProgramStore((s) => s.status);
+  const lines = useProgramStore((s) => s.lines);
+  const code = useProgramStore((s) => s.code);
+  const cut = useProgramStore((s) => s.cut);
+  const errorKey = useProgramStore((s) => s.errorKey);
+  const error = useProgramStore((s) => s.error);
+  const stop = useProgramStore((s) => s.stop);
+  const start = useProgramStore((s) => s.start);
+  const end = useStickToEnd(lines.length);
+  const live = status === "starting" || status === "running";
+
+  return (
+    <div className="space-y-2" data-testid="program-section">
+      <div className="flex flex-wrap items-center gap-2 font-sans">
+        {live ? (
+          <button
+            type="button"
+            data-testid="program-stop"
+            disabled={!stop}
+            onClick={() => stop?.()}
+            className="rounded border border-border bg-surface-elevated px-2.5 py-1 text-xs font-medium text-text hover:border-danger hover:text-danger disabled:opacity-60"
+          >
+            {t("program.stop")}
+          </button>
+        ) : (
+          <button
+            type="button"
+            data-testid="program-run"
+            disabled={!projectId}
+            title={t("program.confirmNote")}
+            onClick={() => projectId && void start(projectId)}
+            className="rounded border border-border bg-surface-elevated px-2.5 py-1 text-xs font-medium text-text hover:border-accent hover:text-accent disabled:opacity-60"
+          >
+            {status === "idle" ? t("program.run") : t("program.runAgain")}
+          </button>
+        )}
+        {live && <span className="text-xs text-text-muted">{t("program.running")}</span>}
+        {status === "exited" && (
+          <span className={`flex items-center gap-1.5 text-xs font-semibold ${code === 0 ? "text-success" : "text-danger"}`} data-testid="program-exit">
+            {code === 0 ? <IconCheck className="size-3.5" /> : <IconTriangleAlert className="size-3.5" />}
+            {t("program.exited", { code: String(code ?? -1) })}
+          </span>
+        )}
+        {status === "cancelled" && <span className="text-xs text-text-muted">{t("program.stopped")}</span>}
+      </div>
+      {status === "idle" && <p className="text-text-muted">{t("journal.programEmpty")}</p>}
+      {lines.length > 0 && (
+        <div data-testid="program-log" className="space-y-0.5 font-mono text-xs select-text">
+          {lines.map((line, i) => (
+            <p key={i} className={`whitespace-pre-wrap break-all leading-tight ${line.stream === "stderr" ? "text-danger" : "text-text-muted"}`}>
+              {line.text}
+            </p>
+          ))}
+        </div>
+      )}
+      {cut && <p className="text-[11px] text-text-muted">{t("program.cut")}</p>}
+      {status === "failed" && (
+        <div role="alert" className="flex items-center gap-2 rounded border border-danger/30 bg-danger/10 p-2 font-sans text-xs text-danger">
+          <IconTriangleAlert className="size-4 shrink-0" />
+          <span>{errorKey === "agentError" && error ? error : t(PROGRAM_ERRORS[errorKey ?? "agentError"])}</span>
+        </div>
+      )}
+      <div ref={end} />
+    </div>
+  );
+}
+
 export interface JournalPanelProps {
   feed: FeedLine[];
   /** How the last task went, in a phrase; null before the first. */
@@ -184,7 +263,7 @@ export function JournalPanel({ feed, taskStatus, state, errors }: JournalPanelPr
       <div role="tabpanel" className="min-h-0 flex-1 overflow-y-auto p-3 text-sm">
         {tab === "agent" && <AgentSection feed={feed} status={taskStatus} />}
         {tab === "build" && <BuildSection state={state} />}
-        {tab === "program" && <p className="text-text-muted">{t("journal.programEmpty")}</p>}
+        {tab === "program" && <ProgramSection />}
       </div>
     </section>
   );
