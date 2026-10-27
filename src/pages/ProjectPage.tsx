@@ -5,6 +5,8 @@ import { ChatComposer } from "../components/chat/ChatComposer.tsx";
 import { FeedLineView } from "../components/chat/FeedLineView.tsx";
 import { PhaseRail } from "../components/shell/PhaseRail.tsx";
 import { StageRail, useNow } from "../canvas/rail/StageRail.tsx";
+import { StopBanner } from "../canvas/rail/StopBanner.tsx";
+import type { TaskControl } from "../client/types.ts";
 import { StatusBar } from "../components/shell/StatusBar.tsx";
 import { ViewerLayoutContainer } from "../components/viewer/index.ts";
 import { useProjectShellSync } from "../hooks/useProjectShellSync.ts";
@@ -33,6 +35,8 @@ export function ProjectPage() {
   const canvas = useCanvasStore((s) => s.canvas);
   const hasStream = isCanvasStreamEnabled() && canvas.order.length > 0;
   const now = useNow();
+  // How to pause, resume or cancel the running task; null when none runs.
+  const [taskControl, setTaskControl] = useState<TaskControl | null>(null);
 
   const sendMessage = useCallback(async () => {
     const prompt = chatDraft.trim();
@@ -64,7 +68,9 @@ export function ProjectPage() {
         if (m.type === "step-done" || m.type === "done") {
           void useGraphStore.getState().refreshGraph();
         }
-      });
+      },
+        setTaskControl,
+      );
       if (outcome.kind === "done") {
         useGraphStore.getState().setPhase("done");
         void useGraphStore.getState().refreshGraph();
@@ -80,6 +86,7 @@ export function ProjectPage() {
       setChatStatus(t("project.chatStartFailed"));
     } finally {
       setIsSending(false);
+      setTaskControl(null);
     }
   }, [chatDraft, currentProjectId, isSending, t]);
 
@@ -124,8 +131,13 @@ export function ProjectPage() {
               <Suspense fallback={null}>
                 <GraphCanvas state={canvas} />
                 <div className="pointer-events-none absolute inset-x-4 top-4 z-10">
-                  <StageRail state={canvas} now={now} />
+                  <StageRail state={canvas} now={now} onStop={taskControl ? () => taskControl.stop() : undefined} />
                 </div>
+                {canvas.paused && taskControl && (
+                  <div className="absolute inset-x-0 bottom-6 z-10 flex justify-center">
+                    <StopBanner onResume={() => taskControl.resume()} onCancel={() => taskControl.cancel()} />
+                  </div>
+                )}
               </Suspense>
             ) : (
               <CanvasPanel onAskAbout={handleAskAbout} />

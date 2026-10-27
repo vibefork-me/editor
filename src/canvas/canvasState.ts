@@ -73,6 +73,8 @@ export interface CanvasState {
   notesTaken: { noteId: string; related: string[]; reply: string; at: number }[];
   /** Parts the agent has been in (looked at, thought about, moved through), first visit first. */
   visited: string[];
+  /** The person paused the task; it goes on after resume. */
+  paused: boolean;
 }
 
 export const initialCanvasState: CanvasState = {
@@ -97,6 +99,7 @@ export const initialCanvasState: CanvasState = {
   history: [],
   notesTaken: [],
   visited: [],
+  paused: false,
 };
 
 function visit(visited: string[], ...ids: string[]): string[] {
@@ -221,6 +224,7 @@ export function applyCanvasEvent(state: CanvasState, ev: CanvasEvent, at: number
         result: null,
         changed: [],
         failed: [],
+        paused: false,
       };
     case "plan":
       return { ...s, plan: ev.steps };
@@ -238,6 +242,10 @@ export function applyCanvasEvent(state: CanvasState, ev: CanvasEvent, at: number
         checks: [...s.checks, { ok: ev.ok, text: ev.text, at }],
         failed: !ev.ok && ev.id && !s.failed.includes(ev.id) ? [...s.failed, ev.id] : s.failed,
       };
+    case "paused":
+      return { ...s, paused: true };
+    case "resumed":
+      return { ...s, paused: false };
     case "note.taken":
       return { ...s, notesTaken: [...s.notesTaken, { noteId: ev.noteId, related: ev.related, reply: ev.reply, at }] };
     case "result": {
@@ -255,7 +263,7 @@ export function applyCanvasEvent(state: CanvasState, ev: CanvasEvent, at: number
             },
           ]
         : s.history;
-      return { ...s, result, history };
+      return { ...s, result, history, paused: false };
     }
   }
 }

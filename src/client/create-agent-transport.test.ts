@@ -5,6 +5,7 @@ import {
   reconnectDelayMs,
 } from "./agent-base-url.ts";
 import { createAgentTransport } from "./create-agent-transport.ts";
+import type { TaskControl } from "./types.ts";
 
 class MockWebSocket {
   static OPEN = 1;
@@ -420,5 +421,67 @@ describe("agent-client transport", () => {
     const res = await client.connectAi("claude");
     expect(res.started).toBe(true);
     expect(requestBody).toEqual({ provider: "claude" });
+  });
+});
+
+describe("task control", () => {
+  /** An agent socket: answers auth, records what the editor sends. */
+  class TaskSocket {
+    static last: TaskSocket | null = null;
+    sent: Record<string, unknown>[] = [];
+    onopen: (() => void) | null = null;
+    onmessage: ((ev: { data: string }) => void) | null = null;
+    onclose: (() => void) | null = null;
+    onerror: (() => void) | null = null;
+    constructor() {
+      TaskSocket.last = this;
+      queueMicrotask(() => this.onopen?.());
+    }
+    send(data: string): void {
+      const msg = JSON.parse(data) as Record<string, unknown>;
+      this.sent.push(msg);
+      if (msg.type === "auth") queueMicrotask(() => this.emit({ type: "authed", keyId: "key-1" }));
+    }
+    emit(payload: Record<string, unknown>): void {
+      this.onmessage?.({ data: JSON.stringify(payload) });
+    }
+    close(): void {
+      this.onclose?.();
+    }
+  }
+
+  it("pauses, resumes and cancels a running task over its connection", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo) => {
+      const url = String(input);
+      if (url.endsWith("/v1/auth/challenge")) return jsonResponse({ nonce: "n" });
+      if (url.endsWith("/v1/auth/session")) return jsonResponse({ token: "t", expiresIn: 900 });
+      return jsonResponse({ agent: "vf", platform: "test", version: "0" });
+    });
+    const client = createAgentTransport({
+      baseUrl: "http://127.0.0.1:47801",
+      fetch: fetchMock as typeof fetch,
+      WebSocket: TaskSocket as unknown as typeof WebSocket,
+      getKeyId: async () => "key-1",
+      signNonce: async () => "sig",
+    });
+    await client.authenticateSession({} as CryptoKey);
+    let control: TaskControl | null = null;
+    const seen: string[] = [];
+    const outcome = client.runTask({ projectId: "p", prompt: "x" }, (m) => seen.push(m.type), (c) => (control = c));
+    await vi.waitFor(() => expect(control).not.toBeNull());
+    const socket = TaskSocket.last!;
+    control!.stop();
+    socket.emit({ type: "paused" });
+    control!.resume();
+    socket.emit({ type: "resumed" });
+    control!.stop();
+    control!.cancel();
+    socket.emit({ type: "cancelled" });
+    await expect(outcome).resolves.toEqual({ kind: "cancelled" });
+    expect(socket.sent.map((m) => m.type)).toEqual(["auth", "task", "stop", "resume", "stop", "cancel"]);
+    expect(seen).toEqual(["paused", "resumed", "cancelled"]);
+    // Nothing is sent after the task ended.
+    control!.stop();
+    expect(socket.sent).toHaveLength(6);
   });
 });

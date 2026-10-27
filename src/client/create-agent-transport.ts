@@ -183,6 +183,7 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
     start: ClientMessage,
     onMessage: (m: ServerMessage) => void,
     ends: (m: ServerMessage) => T | null,
+    onStarted?: (send: (m: ClientMessage) => void) => void,
   ): Promise<T | { kind: "error"; error: string }> {
     return new Promise((resolve, reject) => {
       if (!bearerToken) {
@@ -210,6 +211,9 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
             }
             if (msg.type === "authed") {
               socket.send(JSON.stringify(start));
+              onStarted?.((m) => {
+                if (!settled) socket.send(JSON.stringify(m));
+              });
               return;
             }
             onMessage(msg);
@@ -491,7 +495,7 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
       });
     },
 
-    runTask(params, onMessage): Promise<TaskOutcome> {
+    runTask(params, onMessage, onControl): Promise<TaskOutcome> {
       return agentSession(
         {
           type: "task",
@@ -510,6 +514,13 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
           if (msg.type === "cancelled") return { kind: "cancelled" };
           return null;
         },
+        onControl &&
+          ((send) =>
+            onControl({
+              stop: () => send({ type: "stop" }),
+              resume: () => send({ type: "resume" }),
+              cancel: () => send({ type: "cancel" }),
+            })),
       );
     },
 
