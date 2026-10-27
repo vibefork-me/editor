@@ -7,6 +7,7 @@ import { PhaseRail } from "../components/shell/PhaseRail.tsx";
 import { StageRail, useNow } from "../canvas/rail/StageRail.tsx";
 import { StopBanner } from "../canvas/rail/StopBanner.tsx";
 import { PartCallout, PartPanel, type PartActions } from "../canvas/card/PartCard.tsx";
+import { TaskLayer } from "../canvas/task/TaskLayer.tsx";
 import type { GraphApi } from "../canvas/graph/GraphCanvas.tsx";
 import { useViewerStore } from "../stores/viewerStore.ts";
 import type { TaskControl } from "../client/types.ts";
@@ -163,6 +164,7 @@ export function ProjectPage() {
                   <PartCallout state={canvas} nodeId={selectedPart} api={graphApi} onMore={() => setPartPanel(true)} {...partActions} />
                 )}
                 {selectedPart && partPanel && <PartPanel state={canvas} nodeId={selectedPart} {...partActions} />}
+                <TaskLayer state={canvas} />
                 <div className="pointer-events-none absolute inset-x-4 top-4 z-10">
                   <StageRail state={canvas} now={now} onStop={taskControl ? () => taskControl.stop() : undefined} />
                 </div>
