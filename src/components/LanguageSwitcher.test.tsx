@@ -13,8 +13,8 @@ describe("LanguageSwitcher", () => {
   it("renders RU and EN buttons with active state", () => {
     render(<LanguageSwitcher />);
 
-    const ruBtn = screen.getByRole("button", { name: "Русский язык" });
-    const enBtn = screen.getByRole("button", { name: "English language" });
+    const ruBtn = screen.getByRole("button", { name: "Русский" });
+    const enBtn = screen.getByRole("button", { name: "English" });
 
     expect(ruBtn.getAttribute("aria-pressed")).toBe("true");
     expect(enBtn.getAttribute("aria-pressed")).toBe("false");
@@ -23,13 +23,13 @@ describe("LanguageSwitcher", () => {
   it("switches language on click", () => {
     render(<LanguageSwitcher />);
 
-    const enBtn = screen.getByRole("button", { name: "English language" });
+    const enBtn = screen.getByRole("button", { name: "English" });
     fireEvent.click(enBtn);
 
     expect(useI18nStore.getState().locale).toBe("en");
     expect(enBtn.getAttribute("aria-pressed")).toBe("true");
 
-    const ruBtn = screen.getByRole("button", { name: "Русский язык" });
+    const ruBtn = screen.getByRole("button", { name: "Русский" });
     expect(ruBtn.getAttribute("aria-pressed")).toBe("false");
   });
 });

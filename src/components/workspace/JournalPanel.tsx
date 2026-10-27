@@ -95,6 +95,16 @@ function BuildSection({ state }: { state: CanvasState }) {
           </>
         )}
       </div>
+      {status === "idle" && log.length === 0 && state.checks.length === 0 && <p className="text-text-muted">{t("journal.buildEmpty")}</p>}
+      {log.length > 0 && (
+        <div data-testid="build-log" className="space-y-0.5 font-mono text-xs text-text-muted select-text">
+          {log.map((line, i) => (
+            <p key={i} className="whitespace-pre-wrap break-all leading-tight">
+              {line}
+            </p>
+          ))}
+        </div>
+      )}
       {status === "failed" && (
         <div role="alert" className="flex items-center gap-2 rounded border border-danger/30 bg-danger/10 p-2 font-sans text-xs text-danger">
           <IconTriangleAlert className="size-4 shrink-0" />
@@ -107,16 +117,6 @@ function BuildSection({ state }: { state: CanvasState }) {
                   ? t("build.errorNotConfirmed")
                   : (error ?? t("build.errorGeneral"))}
           </span>
-        </div>
-      )}
-      {status === "idle" && log.length === 0 && state.checks.length === 0 && <p className="text-text-muted">{t("journal.buildEmpty")}</p>}
-      {log.length > 0 && (
-        <div data-testid="build-log" className="space-y-0.5 font-mono text-xs text-text-muted select-text">
-          {log.map((line, i) => (
-            <p key={i} className="whitespace-pre-wrap break-all leading-tight">
-              {line}
-            </p>
-          ))}
         </div>
       )}
       {state.checks.length > 0 && (

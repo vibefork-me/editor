@@ -12,7 +12,6 @@ import { useProjectStore } from "../stores/projectStore.ts";
 vi.mock("../hooks/useProjectShellSync.ts", () => ({ useProjectShellSync: () => undefined }));
 vi.mock("../hooks/useModelLabel.ts", () => ({ useModelLabel: () => null }));
 vi.mock("../components/viewer/index.ts", () => ({ ViewerLayoutContainer: () => null }));
-vi.mock("../flags.ts", () => ({ isCanvasStreamEnabled: () => true, isGithubSaveEnabled: () => false }));
 vi.mock("../canvas/graph/GraphCanvas.tsx", () => ({ GraphCanvas: () => <div data-testid="graph" /> }));
 
 import { ProjectPage } from "./ProjectPage.tsx";

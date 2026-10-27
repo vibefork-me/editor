@@ -1,6 +1,10 @@
 import { create } from "zustand";
 import { getAgentTransport } from "./agent-bridge.ts";
 import type { ViewerMode } from "./types.ts";
+import { translate, useI18nStore } from "../i18n/i18nStore.ts";
+
+/** A phrase in the language of the page. */
+const say = (key: "viewer.cannotOpen" | "viewer.readFailed") => translate(useI18nStore.getState().locale, key);
 
 async function currentProjectId(): Promise<string | null> {
   const { useProjectStore } = await import("./projectStore.ts");
@@ -66,7 +70,7 @@ export const useViewerStore = create<ViewerState>((set, get) => ({
     const projectId = await currentProjectId();
     const transport = getAgentTransport();
     if (!projectId || !transport) {
-      set({ error: "Cannot open file", isOpen: false, activePath: null });
+      set({ error: say("viewer.cannotOpen"), isOpen: false, activePath: null });
       return;
     }
     set((s) => ({
@@ -93,7 +97,7 @@ export const useViewerStore = create<ViewerState>((set, get) => ({
       }
     } catch (err) {
       const status = (err as { status?: number })?.status;
-      const msg = err instanceof Error ? err.message : "read failed";
+      const msg = err instanceof Error ? err.message : say("viewer.readFailed");
       const isForbidden = status === 403 || msg.includes("not shown") || msg.includes("leads out");
       set({
         isForbidden,
@@ -107,7 +111,7 @@ export const useViewerStore = create<ViewerState>((set, get) => ({
     const projectId = await currentProjectId();
     const transport = getAgentTransport();
     if (!projectId || !transport) {
-      set({ error: "Cannot open diff", isOpen: false, activePath: null });
+      set({ error: say("viewer.cannotOpen"), isOpen: false, activePath: null });
       return;
     }
     set((s) => ({
@@ -147,7 +151,7 @@ export const useViewerStore = create<ViewerState>((set, get) => ({
       }
     } catch (err) {
       const status = (err as { status?: number })?.status;
-      const msg = err instanceof Error ? err.message : "diff failed";
+      const msg = err instanceof Error ? err.message : say("viewer.readFailed");
       const isForbidden = status === 403 || msg.includes("not shown") || msg.includes("leads out");
       set({
         isForbidden,

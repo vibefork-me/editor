@@ -24,6 +24,7 @@ export interface TranslationSchema {
     chromeEdgeInstructions: string;
     firefoxTitle: string;
     firefoxInstructions: string;
+    regionLabel: string;
   };
   mobileUnsupported: {
     title: string;
@@ -158,17 +159,9 @@ export interface TranslationSchema {
     building: string;
     rebuild: string;
     succeeded: string;
-    failed: string;
     cancelled: string;
-    artifactsPath: string;
     copyPath: string;
-    pathCopied: string;
-    logTitle: string;
-    toggleLog: string;
-    hideLog: string;
-    showLog: string;
     confirmNote: string;
-    noArtifacts: string;
     dismissBanner: string;
     errorNoConnection: string;
     errorProcessFailed: string;
@@ -176,20 +169,12 @@ export interface TranslationSchema {
     errorGeneral: string;
   };
   project: {
-    title: string;
-    placeholder: string;
-    chatInputLabel: string;
-    chatPlaceholder: string;
-    sendMessage: string;
-    sendingMessage: string;
     taskStarted: string;
     chatStartFailed: string;
     taskDone: string;
     taskFailed: string;
     taskCancelled: string;
-    workspaceTabs: string;
     mapTab: string;
-    chatTab: string;
   };
   feed: {
     planning: string;
@@ -266,17 +251,6 @@ export interface TranslationSchema {
   };
   canvas: {
     agentHere: string;
-    focusHere: string;
-    askAbout: string;
-    explainProblem: string;
-    explainingProblem: string;
-    statusUnknown: string;
-    statusExploring: string;
-    statusChanging: string;
-    statusProblem: string;
-    statusDone: string;
-    statusChanged: string;
-    statusUnchanged: string;
     otherNodeLabel: string;
     viewToggleAria: string;
     viewParts: string;
@@ -284,16 +258,6 @@ export interface TranslationSchema {
     describingMap: string;
     partsFailed: string;
     partsRetry: string;
-    doneSummaryTitle: string;
-    doneSummarySubtitle: string;
-    saveAction: string;
-    savingAction: string;
-    saveComplete: string;
-    saveUnchanged: string;
-    saveNextStep: string;
-    saveFollowup: string;
-    saveError: string;
-    viewChangesAction: string;
     reconnectingNotice: string;
     emptyCanvasTitle: string;
     emptyCanvasDescription: string;
@@ -315,6 +279,14 @@ export interface TranslationSchema {
     forbiddenWarning: string;
     loading: string;
     noFileSelected: string;
+    cannotOpen: string;
+    readFailed: string;
+    loadingEditor: string;
+    editorFailed: string;
+    original: string;
+    modified: string;
+    empty: string;
+    emptyFile: string;
   };
   language: {
     ru: string;

@@ -10,6 +10,16 @@ export const LOCALES: Record<Locale, TranslationSchema> = {
 
 export const STORAGE_KEY = "vf_locale";
 
+// Belarusian and Kazakh readers get Russian; Ukrainian and every other language get English.
+const RUSSIAN_READERS = ["ru", "be", "kk"];
+
+/** The language for a browser language tag: Russian where people commonly read it, English otherwise. */
+export function localeForLanguage(tag: string): Locale {
+  const lang = tag.toLowerCase().split(/[-_]/)[0] ?? "";
+  return RUSSIAN_READERS.includes(lang) ? "ru" : "en";
+}
+
+/** The person's choice, else by the browser's first language; English when it is unknown. */
 export function detectInitialLocale(): Locale {
   if (typeof window !== "undefined") {
     try {
@@ -17,15 +27,15 @@ export function detectInitialLocale(): Locale {
       if (stored === "ru" || stored === "en") {
         return stored;
       }
-      const nav = (navigator.language || "").toLowerCase();
-      if (nav.startsWith("ru") || nav.startsWith("be") || nav.startsWith("kk") || nav.startsWith("uk")) {
-        return "ru";
-      }
     } catch {
       // Storage might be restricted by browser policy
     }
+    if (typeof navigator !== "undefined") {
+      const langs = navigator.languages?.length ? navigator.languages : [navigator.language || ""];
+      return localeForLanguage(langs[0] ?? "");
+    }
   }
-  return "ru";
+  return "en";
 }
 
 export function syncDocumentLang(locale: Locale): void {
@@ -34,38 +44,28 @@ export function syncDocumentLang(locale: Locale): void {
   }
 }
 
+function lookup(dictionary: TranslationSchema, key: string): unknown {
+  let current: unknown = dictionary;
+  for (const part of key.split(".")) {
+    if (current && typeof current === "object" && part in current) {
+      current = (current as Record<string, unknown>)[part];
+    } else {
+      return undefined;
+    }
+  }
+  return current;
+}
+
 export function translate(
   locale: Locale,
   key: string,
   params?: TranslationParams,
 ): string {
-  const dictionary = LOCALES[locale] || LOCALES.ru;
-  const parts = key.split(".");
-  let current: unknown = dictionary;
-
-  for (const part of parts) {
-    if (current && typeof current === "object" && part in current) {
-      current = (current as Record<string, unknown>)[part];
-    } else {
-      current = undefined;
-      break;
-    }
-  }
-
-  // Fallback to Russian if not found in current dictionary
-  if (typeof current !== "string" && locale !== "ru") {
-    let fallback: unknown = LOCALES.ru;
-    for (const part of parts) {
-      if (fallback && typeof fallback === "object" && part in fallback) {
-        fallback = (fallback as Record<string, unknown>)[part];
-      } else {
-        fallback = undefined;
-        break;
-      }
-    }
-    if (typeof fallback === "string") {
-      current = fallback;
-    }
+  // The language asked for, then English; the key itself when neither has it.
+  let current: unknown;
+  for (const lang of locale === "en" ? (["en"] as const) : ([locale, "en"] as const)) {
+    current = lookup(LOCALES[lang] ?? LOCALES.en, key);
+    if (typeof current === "string") break;
   }
 
   if (typeof current !== "string") {
