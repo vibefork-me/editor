@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Stage } from "../../client/protocol.generated.ts";
 import { IconCheck } from "../../components/shell/icons.tsx";
+import { formatNumber, unitName } from "../../i18n/format.ts";
 import { useTranslation } from "../../i18n/i18nStore.ts";
 import { etaLeft, type CanvasState } from "../canvasState.ts";
 
@@ -19,15 +20,24 @@ export function formatEta(t: T, seconds: number): string {
   return t("stages.etaMinutes", { n: Math.round(s / 30) / 2 });
 }
 
-function formatAmount(v: number): string {
-  return v >= 100 ? String(Math.round(v)) : String(Math.round(v * 10) / 10);
+function formatAmount(locale: string, v: number): string {
+  return formatNumber(locale, v, { maximumFractionDigits: v >= 100 ? 0 : 1, useGrouping: false });
 }
 
-/** Done and total in the person's units: bytes as KB or MB. */
-export function amounts(done: number, total: number, unit: string): { done: string; total: string; unit: string } {
-  if (unit !== "bytes") return { done: formatAmount(done), total: formatAmount(total), unit };
-  const [div, name] = total >= 1024 * 1024 ? [1024 * 1024, "MB"] : [1024, "KB"];
-  return { done: formatAmount(done / div), total: formatAmount(total / div), unit: name };
+/** Done and total in the person's units and notation: bytes as KB or MB (`1.5 MB`, `1,5 МБ`). */
+export function amounts(
+  locale: string,
+  done: number,
+  total: number,
+  unit: string,
+): { done: string; total: string; unit: string } {
+  if (unit !== "bytes") return { done: formatAmount(locale, done), total: formatAmount(locale, total), unit };
+  const [div, name] = total >= 1024 * 1024 ? [1024 * 1024, "megabyte"] : [1024, "kilobyte"];
+  return {
+    done: formatAmount(locale, done / div),
+    total: formatAmount(locale, total / div),
+    unit: unitName(locale, name),
+  };
 }
 
 export interface StageRailProps {
@@ -43,7 +53,7 @@ export interface StageRailProps {
  * "Stop"; under it, what the agent does now: a thought, or the current stage with its progress.
  */
 export function StageRail({ state, now, onStop }: StageRailProps) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const statusKey = `${state.stage ?? ""}|${state.thinking?.text ?? ""}`;
   const [quiet, setQuiet] = useState(false);
   useEffect(() => {
@@ -159,7 +169,7 @@ export function StageRail({ state, now, onStop }: StageRailProps) {
               <span className="truncate tabular-nums text-[#8b93a7]">
                 {[
                   p.text,
-                  p.unit && t("stages.amount", amounts(p.done, p.total, p.unit)),
+                  p.unit && t("stages.amount", amounts(locale, p.done, p.total, p.unit)),
                   p.done < p.total && formatEta(t, p.eta),
                 ]
                   .filter(Boolean)

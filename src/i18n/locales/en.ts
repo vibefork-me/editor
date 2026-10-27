@@ -339,7 +339,7 @@ export const en: TranslationSchema = {
     removeAttachment: "Remove {name}",
     pastedText: "pasted-text.txt",
     tooLarge: "{name} is too large (up to {limit} MB)",
-    tooMany: "Up to {count} attachments",
+    tooMany: "{count, plural, one {Up to # attachment} other {Up to # attachments}}",
     imagesNeedTask: "Pictures reach the agent only while it works; they were left out of the task",
     statusWaiting: "with the agent · will read it after the step",
     statusTaken: "taken into account",

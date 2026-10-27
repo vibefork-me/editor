@@ -339,7 +339,7 @@ export const ru: TranslationSchema = {
     removeAttachment: "Убрать {name}",
     pastedText: "вставленный-текст.txt",
     tooLarge: "{name} слишком большой (до {limit} МБ)",
-    tooMany: "Не больше {count} вложений",
+    tooMany: "{count, plural, one {Не больше # вложения} other {Не больше # вложений}}",
     imagesNeedTask: "Картинки доходят до агента только во время работы; в задачу они не вошли",
     statusWaiting: "у агента · прочтёт после шага",
     statusTaken: "учтено",

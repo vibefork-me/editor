@@ -1,22 +1,67 @@
 import { create } from "zustand";
+import { LOCALE_STATUS, SOURCE_LOCALE, isLocale, type Locale } from "./config.ts";
+import { formatMessage, formatPseudo } from "./format.ts";
 import { en } from "./locales/en.ts";
-import { ru } from "./locales/ru.ts";
-import type { Locale, TranslationKey, TranslationParams, TranslationSchema } from "./types.ts";
+import type { PartialTranslation, TranslationKey, TranslationParams, TranslationSchema } from "./types.ts";
 
-export const LOCALES: Record<Locale, TranslationSchema> = {
-  ru,
+/**
+ * Dictionaries loaded so far. English is bundled into the first screen; every other language is a separate
+ * chunk, loaded when it is chosen (`loadLocale`).
+ */
+export const LOCALES: Partial<Record<Locale, TranslationSchema | PartialTranslation>> = {
   en,
 };
 
+// One file per language in `locales/`, named by its code (`ru.ts`, `pt-BR.ts`) and exporting the dictionary
+// under the code without the dash (`ru`, `ptBR`). A declared language without a file is shown in English.
+const LOADERS = import.meta.glob<Record<string, PartialTranslation>>(["./locales/*.ts", "!./locales/en.ts"]);
+
+function loaderFor(locale: Locale): (() => Promise<Record<string, PartialTranslation>>) | undefined {
+  return LOADERS[`./locales/${locale}.ts`];
+}
+
+const loading = new Map<Locale, Promise<void>>();
+
+/** Whether `locale`'s dictionary is here (or it has none to load). */
+export function isLocaleLoaded(locale: Locale): boolean {
+  return locale in LOCALES || !loaderFor(locale);
+}
+
+/** Loads `locale`'s dictionary once; resolves when it is in `LOCALES`. A failed load leaves English. */
+export function loadLocale(locale: Locale): Promise<void> {
+  if (isLocaleLoaded(locale)) return Promise.resolve();
+  let pending = loading.get(locale);
+  if (!pending) {
+    const load = loaderFor(locale)!;
+    pending = load()
+      .then((module) => {
+        const dictionary = module[locale.replace("-", "")] ?? module.default;
+        if (dictionary) LOCALES[locale] = dictionary;
+      })
+      .catch(() => {
+        loading.delete(locale);
+      });
+    loading.set(locale, pending);
+  }
+  return pending;
+}
+
 export const STORAGE_KEY = "vf_locale";
 
-// Belarusian and Kazakh readers get Russian; Ukrainian and every other language get English.
-const RUSSIAN_READERS = ["ru", "be", "kk"];
+// Belarusian and Kazakh readers get Russian; every Portuguese reader gets Brazilian Portuguese.
+const LANGUAGE_LOCALES: Record<string, Locale> = {
+  ru: "ru",
+  be: "ru",
+  kk: "ru",
+  pt: "pt-BR",
+  es: "es",
+  de: "de",
+};
 
-/** The language for a browser language tag: Russian where people commonly read it, English otherwise. */
+/** The language for a browser language tag; English for one the editor does not know (Ukrainian too). */
 export function localeForLanguage(tag: string): Locale {
   const lang = tag.toLowerCase().split(/[-_]/)[0] ?? "";
-  return RUSSIAN_READERS.includes(lang) ? "ru" : "en";
+  return LANGUAGE_LOCALES[lang] ?? "en";
 }
 
 /** The person's choice, else by the browser's first language; English when it is unknown. */
@@ -24,7 +69,7 @@ export function detectInitialLocale(): Locale {
   if (typeof window !== "undefined") {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored === "ru" || stored === "en") {
+      if (isLocale(stored)) {
         return stored;
       }
     } catch {
@@ -38,13 +83,25 @@ export function detectInitialLocale(): Locale {
   return "en";
 }
 
+/** `<html lang>`: the language, or English while the language is not translated yet. */
 export function syncDocumentLang(locale: Locale): void {
   if (typeof document !== "undefined") {
-    document.documentElement.lang = locale;
+    document.documentElement.lang = LOCALE_STATUS[locale] === "ready" ? locale : SOURCE_LOCALE;
   }
 }
 
-function lookup(dictionary: TranslationSchema, key: string): unknown {
+let pseudo = false;
+
+/**
+ * The pseudo-language (development): every dictionary text is accented, a third longer and in `⟦…⟧`, so
+ * text written into the code, and layouts too tight for longer translations, stand out. On with `?pseudo`
+ * in the address of the dev server.
+ */
+export function setPseudoLocale(on: boolean): void {
+  pseudo = on;
+}
+
+function lookup(dictionary: TranslationSchema | PartialTranslation | undefined, key: string): unknown {
   let current: unknown = dictionary;
   for (const part of key.split(".")) {
     if (current && typeof current === "object" && part in current) {
@@ -56,38 +113,38 @@ function lookup(dictionary: TranslationSchema, key: string): unknown {
   return current;
 }
 
+/**
+ * The text of `key` in `locale` with `params` filled in (ICU plurals and numbers by the language's rules);
+ * English when the language lacks the key or is not loaded yet, the key itself when English lacks it too.
+ */
 export function translate(
   locale: Locale,
   key: string,
   params?: TranslationParams,
 ): string {
-  // The language asked for, then English; the key itself when neither has it.
-  let current: unknown;
-  for (const lang of locale === "en" ? (["en"] as const) : ([locale, "en"] as const)) {
-    current = lookup(LOCALES[lang] ?? LOCALES.en, key);
-    if (typeof current === "string") break;
+  const chain: Locale[] = locale === SOURCE_LOCALE ? [SOURCE_LOCALE] : [locale, SOURCE_LOCALE];
+  for (const lang of chain) {
+    const template = lookup(LOCALES[lang], key);
+    if (typeof template === "string") {
+      return pseudo ? formatPseudo(lang, template, params) : formatMessage(lang, template, params);
+    }
   }
-
-  if (typeof current !== "string") {
-    return key;
-  }
-
-  if (params) {
-    return current.replace(/\{(\w+)\}/g, (match, paramName: string) => {
-      if (paramName in params) {
-        return String(params[paramName]);
-      }
-      return match;
-    });
-  }
-
-  return current;
+  return key;
 }
 
 export interface I18nState {
   locale: Locale;
   setLocale: (locale: Locale) => void;
+  /** Changes when the language or its loaded dictionary changes, so components using it re-render. */
   t: (key: TranslationKey, params?: TranslationParams) => string;
+}
+
+function translator(locale: Locale): I18nState["t"] {
+  return (key, params) => translate(locale, key, params);
+}
+
+if (import.meta.env.DEV && typeof location !== "undefined" && new URLSearchParams(location.search).has("pseudo")) {
+  setPseudoLocale(true);
 }
 
 const initialLocale = detectInitialLocale();
@@ -104,11 +161,14 @@ export const useI18nStore = create<I18nState>((set, get) => ({
       // Ignore localStorage errors
     }
     syncDocumentLang(nextLocale);
-    set({ locale: nextLocale });
+    set({ locale: nextLocale, t: translator(nextLocale) });
+    if (!isLocaleLoaded(nextLocale)) {
+      void loadLocale(nextLocale).then(() => {
+        if (get().locale === nextLocale) set({ t: translator(nextLocale) });
+      });
+    }
   },
-  t: (key: TranslationKey, params?: TranslationParams) => {
-    return translate(get().locale, key, params);
-  },
+  t: translator(initialLocale),
 }));
 
 export function useI18n() {
