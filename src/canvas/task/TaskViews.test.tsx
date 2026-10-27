@@ -51,4 +51,27 @@ describe("task views", () => {
     fireEvent.click(screen.getByRole("button", { name: "Ready file" }));
     expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ kind: "build" }));
   });
+
+  it("history: versions of the project to return to, the current one without a button", () => {
+    const onRestore = vi.fn();
+    const items = [
+      { commit: "ccc3333", at: "2026-01-04T10:00:00Z", title: "", rollback: true, current: true },
+      { commit: "aaa1111", at: "2026-01-02T10:00:00Z", title: "Add tags to notes", rollback: false, current: false },
+    ];
+    const { rerender } = render(<HistoryPanel state={at(5)} versions={{ items, restoring: null, onRestore }} onOpen={() => {}} onClose={() => {}} />);
+    expect(screen.queryByText("No changes yet")).toBeNull();
+    expect(screen.getByText("A part put back as it was")).toBeTruthy();
+    expect(screen.getByText("now")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Restore this version" }));
+    expect(onRestore).toHaveBeenCalledWith("aaa1111");
+    rerender(
+      <HistoryPanel
+        state={at(5)}
+        versions={{ items, restoring: { commit: "aaa1111", status: { state: "failed", reason: "card.rollbackBusy" } }, onRestore }}
+        onOpen={() => {}}
+        onClose={() => {}}
+      />,
+    );
+    expect(screen.getByRole("status").textContent).toBe("A task is running; wait until it ends");
+  });
 });

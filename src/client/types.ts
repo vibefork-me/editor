@@ -137,12 +137,18 @@ import type {
   Hello,
   ImportRequest,
   ImportResponse,
+  JournalEntry,
+  JournalResponse,
   NoteAttachment,
   ProjectFilesResponse,
+  RollbackResponse,
   ServerMessage,
 } from "./protocol.generated.ts";
 
 export type {
+  JournalEntry,
+  JournalResponse,
+  RollbackResponse,
   NoteAttachment,
   CanvasResponse,
   DescribeRequest,
@@ -174,6 +180,10 @@ export type ProgramOutcome =
   | { kind: "done"; code: number; cut: boolean }
   | { kind: "error"; error: string; code?: string }
   | { kind: "cancelled" };
+
+/** How rolling one part back ended: `done` once the agent reports the result; an error has the agent's code
+ * (`not_found`, `nothing_to_roll_back`, `rollback_not_confirmed`, `not_supported`, …). */
+export type RollbackPartOutcome = { kind: "done" } | { kind: "error"; error: string; code?: string };
 
 /** What the person can do with a running task. */
 export interface TaskControl {
@@ -262,6 +272,14 @@ export interface AgentTransport {
     onMessage: (m: ServerMessage) => void,
     onControl?: (control: TaskControl) => void,
   ): Promise<TaskOutcome>;
+  /** The project's journal: its tasks and plan steps, oldest first, with their checkpoints. */
+  getJournal(projectId: string): Promise<JournalResponse>;
+  /** Resets the project to a checkpoint of its journal (the agent asks the user in a native dialog);
+   * fails with an `AgentApiError` (e.g. code `rollback_not_confirmed`). */
+  rollback(params: { projectId: string; commit: string }): Promise<RollbackResponse>;
+  /** Puts one part of the map back as it was before the last task that changed it (the agent asks the
+   * user in a native dialog); streams its messages (`canvas` events). Only while no task runs. */
+  rollbackPart(params: { projectId: string; id: string }, onMessage: (m: ServerMessage) => void): Promise<RollbackPartOutcome>;
   /** Builds a project (the agent asks the user in a native dialog); streams its messages. */
   runBuild(project: string, onMessage: (m: BuildMessage) => void): Promise<BuildOutcome>;
   /**
