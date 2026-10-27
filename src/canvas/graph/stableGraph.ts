@@ -14,14 +14,16 @@ const MIN_SPEED = 0.12;
 // Rings by depth around the root keep branches from growing into each other.
 export const RING = 90;
 const RING_STRENGTH = 0.06;
-// Tidying while nothing new appears: nodes glide to a tree layout without crossings.
-const RELAX_SPEED = 2.2;
+// Tidying while nothing new appears: nodes glide to a tree layout without crossings. Fast enough for the
+// outer rings of a big project to arrive before the layout cools down; the ramp keeps the start smooth.
+const RELAX_SPEED = 12;
 const RELAX_PULL = 0.08;
 // Roots never move: the project in the middle, another version of it to the right.
 export const VERSION_DX = 560;
 export const CHARGE = -450;
 const CHARGE_RELAX = -60;
-const LEAF_GAP = 34;
+// Centre-to-centre distance of neighbours on a ring: two part bodies and a little air.
+const NODE_GAP = 30;
 
 type Point = { x: number; y: number };
 const placed = (n: DrawNode | undefined): n is DrawNode & Point => !!n && typeof n.x === "number" && typeof n.y === "number";
@@ -114,34 +116,27 @@ export class StableGraph {
 
   private layoutTree(root: DrawNode & Point, kids: Map<string, (DrawNode & Point)[]>, targets: Map<string, Point>) {
     const weight = new Map<string, number>();
-    const depthCount: number[] = [];
-    const visit = (id: string, depth: number): number => {
+    const visit = (id: string): number => {
       const cs = kids.get(id) ?? [];
-      depthCount[depth] = (depthCount[depth] ?? 0) + 1;
-      const w = cs.length ? cs.reduce((acc, c) => acc + visit(c.id, depth + 1), 0) : 1;
+      const w = cs.length ? cs.reduce((acc, c) => acc + visit(c.id), 0) : 1;
       weight.set(id, w);
       return w;
     };
-    visit(root.id, 0);
-    // Each ring is big enough for its nodes to stand LEAF_GAP apart.
-    const radius: number[] = [0];
-    for (let d = 1; d < depthCount.length; d++) {
-      radius[d] = Math.max((radius[d - 1] ?? 0) + RING + 20, ((depthCount[d] ?? 0) * LEAF_GAP) / (2 * Math.PI));
-    }
+    visit(root.id);
+    // 1. Angles: every branch gets a sector in proportion to its size, keeping the current order around
+    // the root. They do not depend on the rings' radii.
     const angleOf = (n: Point) => Math.atan2(n.y - root.y, n.x - root.x);
+    const placed: { id: string; depth: number; angle: number }[] = [];
     const place = (id: string, from: number, to: number, depth: number) => {
       const cs = [...(kids.get(id) ?? [])];
       if (!cs.length) return;
-      // Keep the current order around the root, starting from this sector's edge.
       const norm = (a: number) => (((a - from) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
       cs.sort((a, b) => norm(angleOf(a)) - norm(angleOf(b)));
       const total = weight.get(id) ?? cs.length;
-      const r = radius[depth + 1] ?? 0;
       let a = from;
       for (const c of cs) {
         const span = ((to - from) * (weight.get(c.id) ?? 1)) / total;
-        const mid = a + span / 2;
-        targets.set(c.id, { x: root.x + Math.cos(mid) * r, y: root.y + Math.sin(mid) * r });
+        placed.push({ id: c.id, depth: depth + 1, angle: a + span / 2 });
         place(c.id, a, a + span, depth + 1);
         a += span;
       }
@@ -149,6 +144,23 @@ export class StableGraph {
     const first = (kids.get(root.id) ?? [])[0];
     const start = first ? angleOf(first) - 0.3 : 0;
     place(root.id, start, start + 2 * Math.PI, 0);
+    // 2. Rings: each is far enough out for its closest neighbours to stand NODE_GAP apart.
+    const byDepth = new Map<number, number[]>();
+    for (const p of placed) byDepth.set(p.depth, [...(byDepth.get(p.depth) ?? []), p.angle]);
+    const radius: number[] = [0];
+    for (let d = 1; byDepth.has(d); d++) {
+      const angles = [...(byDepth.get(d) ?? [])].sort((a, b) => a - b);
+      let minGap = 2 * Math.PI;
+      for (let i = 1; i < angles.length; i++) minGap = Math.min(minGap, (angles[i] ?? 0) - (angles[i - 1] ?? 0));
+      if (angles.length > 1) minGap = Math.min(minGap, 2 * Math.PI - ((angles[angles.length - 1] ?? 0) - (angles[0] ?? 0)));
+      const needed = angles.length > 1 ? NODE_GAP / (2 * Math.sin(Math.min(minGap, Math.PI) / 2)) : 0;
+      radius[d] = Math.max((radius[d - 1] ?? 0) + RING + 20, needed);
+    }
+    // 3. Places.
+    for (const p of placed) {
+      const r = radius[p.depth] ?? 0;
+      targets.set(p.id, { x: root.x + Math.cos(p.angle) * r, y: root.y + Math.sin(p.angle) * r });
+    }
   }
 
   /** Back to growing. */

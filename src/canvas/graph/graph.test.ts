@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildCanvasState } from "../canvasState.ts";
 import { stream } from "../testSessions.ts";
 import { drawData, MORE } from "./drawData.ts";
+import { nodeRadius } from "./paint.ts";
 import { StableGraph, linkPresence, treeCrossings } from "./stableGraph.ts";
 import { seeded, syntheticAnalysis } from "./syntheticSession.ts";
 
@@ -63,7 +64,7 @@ describe("layout", () => {
   });
 
   for (const size of [26, 259]) {
-    it(`tidies a tree of ${size} parts without crossings`, () => {
+    it(`tidies a tree of ${size} parts without crossings or piles`, () => {
       const stable = grown(size);
       stable.startRelax();
       for (const n of stable.nodes.values()) {
@@ -72,6 +73,14 @@ describe("layout", () => {
       }
       expect(stable.nodes.size).toBe(size);
       expect(treeCrossings(stable.nodes.values(), stable.links.values())).toBe(0);
+      // No pile: no two bodies touch.
+      const placed = [...stable.nodes.values()];
+      for (let i = 0; i < placed.length; i++)
+        for (let j = i + 1; j < placed.length; j++) {
+          const a = placed[i]!;
+          const b = placed[j]!;
+          expect(Math.hypot((a.x ?? 0) - (b.x ?? 0), (a.y ?? 0) - (b.y ?? 0))).toBeGreaterThan(nodeRadius(a) + nodeRadius(b));
+        }
     });
   }
 

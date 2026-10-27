@@ -237,6 +237,13 @@ export const en: TranslationSchema = {
     reconnectingNotice: "Reconnecting to agent...",
     emptyCanvasTitle: "No graph available",
     emptyCanvasDescription: "The agent will build an architectural graph as it explores the project.",
+    badgeAgentHere: "the agent is here",
+    badgeThinking: "the agent is thinking",
+    badgeWorking: "work in progress",
+    badgeFailed: "a check failed",
+    badgeChanged: "changed",
+    badgeTask: "part of the task",
+    badgeOtherVersion: "another version of the project",
   },
   viewer: {
     title: "Code Viewer",

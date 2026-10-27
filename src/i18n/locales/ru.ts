@@ -237,6 +237,13 @@ export const ru: TranslationSchema = {
     reconnectingNotice: "Переподключение к агенту...",
     emptyCanvasTitle: "Карта проекта строится",
     emptyCanvasDescription: "Агент исследует проект и построит граф модулей в реальном времени.",
+    badgeAgentHere: "агент здесь",
+    badgeThinking: "агент думает",
+    badgeWorking: "идёт работа",
+    badgeFailed: "не прошла проверка",
+    badgeChanged: "изменено",
+    badgeTask: "часть задачи",
+    badgeOtherVersion: "другая версия проекта",
   },
   viewer: {
     title: "Просмотр кода",
