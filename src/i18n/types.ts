@@ -196,6 +196,7 @@ export interface TranslationSchema {
     stepDone: string;
     stepFailed: string;
     exitCode: string;
+    details: string;
   };
   canvas: {
     agentHere: string;

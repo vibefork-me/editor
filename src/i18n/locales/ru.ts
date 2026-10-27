@@ -202,6 +202,7 @@ export const ru: TranslationSchema = {
     stepDone: "Шаг {n} из {of} готов",
     stepFailed: "Шаг {n} из {of} не удался",
     exitCode: "Задача завершилась с ошибкой (код {code})",
+    details: "Подробнее",
   },
   canvas: {
     agentHere: "сейчас здесь",

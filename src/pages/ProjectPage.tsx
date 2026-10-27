@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { CanvasPanel } from "../components/canvas/index.ts";
 import { ChatComposer } from "../components/chat/ChatComposer.tsx";
+import { FeedLineView } from "../components/chat/FeedLineView.tsx";
 import { PhaseRail } from "../components/shell/PhaseRail.tsx";
 import { StatusBar } from "../components/shell/StatusBar.tsx";
 import { ViewerLayoutContainer } from "../components/viewer/index.ts";
@@ -107,18 +108,7 @@ export function ProjectPage() {
           <aside aria-label={t("project.chatTab")} className={`flex min-h-0 w-full shrink-0 flex-col border-l border-border bg-surface lg:w-[360px] min-[1280px]:w-[400px] ${smallScreenTab === "map" ? "hidden lg:flex" : "flex"}`}>
             <div className="min-h-0 flex-1 overflow-y-auto p-3 space-y-1.5 text-sm" aria-live="polite" data-testid="task-feed">
               {feed.map((line, i) => (
-                <p
-                  key={i}
-                  className={`whitespace-pre-wrap break-words ${
-                    line.kind === "agent"
-                      ? "text-text"
-                      : line.kind === "error"
-                        ? "text-red-400"
-                        : "text-neutral-500 font-mono text-xs"
-                  }`}
-                >
-                  {line.text}
-                </p>
+                <FeedLineView key={i} line={line} />
               ))}
             </div>
             <ChatComposer
