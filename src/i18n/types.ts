@@ -342,8 +342,6 @@ export interface TranslationSchema {
     emptyFile: string;
   };
   language: {
-    ru: string;
-    en: string;
     selectLanguage: string;
   };
   messages: {

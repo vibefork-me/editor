@@ -1,0 +1,165 @@
+{
+  "about": "Product terms and how each interface language says them. `npm run check` (scripts/check-i18n.mjs) checks every text: where the English one matches `match`, the text in each language contains one of `expect` (case-insensitive unless `caseSensitive`), except the keys in `except` (why: `exceptNote`). A term without `match` is not in the editor's texts yet and is here for translators. `forbidden` spellings appear in no text.",
+  "address": {
+    "en": "you",
+    "ru": "вы",
+    "pt-BR": "você",
+    "es": "tú",
+    "de": "du"
+  },
+  "forbidden": ["VibeFork", "Vibe Fork"],
+  "terms": [
+    {
+      "id": "vibefork",
+      "note": "The product name: never translated, always this spelling.",
+      "match": "\\bVibefork\\b",
+      "caseSensitive": true,
+      "say": { "en": "Vibefork", "ru": "Vibefork", "pt-BR": "Vibefork", "es": "Vibefork", "de": "Vibefork" },
+      "expect": { "ru": ["Vibefork"], "pt-BR": ["Vibefork"], "es": ["Vibefork"], "de": ["Vibefork"] }
+    },
+    {
+      "id": "part",
+      "note": "A piece of the project on the map.",
+      "match": "\\bparts?\\b",
+      "say": { "en": "part", "ru": "часть", "pt-BR": "parte", "es": "parte", "de": "Teil" },
+      "expect": { "ru": ["част"], "pt-BR": ["parte"], "es": ["parte"], "de": ["teil"] },
+      "except": { "ru": ["stages.parts"] },
+      "exceptNote": "ru: the stage is named by what it finds out (\"Из чего состоит\")."
+    },
+    {
+      "id": "subpart",
+      "note": "A part inside a part.",
+      "say": { "en": "subpart", "ru": "подчасть", "pt-BR": "subparte", "es": "subparte", "de": "Unterteil" }
+    },
+    {
+      "id": "map",
+      "note": "The picture of the project's parts and links.",
+      "match": "\\bmaps?\\b",
+      "say": { "en": "map", "ru": "карта", "pt-BR": "mapa", "es": "mapa", "de": "Karte" },
+      "expect": { "ru": ["карт"], "pt-BR": ["mapa"], "es": ["mapa"], "de": ["karte"] },
+      "except": { "ru": ["files.treeEmpty"] },
+      "exceptNote": "ru: says the agent works the project out, without the map."
+    },
+    {
+      "id": "task",
+      "note": "What the person asks the agent to do.",
+      "match": "\\btasks?\\b",
+      "say": { "en": "task", "ru": "задача", "pt-BR": "tarefa", "es": "tarea", "de": "Aufgabe" },
+      "expect": { "ru": ["задач"], "pt-BR": ["tarefa"], "es": ["tarea"], "de": ["aufgabe"] }
+    },
+    {
+      "id": "step",
+      "note": "One step of the agent's plan.",
+      "match": "\\bsteps?\\b",
+      "say": { "en": "step", "ru": "шаг", "pt-BR": "passo", "es": "paso", "de": "Schritt" },
+      "expect": { "ru": ["шаг"], "pt-BR": ["passo"], "es": ["paso"], "de": ["schritt"] }
+    },
+    {
+      "id": "stage",
+      "note": "A stage of the work shown on the progress line (download, plan, changes…).",
+      "match": "\\bstages?\\b",
+      "say": { "en": "stage", "ru": "этап", "pt-BR": "etapa", "es": "etapa", "de": "Phase" },
+      "expect": { "ru": ["этап"], "pt-BR": ["etapa"], "es": ["etapa"], "de": ["phase"] }
+    },
+    {
+      "id": "message-the-agent",
+      "note": "The field at the bottom of the workspace.",
+      "match": "Message the agent",
+      "say": {
+        "en": "Message the agent",
+        "ru": "Сообщение агенту",
+        "pt-BR": "Mensagem ao agente",
+        "es": "Mensaje al agente",
+        "de": "Nachricht an den Agenten"
+      },
+      "expect": {
+        "ru": ["Сообщение агенту"],
+        "pt-BR": ["Mensagem ao agente"],
+        "es": ["Mensaje al agente"],
+        "de": ["Nachricht an den Agenten"]
+      }
+    },
+    {
+      "id": "undo",
+      "note": "Putting a part back as it was before the agent changed it.",
+      "match": "\\bas it was\\b",
+      "say": {
+        "en": "Put it back as it was",
+        "ru": "Вернуть как было",
+        "pt-BR": "Deixar como estava",
+        "es": "Dejar como estaba",
+        "de": "Zurücksetzen"
+      },
+      "expect": { "ru": ["как было"], "pt-BR": ["como estava"], "es": ["como estaba"], "de": ["zurückgesetzt", "zurücksetz"] }
+    },
+    {
+      "id": "build",
+      "note": "Building the project into a ready program.",
+      "match": "\\bbuild(s|ing)?\\b|\\bbuilt\\b",
+      "say": { "en": "build", "ru": "сборка, собрать", "pt-BR": "compilação, compilar", "es": "compilación, compilar", "de": "Build, bauen" },
+      "expect": { "ru": ["сбор", "собр", "собир"], "pt-BR": ["compil"], "es": ["compil"], "de": ["build", "bau"] },
+      "except": {
+        "ru": ["canvas.emptyCanvasDescription"],
+        "pt-BR": ["canvas.emptyCanvasDescription"],
+        "es": ["canvas.emptyCanvasDescription"],
+        "de": ["canvas.emptyCanvasDescription"]
+      },
+      "exceptNote": "\"build a graph\" is drawing the map, not building the project."
+    },
+    {
+      "id": "program",
+      "note": "The built project when it runs.",
+      "match": "\\bprograms?\\b",
+      "say": { "en": "program", "ru": "программа", "pt-BR": "programa", "es": "programa", "de": "Programm" },
+      "expect": { "ru": ["программ"], "pt-BR": ["programa"], "es": ["programa"], "de": ["programm"] }
+    },
+    {
+      "id": "journal",
+      "note": "The panel with what the agent does, the build and the program.",
+      "match": "\\bJournal\\b",
+      "say": { "en": "Journal", "ru": "Журнал", "pt-BR": "Registro", "es": "Registro", "de": "Protokoll" },
+      "expect": { "ru": ["журнал"], "pt-BR": ["registro"], "es": ["registro"], "de": ["protokoll"] }
+    },
+    {
+      "id": "ai",
+      "note": "Artificial intelligence; product names such as Google AI Studio stay as they are.",
+      "match": "\\bAI\\b(?! Studio)",
+      "caseSensitive": true,
+      "say": { "en": "AI", "ru": "ИИ", "pt-BR": "IA", "es": "IA", "de": "KI" },
+      "expect": { "ru": ["ИИ", "искусственный интеллект"], "pt-BR": ["IA"], "es": ["IA"], "de": ["KI"] }
+    },
+    {
+      "id": "model",
+      "note": "An AI model.",
+      "match": "\\bmodels?\\b",
+      "say": { "en": "model", "ru": "модель", "pt-BR": "modelo", "es": "modelo", "de": "Modell" },
+      "expect": { "ru": ["модел"], "pt-BR": ["modelo"], "es": ["modelo"], "de": ["modell"] },
+      "except": { "ru": ["connectAi.title", "connectAi.description"] },
+      "exceptNote": "ru: the AI connection screen speaks of AI and a neural network, not a model."
+    },
+    {
+      "id": "author",
+      "note": "The author of the original project.",
+      "match": "\\bauthors?\\b",
+      "say": { "en": "author", "ru": "автор", "pt-BR": "autor", "es": "autor", "de": "Autor" },
+      "expect": { "ru": ["автор"], "pt-BR": ["autor"], "es": ["autor"], "de": ["autor"] }
+    },
+    {
+      "id": "offer",
+      "note": "What the agent offers to do next.",
+      "match": "\\boffers?\\b",
+      "say": { "en": "offer", "ru": "предложение", "pt-BR": "sugestão", "es": "sugerencia", "de": "Vorschlag" },
+      "expect": { "ru": ["предлож"], "pt-BR": ["sugest"], "es": ["sugerencia"], "de": ["vorschlag"] }
+    },
+    {
+      "id": "fork",
+      "note": "A person's own copy of a project.",
+      "say": { "en": "fork", "ru": "форк", "pt-BR": "fork", "es": "fork", "de": "Fork" }
+    },
+    {
+      "id": "maintainer",
+      "note": "The person who looks after the original project.",
+      "say": { "en": "maintainer", "ru": "мейнтейнер", "pt-BR": "mantenedor", "es": "mantenedor", "de": "Maintainer" }
+    }
+  ]
+}
