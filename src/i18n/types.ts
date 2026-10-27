@@ -232,6 +232,19 @@ export interface TranslationSchema {
     resume: string;
     cancelTask: string;
   };
+  card: {
+    close: string;
+    askAgent: string;
+    askPrefix: string;
+    showChanges: string;
+    undo: string;
+    relatedTo: string;
+    more: string;
+    understood: string;
+    forDevelopers: string;
+    files: string;
+    noFiles: string;
+  };
   canvas: {
     agentHere: string;
     focusHere: string;

@@ -6,6 +6,9 @@ import { FeedLineView } from "../components/chat/FeedLineView.tsx";
 import { PhaseRail } from "../components/shell/PhaseRail.tsx";
 import { StageRail, useNow } from "../canvas/rail/StageRail.tsx";
 import { StopBanner } from "../canvas/rail/StopBanner.tsx";
+import { PartCallout, PartPanel, type PartActions } from "../canvas/card/PartCard.tsx";
+import type { GraphApi } from "../canvas/graph/GraphCanvas.tsx";
+import { useViewerStore } from "../stores/viewerStore.ts";
 import type { TaskControl } from "../client/types.ts";
 import { StatusBar } from "../components/shell/StatusBar.tsx";
 import { ViewerLayoutContainer } from "../components/viewer/index.ts";
@@ -35,6 +38,10 @@ export function ProjectPage() {
   const canvas = useCanvasStore((s) => s.canvas);
   const hasStream = isCanvasStreamEnabled() && canvas.order.length > 0;
   const now = useNow();
+  // The part the person opened on the canvas: its card next to the node, or the panel with everything.
+  const [selectedPart, setSelectedPart] = useState<string | null>(null);
+  const [partPanel, setPartPanel] = useState(false);
+  const [graphApi, setGraphApi] = useState<GraphApi | null>(null);
   // How to pause, resume or cancel the running task; null when none runs.
   const [taskControl, setTaskControl] = useState<TaskControl | null>(null);
 
@@ -96,6 +103,20 @@ export function ProjectPage() {
     chatInputRef.current?.focus();
   }, []);
 
+  const partActions: PartActions = {
+    onAsk: handleAskAbout,
+    onShowChanges: (file) => void useViewerStore.getState().openDiff(file.path),
+    onOpenFile: (path) => void useViewerStore.getState().openFile(path),
+    onGoTo: (id) => {
+      setSelectedPart(id);
+      graphApi?.centerOn(id);
+    },
+    onClose: () => {
+      setSelectedPart(null);
+      setPartPanel(false);
+    },
+  };
+
   useProjectShellSync();
 
   useEffect(() => {
@@ -129,7 +150,19 @@ export function ProjectPage() {
           <section aria-label={t("project.mapTab")} className={`relative flex min-h-0 min-w-0 flex-1 overflow-hidden ${smallScreenTab === "chat" ? "hidden lg:flex" : "flex"}`}>
             {hasStream ? (
               <Suspense fallback={null}>
-                <GraphCanvas state={canvas} />
+                <GraphCanvas
+                  state={canvas}
+                  selectedId={selectedPart}
+                  onSelect={(id) => {
+                    setSelectedPart(id);
+                    setPartPanel(false);
+                  }}
+                  onReady={setGraphApi}
+                />
+                {selectedPart && !partPanel && (
+                  <PartCallout state={canvas} nodeId={selectedPart} api={graphApi} onMore={() => setPartPanel(true)} {...partActions} />
+                )}
+                {selectedPart && partPanel && <PartPanel state={canvas} nodeId={selectedPart} {...partActions} />}
                 <div className="pointer-events-none absolute inset-x-4 top-4 z-10">
                   <StageRail state={canvas} now={now} onStop={taskControl ? () => taskControl.stop() : undefined} />
                 </div>
