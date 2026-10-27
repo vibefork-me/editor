@@ -358,6 +358,67 @@ export interface TranslationSchema {
     ai: string;
     aiHint: string;
   };
+  workspace: {
+    menu: string;
+    projects: string;
+    projectsLoading: string;
+    projectsEmpty: string;
+    openAnother: string;
+    history: string;
+    historyEmpty: string;
+    folder: string;
+    suggest: string;
+    later: string;
+    language: string;
+    settings: string;
+    build: string;
+    panels: string;
+    filesPanel: string;
+    codePanel: string;
+    journalPanel: string;
+    showPanel: string;
+    hidePanel: string;
+    closePanel: string;
+    resizePanel: string;
+    resetLayout: string;
+    hasError: string;
+    help: string;
+    helpTitle: string;
+    helpText: string;
+    keys: string;
+    keyFiles: string;
+    keyCode: string;
+    keyJournal: string;
+    keyClose: string;
+    support: string;
+    supportText: string;
+  };
+  files: {
+    changed: string;
+    noChanges: string;
+    tree: string;
+    treeEmpty: string;
+    changedMark: string;
+  };
+  code: {
+    empty: string;
+    onlyChanges: string;
+    part: string;
+    goToPart: string;
+    closeTab: string;
+    tabs: string;
+  };
+  journal: {
+    tabs: string;
+    agent: string;
+    build: string;
+    program: string;
+    agentEmpty: string;
+    buildEmpty: string;
+    programEmpty: string;
+    checks: string;
+    error: string;
+  };
 }
 
 export type TranslationKey = {

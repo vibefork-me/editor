@@ -8,6 +8,8 @@ import { ProjectPage } from "./pages/ProjectPage.tsx";
 
 // Developer view of the canvas on made-up sessions; development builds only.
 const CanvasPlayground = import.meta.env.DEV ? lazy(() => import("./canvas/graph/CanvasPlayground.tsx")) : null;
+// Developer view of the project page on a made-up agent; development builds only.
+const DevProject = import.meta.env.DEV ? lazy(() => import("./dev/DevProject.tsx")) : null;
 
 function CenteredRoute({ children }: { children: ReactNode }) {
   return (
@@ -23,6 +25,10 @@ export function App() {
           {CanvasPlayground && window.location.pathname.endsWith("/dev/canvas") ? (
             <Suspense fallback={null}>
               <CanvasPlayground />
+            </Suspense>
+          ) : DevProject && /\/dev\/[^/]+$/.test(window.location.pathname) ? (
+            <Suspense fallback={null}>
+              <DevProject />
             </Suspense>
           ) : (
           <AgentConnectionGate>

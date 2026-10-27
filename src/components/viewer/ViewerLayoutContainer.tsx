@@ -6,9 +6,10 @@ import type { ViewerLayoutContainerProps } from "./types.ts";
 
 const MAX_PREVIEW_BYTES = 2 * 1024 * 1024; // 2 MiB per S-002 §4.4
 
-export function ViewerLayoutContainer({ className = "" }: ViewerLayoutContainerProps) {
+export function ViewerLayoutContainer({ className = "", part = null }: ViewerLayoutContainerProps) {
   const { t } = useTranslation();
   const isOpen = useViewerStore((s) => s.isOpen);
+  const tabs = useViewerStore((s) => s.tabs);
   const activePath = useViewerStore((s) => s.activePath);
   const mode = useViewerStore((s) => s.mode);
   const content = useViewerStore((s) => s.content);
@@ -19,20 +20,22 @@ export function ViewerLayoutContainer({ className = "" }: ViewerLayoutContainerP
   const isTooLargeStore = useViewerStore((s) => s.isTooLarge);
   const isBinary = useViewerStore((s) => s.isBinary);
   const isForbidden = useViewerStore((s) => s.isForbidden);
-  const closeViewer = useViewerStore((s) => s.closeViewer);
+  const onlyChanges = useViewerStore((s) => s.onlyChanges);
+  const setOnlyChanges = useViewerStore((s) => s.setOnlyChanges);
+  const closeTab = useViewerStore((s) => s.closeTab);
 
-  // Close viewer on Esc key
+  // Esc closes the open file.
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !activePath) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
+      if (e.key === "Escape" && !e.defaultPrevented) {
         e.preventDefault();
-        closeViewer();
+        closeTab(activePath);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, closeViewer]);
+  }, [isOpen, activePath, closeTab]);
 
   if (!isOpen) {
     return null;
@@ -42,43 +45,88 @@ export function ViewerLayoutContainer({ className = "" }: ViewerLayoutContainerP
   const totalLength =
     (content?.length || 0) + (diffOriginal?.length || 0) + (diffModified?.length || 0);
   const isTooLarge = isTooLargeStore || totalLength > MAX_PREVIEW_BYTES;
+  const shownTabs = tabs.length > 0 ? tabs : activePath ? [{ path: activePath, mode }] : [];
 
   return (
     <aside
       role="complementary"
       aria-label={t("viewer.title")}
-      className={`flex h-full w-[min(50%,calc(100vw-400px))] min-w-[480px] flex-col border-l border-border bg-surface shadow-2xl z-20 transition-all duration-300 ${className}`}
+      className={`flex h-full w-full min-w-0 flex-col bg-surface ${className}`}
     >
-      {/* Viewer Header */}
-      <div className="flex h-10 items-center justify-between border-b border-border px-3 bg-surface-elevated shrink-0">
-        <div className="flex items-center gap-2 min-w-0">
-          <span
-            className={`rounded px-1.5 py-0.5 text-[10px] font-mono uppercase font-semibold tracking-wider ${
-              mode === "diff"
-                ? "bg-accent/20 text-accent border border-accent/40"
-                : "bg-surface text-text-muted border border-border"
-            }`}
-          >
-            {mode === "diff" ? t("viewer.modeDiff") : t("viewer.modeFile")}
-          </span>
-          <span
-            className="truncate font-mono text-xs text-text font-medium"
-            title={activePath || ""}
-          >
-            {activePath || t("viewer.noFileSelected")}
-          </span>
-        </div>
+      {/* Open files */}
+      <div role="tablist" aria-label={t("code.tabs")} className="flex h-9 shrink-0 items-stretch overflow-x-auto border-b border-border bg-surface-elevated">
+        {shownTabs.map((tab) => {
+          const active = tab.path === activePath;
+          const name = tab.path.split("/").pop() ?? tab.path;
+          return (
+            <div
+              key={tab.path}
+              className={`group flex shrink-0 items-center gap-1 border-r border-border pl-3 pr-1 text-xs ${
+                active ? "bg-surface text-text" : "text-text-muted hover:text-text"
+              }`}
+            >
+              <button
+                type="button"
+                role="tab"
+                aria-selected={active}
+                title={tab.path}
+                className="max-w-[12rem] truncate font-mono"
+                onClick={() => {
+                  if (active) return;
+                  const viewer = useViewerStore.getState();
+                  void (tab.mode === "diff" ? viewer.openDiff(tab.path) : viewer.openFile(tab.path));
+                }}
+              >
+                {name}
+                {tab.mode === "diff" && <span className="ml-1 text-warning">●</span>}
+              </button>
+              <button
+                type="button"
+                aria-label={t("code.closeTab", { name })}
+                title={active ? t("viewer.close") : t("code.closeTab", { name })}
+                className="flex size-5 items-center justify-center rounded text-text-muted hover:bg-surface-elevated hover:text-text"
+                onClick={() => closeTab(tab.path)}
+              >
+                <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          );
+        })}
+      </div>
 
-        <button
-          type="button"
-          aria-label={t("viewer.close")}
-          className="flex h-7 w-7 items-center justify-center rounded text-text-muted hover:bg-surface hover:text-text transition-colors"
-          onClick={closeViewer}
+      {/* What is shown: the file, its part, how the changes are shown */}
+      <div className="flex h-8 shrink-0 items-center gap-2 border-b border-border px-3 text-xs">
+        <span
+          className={`rounded px-1.5 py-0.5 text-[10px] font-mono uppercase font-semibold tracking-wider ${
+            mode === "diff"
+              ? "bg-accent/20 text-accent border border-accent/40"
+              : "bg-surface text-text-muted border border-border"
+          }`}
         >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+          {mode === "diff" ? t("viewer.modeDiff") : t("viewer.modeFile")}
+        </span>
+        <span className="min-w-0 truncate font-mono text-text" title={activePath || ""}>
+          {activePath || t("viewer.noFileSelected")}
+        </span>
+        {part && (
+          <button
+            type="button"
+            onClick={part.onGoTo}
+            title={t("code.goToPart")}
+            data-testid="code-part"
+            className="shrink-0 rounded-full border border-border px-2 py-0.5 text-[11px] text-text-muted hover:border-accent hover:text-text"
+          >
+            {t("code.part", { name: part.label })}
+          </button>
+        )}
+        {mode === "diff" && (
+          <label className="ml-auto flex shrink-0 cursor-pointer items-center gap-1.5 text-text-muted">
+            <input type="checkbox" checked={onlyChanges} onChange={(e) => setOnlyChanges(e.target.checked)} className="accent-[var(--color-accent)]" />
+            {t("code.onlyChanges")}
+          </label>
+        )}
       </div>
 
       {/* Error / Loading / Too large status banners */}
@@ -170,6 +218,7 @@ export function ViewerLayoutContainer({ className = "" }: ViewerLayoutContainerP
           content={content}
           diffOriginal={diffOriginal}
           diffModified={diffModified}
+          onlyChanges={onlyChanges}
           readOnly={true}
         />
       )}

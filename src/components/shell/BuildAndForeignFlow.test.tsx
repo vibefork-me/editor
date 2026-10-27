@@ -8,7 +8,9 @@ import { useProjectStore } from "../../stores/projectStore.ts";
 import { bindAgentTransport } from "../../stores/agent-bridge.ts";
 import { ForeignChangesBanner } from "./ForeignChangesBanner.tsx";
 import { BuildPanel } from "./BuildPanel.tsx";
-import { StatusBar } from "./StatusBar.tsx";
+import { JournalPanel } from "../workspace/JournalPanel.tsx";
+import { useLayoutStore } from "../../stores/layoutStore.ts";
+import { initialCanvasState } from "../../canvas/canvasState.ts";
 import type { AgentTransport, BuildMessage, BuildOutcome } from "../../client/types.ts";
 
 vi.mock("../../hooks/useModelLabel.ts", () => ({
@@ -307,7 +309,7 @@ describe("Workspace build and foreign changes flow", () => {
     });
   });
 
-  describe("StatusBar build trigger", () => {
+  describe("Journal build trigger", () => {
     it("renders build button and triggers build when clicked", async () => {
       const mockRunBuild = vi.fn(async (): Promise<BuildOutcome> => {
         return { kind: "done", code: 0, files: [] };
@@ -320,13 +322,14 @@ describe("Workspace build and foreign changes flow", () => {
 
       bindAgentTransport(mockTransport);
 
+      useLayoutStore.getState().setJournalTab("build");
       render(
         <MemoryRouter>
-          <StatusBar />
+          <JournalPanel feed={[]} taskStatus={null} state={initialCanvasState} errors={{ agent: false, build: false, program: false }} />
         </MemoryRouter>
       );
 
-      const statusBuildBtn = screen.getByTestId("status-build-button");
+      const statusBuildBtn = screen.getByTestId("build-button");
       expect(statusBuildBtn).toBeTruthy();
 
       fireEvent.click(statusBuildBtn);
