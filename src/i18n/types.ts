@@ -198,6 +198,30 @@ export interface TranslationSchema {
     exitCode: string;
     details: string;
   };
+  outcome: {
+    done: string;
+    failed: string;
+    cancelled: string;
+    partRolledBack: string;
+    partRolledBackDetail: string;
+    filesChanged: string;
+    buildPassed: string;
+    buildFailed: string;
+  };
+  agentErrors: {
+    notFound: string;
+    badPrompt: string;
+    modelUnavailable: string;
+    noModels: string;
+    noModelForStep: string;
+    planningFailed: string;
+    planStopped: string;
+    gitFailed: string;
+    taskAlreadyRunning: string;
+    noBuildRecipe: string;
+    notEnoughResources: string;
+    buildStartFailed: string;
+  };
   stages: {
     download: string;
     downloadLong: string;

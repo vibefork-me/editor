@@ -1,4 +1,5 @@
 import type { TranslationKey, TranslationParams } from "../i18n/types.ts";
+import { agentErrorKey } from "./agent-errors.ts";
 import type { ServerMessage } from "./protocol.generated.ts";
 
 /**
@@ -58,8 +59,11 @@ export function feedLine(m: ServerMessage): FeedLine | null {
       if (m.code === 0) return { kind, text: "exit 0", key: "project.taskDone" };
       return { kind, text: `exit ${m.code}`, key: "feed.exitCode", params: { code: m.code } };
     }
-    case "error":
-      return { kind: "error", text: m.error };
+    case "error": {
+      // A known code is worded in the person's language, with the agent's text under «Details».
+      const key = agentErrorKey(m.code);
+      return key ? { kind: "error", text: m.error, key } : { kind: "error", text: m.error };
+    }
     default:
       return null;
   }

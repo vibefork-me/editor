@@ -1,4 +1,5 @@
 import type { Artifact, CanvasEvent, CanvasRecord, EtaScope, Offer, Stage } from "../client/protocol.generated.ts";
+import type { CheckOutcome, ResultOutcome } from "./outcomeText.ts";
 
 /** A part of the project on the canvas, as the agent reported it. */
 export interface CanvasNode {
@@ -39,7 +40,9 @@ export interface CanvasProgress {
 export interface CanvasHistoryItem {
   at: number;
   task: string;
+  /** How it ended, in the agent's English; `outcome` words it in the person's language. */
   result: string;
+  outcome?: Pick<ResultOutcome, "text" | "kind" | "exit">;
   /** Labels of the parts the task changed. */
   changed: string[];
   artifacts: Artifact[];
@@ -61,8 +64,8 @@ export interface CanvasState {
   plan: string[];
   /** Plan step being worked on, from 0; -1 before the first step. */
   step: number;
-  checks: { ok: boolean; text: string; at: number }[];
-  result: { text: string; detail: string; artifacts: Artifact[] } | null;
+  checks: (CheckOutcome & { at: number })[];
+  result: ResultOutcome | null;
   changed: string[];
   failed: string[];
   thinking: { id: string; text: string; since: number } | null;
@@ -248,7 +251,7 @@ export function applyCanvasEvent(state: CanvasState, ev: CanvasEvent, at: number
     case "check":
       return {
         ...s,
-        checks: [...s.checks, { ok: ev.ok, text: ev.text, at }],
+        checks: [...s.checks, { ok: ev.ok, text: ev.text, kind: ev.kind, exit: ev.exit, at }],
         failed: !ev.ok && ev.id && !s.failed.includes(ev.id) ? [...s.failed, ev.id] : s.failed,
       };
     case "paused":
@@ -258,7 +261,14 @@ export function applyCanvasEvent(state: CanvasState, ev: CanvasEvent, at: number
     case "note.taken":
       return { ...s, notesTaken: [...s.notesTaken, { noteId: ev.noteId, related: ev.related, reply: ev.reply, at }] };
     case "result": {
-      const result = { text: ev.text, detail: ev.detail, artifacts: ev.artifacts ?? [] };
+      const result: ResultOutcome = {
+        text: ev.text,
+        detail: ev.detail,
+        artifacts: ev.artifacts ?? [],
+        kind: ev.kind,
+        exit: ev.exit,
+        id: ev.id,
+      };
       // The finished task joins the history with what it produced; a later result without a new task (a
       // part put back as it was) does not.
       const history = s.task && !s.result
@@ -268,6 +278,7 @@ export function applyCanvasEvent(state: CanvasState, ev: CanvasEvent, at: number
               at,
               task: s.task.text,
               result: ev.text,
+              ...(ev.kind ? { outcome: { text: ev.text, kind: ev.kind, exit: ev.exit } } : {}),
               changed: s.order.filter((id) => s.changed.includes(id)).map((id) => s.nodes[id]?.label ?? id),
               artifacts: result.artifacts,
             },

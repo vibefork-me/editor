@@ -251,6 +251,28 @@ describe("Workspace build and foreign changes flow", () => {
       useI18nStore.getState().setLocale("en");
     });
 
+    it("words a build error with a known code in the person's language", async () => {
+      const mockTransport = {
+        runBuild: vi.fn(async (): Promise<BuildOutcome> => ({
+          kind: "error",
+          error: "no known way to build this project",
+          code: "no_build_recipe",
+        })),
+      } as unknown as AgentTransport;
+      bindAgentTransport(mockTransport);
+      render(<BuildJournal />);
+      await useBuildStore.getState().startBuild("test-proj");
+
+      await waitFor(() => {
+        expect(screen.getByText("The agent does not know how to build this project")).toBeTruthy();
+      });
+      useI18nStore.getState().setLocale("ru");
+      await waitFor(() => {
+        expect(screen.getByText("Агент не знает, как собрать этот проект")).toBeTruthy();
+      });
+      useI18nStore.getState().setLocale("en");
+    });
+
     it("displays localized error message when agent transport is offline", async () => {
       bindAgentTransport(null as unknown as AgentTransport);
 

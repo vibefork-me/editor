@@ -4,6 +4,7 @@ import type { ProjectVersion, RollbackStatus } from "../../hooks/useRollback.ts"
 import { useTranslation } from "../../i18n/i18nStore.ts";
 import type { TranslationKey } from "../../i18n/types.ts";
 import type { CanvasState } from "../canvasState.ts";
+import { checkText, resultDetail, resultText } from "../outcomeText.ts";
 import { TASK_STAGES } from "../rail/StageRail.tsx";
 
 const KIND_TITLE: Record<ArtifactKind, TranslationKey> = {
@@ -56,7 +57,7 @@ export function TaskPanel({ state }: { state: CanvasState }) {
       {state.checks.map((c, i) => (
         <div key={i} className={`flex items-center gap-1.5 text-[12.5px] ${c.ok ? "text-[#8fd19e]" : "text-[#e3b341]"}`}>
           {c.ok ? <IconCheck className="h-3 w-3" /> : <IconTriangleAlert className="h-3 w-3" />}
-          {c.text}
+          {checkText(t, c)}
         </div>
       ))}
     </section>
@@ -68,6 +69,7 @@ export function ResultScreen({ state, onOpen, onClose }: { state: CanvasState; o
   const { t } = useTranslation();
   const result = state.result;
   if (!result) return null;
+  const detail = resultDetail(t, result, (id) => state.nodes[id]?.label);
   return (
     <section aria-label={t("taskView.doneTitle")} data-testid="result-screen" className={`${panel} flex w-[380px] flex-col gap-3 p-4`}>
       <div className="flex items-start gap-2">
@@ -75,8 +77,8 @@ export function ResultScreen({ state, onOpen, onClose }: { state: CanvasState; o
           <IconCheck className="h-3.5 w-3.5" />
         </span>
         <div className="min-w-0 flex-1">
-          <h2 className="text-[15px] font-bold text-[#f4f5f8]">{result.text}</h2>
-          {result.detail && <p className="mt-0.5 text-[12.5px] text-[#c9d1d9]">{result.detail}</p>}
+          <h2 className="text-[15px] font-bold text-[#f4f5f8]">{resultText(t, result)}</h2>
+          {detail && <p className="mt-0.5 text-[12.5px] text-[#c9d1d9]">{detail}</p>}
         </div>
         <button type="button" onClick={onClose} aria-label={t("taskView.close")} className={closeButton}>
           ×
@@ -241,7 +243,7 @@ export function HistoryPanel({
             <span className="font-semibold">{h.task}</span>
             {i === 0 && <span className="text-[10.5px] text-[#8fd19e]">{t("taskView.current")}</span>}
           </div>
-          <span>{h.result}</span>
+          <span>{h.outcome ? resultText(t, h.outcome) : h.result}</span>
           {h.changed.length > 0 && <span className="text-[#f2cc60]">{t("taskView.changed", { parts: h.changed.join(", ") })}</span>}
           <div className="flex flex-wrap gap-1">
             {h.artifacts.map((a, j) => (
