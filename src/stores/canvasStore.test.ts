@@ -56,6 +56,15 @@ describe("canvas store", () => {
     expect(getCanvas).toHaveBeenCalledWith({ projectId: "p", from: 3 });
   });
 
+  it("reads what the agent added since, on refresh", async () => {
+    let log = stream.slice(0, 3);
+    agent(() => log);
+    await useCanvasStore.getState().open("p");
+    log = stream.slice(0, 8);
+    await useCanvasStore.getState().refresh();
+    expect(useCanvasStore.getState().lastSeq).toBe(8);
+  });
+
   it("keeps live events that arrive while the stream is read", async () => {
     let release: () => void = () => {};
     const gate = new Promise<void>((r) => (release = r));
