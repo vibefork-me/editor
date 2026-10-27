@@ -25,6 +25,8 @@ const QUIET_MS = 1500;
 const DOUBLE_CLICK_MS = 350;
 // After the person moves the camera, automatic fitting leaves it alone for this long.
 const MANUAL_CAMERA_MS = 20000;
+// Fitting a small graph never zooms in further than this.
+const MAX_FIT_ZOOM = 1.5;
 
 /**
  * The project as a living map: parts appear next to their parents, the tree is laid out on rings and tidied
@@ -139,7 +141,9 @@ export function GraphCanvas({ state, selectedId = null, onSelect, clock = Date.n
       if (performance.now() < live.current.manualUntil) return;
       const nodes = graph.graphData().nodes;
       if (!nodes.some((n) => typeof n.x === "number")) return;
-      graph.zoomToFit(900, 60);
+      graph.zoomToFit(900, 100);
+      // A few parts must not fill the screen.
+      setTimeout(() => graph.zoom() > MAX_FIT_ZOOM && graph.zoom(MAX_FIT_ZOOM, 400), 950);
     };
     onGraph?.(graph, stable);
 
