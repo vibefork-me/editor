@@ -127,6 +127,15 @@ describe("canvas state: task", () => {
     expect(Object.keys(s.nodes)).toHaveLength(5);
   });
 
+  it("knows the task is paused until it goes on or ends", () => {
+    let s = applyCanvasEvent(at(31), { type: "paused" }, after(32));
+    expect(s.paused).toBe(true);
+    s = applyCanvasEvent(s, { type: "resumed" }, after(33));
+    expect(s.paused).toBe(false);
+    s = applyCanvasEvent(applyCanvasEvent(s, { type: "paused" }, after(34)), { type: "result", text: "Cancelled", detail: "" }, after(35));
+    expect(s.paused).toBe(false);
+  });
+
   it("does not change the state it was given", () => {
     const before = JSON.stringify(initialCanvasState);
     buildCanvasState(stream);

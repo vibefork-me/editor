@@ -163,6 +163,16 @@ export type BuildOutcome =
   | { kind: "error"; error: string; code?: string }
   | { kind: "cancelled" };
 
+/** What the person can do with a running task. */
+export interface TaskControl {
+  /** Pauses it at once. */
+  stop(): void;
+  /** Continues a paused task. */
+  resume(): void;
+  /** Cancels it; a paused task's changes are undone too. */
+  cancel(): void;
+}
+
 export interface AgentTransport {
   getHealth(): Promise<AgentHealth>;
   authenticateSession(clientKey: CryptoKey): Promise<{ token: string }>;
@@ -205,7 +215,8 @@ export interface AgentTransport {
 
   /** Takes a project from GitHub, optionally at a ref of a fork or a pull request. */
   importProject(req: ImportProjectRequest): Promise<ImportProjectResult>;
-  /** Runs a task in a project over the agent's own messages; streams them; resolves when it ends. */
+  /** Runs a task in a project over the agent's own messages; streams them; resolves when it ends.
+   * `onControl` gets the way to pause, resume or cancel it once it has started. */
   runTask(
     params: {
       projectId: string;
@@ -216,6 +227,7 @@ export interface AgentTransport {
       lang?: string;
     },
     onMessage: (m: ServerMessage) => void,
+    onControl?: (control: TaskControl) => void,
   ): Promise<TaskOutcome>;
   /** Builds a project (the agent asks the user in a native dialog); streams its messages. */
   runBuild(project: string, onMessage: (m: BuildMessage) => void): Promise<BuildOutcome>;
