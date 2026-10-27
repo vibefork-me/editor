@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { GraphEdge, GraphNode, GraphResponse, GraphSnapshot, GraphSource } from "../client/types.ts";
 import { getAgentTransport } from "./agent-bridge.ts";
+import { useCanvasStore } from "./canvasStore.ts";
 import { translate, useI18nStore } from "../i18n/i18nStore.ts";
 import type { GraphPhase } from "./types.ts";
 
@@ -116,7 +117,10 @@ export const useGraphStore = create<GraphState>((set, get) => ({
           set({ isDescribing: true, mapNotice: null });
           const lang = useI18nStore.getState().locale;
           try {
-            const modelRes = await transport.describeGraph({ projectId, lang });
+            const modelRes = await transport.describeGraph({ projectId, lang }).finally(() => {
+              // Drawing the map went into the project's session stream.
+              void useCanvasStore.getState().refresh();
+            });
             if (get().currentProjectId !== projectId) {
               return;
             }

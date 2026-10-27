@@ -23,6 +23,8 @@ export interface CanvasStoreState {
   open: (projectId: string) => Promise<void>;
   /** Adds a live event; a gap in the numbering is filled from the agent first. */
   ingest: (message: CanvasMessage) => void;
+  /** Reads what the agent added to the stream since (e.g. after it drew the map). */
+  refresh: () => Promise<void>;
   reset: () => void;
 }
 
@@ -98,6 +100,10 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => {
         pending.push(record);
         void catchUp(project);
       }
+    },
+    async refresh() {
+      const { projectId } = get();
+      if (projectId) await catchUp(projectId);
     },
     reset() {
       pending = [];

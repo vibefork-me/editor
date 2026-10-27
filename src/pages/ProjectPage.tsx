@@ -12,6 +12,7 @@ import { getAgentTransport } from "../stores/agent-bridge.ts";
 import { useProjectStore } from "../stores/projectStore.ts";
 import { useGraphStore } from "../stores/graphStore.ts";
 import { useCanvasStore } from "../stores/canvasStore.ts";
+import { isCanvasStreamEnabled } from "../flags.ts";
 
 // The living map of the session stream; loaded on demand, it is not part of the first screen.
 const GraphCanvas = lazy(() => import("../canvas/graph/GraphCanvas.tsx").then((m) => ({ default: m.GraphCanvas })));
@@ -29,7 +30,7 @@ export function ProjectPage() {
   const [smallScreenTab, setSmallScreenTab] = useState<"map" | "chat">("map");
   const chatInputRef = useRef<HTMLTextAreaElement>(null);
   const canvas = useCanvasStore((s) => s.canvas);
-  const hasStream = canvas.order.length > 0;
+  const hasStream = isCanvasStreamEnabled() && canvas.order.length > 0;
 
   const sendMessage = useCallback(async () => {
     const prompt = chatDraft.trim();
