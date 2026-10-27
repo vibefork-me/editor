@@ -46,6 +46,8 @@ export interface GraphNode {
   changed?: number;
   status: "changed" | "unchanged" | "exploring" | "problem" | "changing" | "done" | string;
   summary?: string;
+  /** The part this one is a smaller piece of (model's map only); absent — a top part. */
+  parent?: string;
 }
 
 export interface GraphEdge {
