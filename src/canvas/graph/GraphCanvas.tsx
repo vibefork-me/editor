@@ -2,6 +2,7 @@ import ForceGraph from "force-graph";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "../../i18n/i18nStore.ts";
 import type { CanvasState } from "../canvasState.ts";
+import { partBadges } from "../card/partInfo.ts";
 import { drawData, MORE, type DrawLink, type DrawNode } from "./drawData.ts";
 import { BACKGROUND, nodeRadius, paintCallout, paintHoverTip, paintLabels, paintNode, type PaintText } from "./paint.ts";
 import { StableGraph, calmForce, forceStrengths, linkPresence, relaxForce, ringForce } from "./stableGraph.ts";
@@ -16,6 +17,16 @@ export interface GraphCanvasProps {
   clock?: () => number;
   /** Gives the graph to headless checks and the developer view. */
   onGraph?: (graph: Graph, stable: StableGraph) => void;
+  /** Gives the way to follow a node on screen and to move the camera to it. */
+  onReady?: (api: GraphApi) => void;
+}
+
+/** What the part card needs from the canvas. */
+export interface GraphApi {
+  /** Where a node is on screen now (CSS pixels relative to the canvas, with its radius), or null. */
+  screenOf: (id: string) => { x: number; y: number; r: number } | null;
+  /** Glides the camera to a node. */
+  centerOn: (id: string) => void;
 }
 
 // New nodes are handed to the layout at most this often: every hand-over restarts it at full strength.
@@ -33,7 +44,7 @@ const MAX_FIT_ZOOM = 1.5;
  * without crossings in pauses, roots stay put (another version of the project to the right), big branches
  * the agent has not been in fold into "+N". The camera keeps the whole graph in view and yields to the person.
  */
-export function GraphCanvas({ state, selectedId = null, onSelect, clock = Date.now, onGraph }: GraphCanvasProps) {
+export function GraphCanvas({ state, selectedId = null, onSelect, clock = Date.now, onGraph, onReady }: GraphCanvasProps) {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const graphRef = useRef<Graph | null>(null);
@@ -47,16 +58,7 @@ export function GraphCanvas({ state, selectedId = null, onSelect, clock = Date.n
   const text = useRef<PaintText>({ agentHere: "", badges: () => [] });
   text.current = {
     agentHere: t("canvas.agentHere"),
-    badges: (n) =>
-      [
-        n.isFocused && t("canvas.badgeAgentHere"),
-        n.isThinking && t("canvas.badgeThinking"),
-        n.progress !== null && t("canvas.badgeWorking"),
-        n.isFailed && t("canvas.badgeFailed"),
-        n.isChanged && t("canvas.badgeChanged"),
-        n.isTaskNode && t("canvas.badgeTask"),
-        n.kind === "project" && n.parent && t("canvas.badgeOtherVersion"),
-      ].filter((b): b is string => typeof b === "string"),
+    badges: (n) => partBadges(n).map((b) => t(b.key)),
   };
   const fitRef = useRef(() => {});
   const timers = useRef<{ apply?: ReturnType<typeof setTimeout>; relax?: ReturnType<typeof setTimeout> }>({});
@@ -146,6 +148,21 @@ export function GraphCanvas({ state, selectedId = null, onSelect, clock = Date.n
       setTimeout(() => graph.zoom() > MAX_FIT_ZOOM && graph.zoom(MAX_FIT_ZOOM, 400), 950);
     };
     onGraph?.(graph, stable);
+    onReady?.({
+      screenOf: (id) => {
+        const n = stable.nodes.get(id);
+        if (!n || typeof n.x !== "number" || typeof n.y !== "number") return null;
+        const p = graph.graph2ScreenCoords(n.x, n.y);
+        return { x: p.x, y: p.y, r: nodeRadius(n) * graph.zoom() };
+      },
+      centerOn: (id) => {
+        const n = stable.nodes.get(id);
+        if (!n || typeof n.x !== "number") return;
+        live.current.manualUntil = performance.now() + MANUAL_CAMERA_MS;
+        graph.centerAt(n.x, n.y, 800);
+        if (graph.zoom() < 1.6) graph.zoom(1.6, 800);
+      },
+    });
 
     // The person zooms or drags the view: automatic fitting leaves the camera alone for a while.
     const manual = () => (live.current.manualUntil = performance.now() + MANUAL_CAMERA_MS);
@@ -203,6 +220,8 @@ export function GraphCanvas({ state, selectedId = null, onSelect, clock = Date.n
     if (![...stableRef.current.nodes.values()].some(touched)) return;
     live.current.manualUntil = performance.now() + MANUAL_CAMERA_MS;
     graph.zoomToFit(1200, 140, touched);
+    // One or two parts must not fill the screen.
+    setTimeout(() => graph.zoom() > MAX_FIT_ZOOM && graph.zoom(MAX_FIT_ZOOM, 400), 1250);
   }, [finished]);
 
   return <div ref={containerRef} className="h-full w-full" data-testid="graph-canvas" />;

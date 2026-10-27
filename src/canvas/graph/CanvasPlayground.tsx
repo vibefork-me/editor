@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { buildCanvasState } from "../canvasState.ts";
 import { StageRail } from "../rail/StageRail.tsx";
 import { StopBanner } from "../rail/StopBanner.tsx";
-import { GraphCanvas } from "./GraphCanvas.tsx";
+import { PartCallout, PartPanel } from "../card/PartCard.tsx";
+import { GraphCanvas, type GraphApi } from "./GraphCanvas.tsx";
 import type { StableGraph } from "./stableGraph.ts";
 import { syntheticAnalysis } from "./syntheticSession.ts";
 import { stream as notesSession } from "../testSessions.ts";
@@ -42,7 +43,7 @@ function Legend() {
 }
 
 /**
- * Developer view (`/dev/canvas?size=259&speed=4&seed=1`, or `?session=notes`): plays a made-up analysis of `size` parts on the
+ * Developer view (`/dev/canvas?size=259&speed=4&seed=1`, or `?session=notes`; `&part=<id>[&panel=1]` opens a part's card): plays a made-up analysis of `size` parts on the
  * canvas, `speed` times faster than recorded. Exists in development builds only.
  */
 export default function CanvasPlayground() {
@@ -59,7 +60,9 @@ export default function CanvasPlayground() {
   const clock = () => (performance.now() - startedAt.current) * speed;
   const streamNow = () => Math.min(end, clock());
   const [now, setNow] = useState(0);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(params.get("part"));
+  const [panel, setPanel] = useState(params.get("panel") === "1");
+  const [api, setApi] = useState<GraphApi | null>(null);
   const [stopped, setStopped] = useState(params.get("stopped") === "1");
 
   useEffect(() => {
@@ -83,6 +86,23 @@ export default function CanvasPlayground() {
         <div className="pointer-events-none absolute inset-x-4 top-4 z-10">
           <StageRail state={state} now={clock()} onStop={() => setStopped(true)} />
         </div>
+        {selected && (() => {
+          const actions = {
+            onAsk: () => {},
+            onShowChanges: () => {},
+            onOpenFile: () => {},
+            onGoTo: (id: string) => {
+              setSelected(id);
+              api?.centerOn(id);
+            },
+            onClose: () => setSelected(null),
+          };
+          return panel ? (
+            <PartPanel state={state} nodeId={selected} {...actions} />
+          ) : (
+            <PartCallout state={state} nodeId={selected} api={api} onMore={() => setPanel(true)} {...actions} />
+          );
+        })()}
         {stopped && (
           <div className="absolute inset-x-0 bottom-8 z-10 flex justify-center">
             <StopBanner onResume={() => setStopped(false)} onCancel={() => setStopped(false)} />
@@ -91,7 +111,11 @@ export default function CanvasPlayground() {
         <GraphCanvas
           state={state}
           selectedId={selected}
-          onSelect={setSelected}
+          onSelect={(id) => {
+            setSelected(id);
+            setPanel(false);
+          }}
+          onReady={setApi}
           clock={clock}
           onGraph={(graph, stable) => {
             window.__vfCanvas = { stable, played: () => streamNow() >= end, size, toScreen: (x, y) => graph.graph2ScreenCoords(x, y) };
