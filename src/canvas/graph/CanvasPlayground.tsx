@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { buildCanvasState } from "../canvasState.ts";
+import { StageRail } from "../rail/StageRail.tsx";
+import { StopBanner } from "../rail/StopBanner.tsx";
 import { GraphCanvas } from "./GraphCanvas.tsx";
 import type { StableGraph } from "./stableGraph.ts";
 import { syntheticAnalysis } from "./syntheticSession.ts";
+import { stream as notesSession } from "../testSessions.ts";
 
 declare global {
   interface Window {
@@ -27,7 +30,7 @@ const LEGEND: [string, string][] = [
 
 function Legend() {
   return (
-    <ul className="pointer-events-none absolute right-3 top-3 z-10 space-y-1 rounded-md bg-black/60 p-2 text-[11px] text-neutral-300">
+    <ul className="pointer-events-none absolute bottom-3 right-3 z-10 space-y-1 rounded-md bg-black/60 p-2 text-[11px] text-neutral-300">
       {LEGEND.map(([color, text]) => (
         <li key={text} className="flex items-center gap-2">
           <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: color }} />
@@ -39,7 +42,7 @@ function Legend() {
 }
 
 /**
- * Developer view (`/dev/canvas?size=259&speed=4&seed=1`): plays a made-up analysis of `size` parts on the
+ * Developer view (`/dev/canvas?size=259&speed=4&seed=1`, or `?session=notes`): plays a made-up analysis of `size` parts on the
  * canvas, `speed` times faster than recorded. Exists in development builds only.
  */
 export default function CanvasPlayground() {
@@ -47,7 +50,9 @@ export default function CanvasPlayground() {
   const size = Number(params.get("size") ?? 26);
   const speed = Number(params.get("speed") ?? 4);
   const seed = Number(params.get("seed") ?? 1);
-  const records = useMemo(() => syntheticAnalysis(size, seed), [size, seed]);
+  // `session=notes`: the small analysis and task of the notes app, with every kind of event.
+  const notes = params.get("session") === "notes";
+  const records = useMemo(() => (notes ? notesSession : syntheticAnalysis(size, seed)), [notes, size, seed]);
   const startedAt = useRef(performance.now());
   const end = records[records.length - 1]?.at ?? 0;
   // The clock keeps going after the end, so flashes fade; the state stops at the last event.
@@ -55,6 +60,7 @@ export default function CanvasPlayground() {
   const streamNow = () => Math.min(end, clock());
   const [now, setNow] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
+  const [stopped, setStopped] = useState(params.get("stopped") === "1");
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -74,6 +80,14 @@ export default function CanvasPlayground() {
       </div>
       <div className="relative min-h-0 flex-1">
         <Legend />
+        <div className="pointer-events-none absolute inset-x-4 top-4 z-10">
+          <StageRail state={state} now={clock()} onStop={() => setStopped(true)} />
+        </div>
+        {stopped && (
+          <div className="absolute inset-x-0 bottom-8 z-10 flex justify-center">
+            <StopBanner onResume={() => setStopped(false)} onCancel={() => setStopped(false)} />
+          </div>
+        )}
         <GraphCanvas
           state={state}
           selectedId={selected}

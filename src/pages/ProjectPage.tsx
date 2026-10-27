@@ -4,6 +4,7 @@ import { CanvasPanel } from "../components/canvas/index.ts";
 import { ChatComposer } from "../components/chat/ChatComposer.tsx";
 import { FeedLineView } from "../components/chat/FeedLineView.tsx";
 import { PhaseRail } from "../components/shell/PhaseRail.tsx";
+import { StageRail, useNow } from "../canvas/rail/StageRail.tsx";
 import { StatusBar } from "../components/shell/StatusBar.tsx";
 import { ViewerLayoutContainer } from "../components/viewer/index.ts";
 import { useProjectShellSync } from "../hooks/useProjectShellSync.ts";
@@ -31,6 +32,7 @@ export function ProjectPage() {
   const chatInputRef = useRef<HTMLTextAreaElement>(null);
   const canvas = useCanvasStore((s) => s.canvas);
   const hasStream = isCanvasStreamEnabled() && canvas.order.length > 0;
+  const now = useNow();
 
   const sendMessage = useCallback(async () => {
     const prompt = chatDraft.trim();
@@ -106,7 +108,7 @@ export function ProjectPage() {
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col bg-surface font-sans text-text">
       <StatusBar />
-      <PhaseRail />
+      {hasStream ? null : <PhaseRail />}
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <nav aria-label={t("project.workspaceTabs")} className="flex shrink-0 border-b border-border lg:hidden">
           <button type="button" aria-pressed={smallScreenTab === "map"} onClick={() => setSmallScreenTab("map")} className="flex-1 px-4 py-2 text-sm aria-pressed:text-accent">
@@ -121,6 +123,9 @@ export function ProjectPage() {
             {hasStream ? (
               <Suspense fallback={null}>
                 <GraphCanvas state={canvas} />
+                <div className="pointer-events-none absolute inset-x-4 top-4 z-10">
+                  <StageRail state={canvas} now={now} />
+                </div>
               </Suspense>
             ) : (
               <CanvasPanel onAskAbout={handleAskAbout} />
