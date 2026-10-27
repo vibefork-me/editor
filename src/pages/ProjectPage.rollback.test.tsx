@@ -132,7 +132,7 @@ describe("ProjectPage rollback", () => {
 
   it("has no rollback while a task runs", async () => {
     page();
-    const field = await screen.findByLabelText("Message to the agent");
+    const field = await screen.findByRole("textbox", { name: "Message the agent" });
     fireEvent.change(field, { target: { value: "Add a dark theme" } });
     fireEvent.keyDown(field, { key: "Enter" });
     fireEvent.click(await screen.findByRole("button", { name: "Note storage" }));
