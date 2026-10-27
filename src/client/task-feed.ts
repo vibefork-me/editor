@@ -15,7 +15,7 @@ export type FeedLine = {
 /** How a task ended. */
 export type TaskOutcome =
   | { kind: "done"; code: number; status: string; commit?: string }
-  | { kind: "error"; error: string }
+  | { kind: "error"; error: string; code?: string }
   | { kind: "cancelled" };
 
 /** A readable chat line for an agent message, or null for messages the chat does not show. */

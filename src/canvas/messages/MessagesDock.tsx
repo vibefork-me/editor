@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ClipboardEvent, type KeyboardEvent, type ReactNode, type Ref } from "react";
-import type { NoteAttachment } from "../../client/protocol.generated.ts";
+import type { NoteAttachment, Offer } from "../../client/protocol.generated.ts";
 import { useTranslation } from "../../i18n/i18nStore.ts";
 import type { CanvasState } from "../canvasState.ts";
 import {
@@ -27,6 +27,9 @@ export interface MessagesDockProps {
   onDraftChange: (text: string) => void;
   /** Sends the draft with its attachments; the dock clears them. */
   onSend: (text: string, attachments: NoteAttachment[]) => void;
+  /** Starts the task of an offer (`index` in the shown offers); without it a click puts the offer's
+   * text into the field. */
+  onChooseOffer?: (index: number, offer: Offer) => void;
   /** Moves to a part named in an answer of the agent. */
   onGoTo?: (id: string) => void;
   inputRef?: Ref<HTMLTextAreaElement>;
@@ -38,7 +41,7 @@ export interface MessagesDockProps {
  * Bottom center of the canvas: what can be done (offers of the agent), the conversation with the agent
  * (folds), and the field to write to it.
  */
-export function MessagesDock({ state, running, messages, draft, onDraftChange, onSend, onGoTo, inputRef, children }: MessagesDockProps) {
+export function MessagesDock({ state, running, messages, draft, onDraftChange, onSend, onChooseOffer, onGoTo, inputRef, children }: MessagesDockProps) {
   const { t } = useTranslation();
   const items = conversation(messages, state.notesTaken);
   const waiting = waitingCount(items);
@@ -126,11 +129,16 @@ export function MessagesDock({ state, running, messages, draft, onDraftChange, o
         <section aria-label={state.result ? t("messages.offersNext") : t("messages.offersTitle")} className="rounded-xl border border-[#30363d] bg-[rgba(22,27,34,0.95)] p-2">
           <div className="px-1 pb-1 text-[12px] font-semibold text-[#8b93a7]">{state.result ? t("messages.offersNext") : t("messages.offersTitle")}</div>
           <div className="flex flex-wrap gap-1.5">
-            {offers.map((o) => (
+            {offers.map((o, i) => (
               <button
                 key={o.title}
                 type="button"
                 onClick={() => {
+                  // No task runs (the offers are hidden while one does): the offer starts one.
+                  if (onChooseOffer && !running) {
+                    onChooseOffer(i, o);
+                    return;
+                  }
                   onDraftChange(o.text);
                   fieldRef.current?.focus();
                 }}

@@ -21,6 +21,7 @@ import {
   type PairStatusResult,
   type ProjectMetadata,
   type SaveProjectResult,
+  type TaskControl,
 } from "./types.ts";
 import { notifyWsConnection } from "./ws-connection-bridge.ts";
 import type {
@@ -225,6 +226,41 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
         })
         .catch(reject);
     });
+  }
+
+  /**
+   * A task over its own connection, started by `start` (`task` or `choose_offer`). `not_supported`
+   * answers a message to the agent (a note) and the task goes on, unless `unsupportedEnds`: then the
+   * agent does not know the start message itself.
+   */
+  function taskSession(
+    start: ClientMessage,
+    projectId: string,
+    unsupportedEnds: boolean,
+    onMessage: (m: ServerMessage) => void,
+    onControl?: (control: TaskControl) => void,
+  ): Promise<TaskOutcome> {
+    let started = false;
+    return agentSession(
+      start,
+      onMessage,
+      (msg) => {
+        if (msg.type !== "error") started = true;
+        if (msg.type === "done") return { kind: "done", code: msg.code, status: msg.status, commit: msg.commit ?? undefined };
+        if (msg.type === "error" && msg.code === "not_supported" && (started || !unsupportedEnds)) return null;
+        if (msg.type === "error") return { kind: "error", error: msg.error, code: msg.code ?? undefined };
+        if (msg.type === "cancelled") return { kind: "cancelled" };
+        return null;
+      },
+      onControl &&
+        ((send) =>
+          onControl({
+            stop: () => send({ type: "stop" }),
+            resume: () => send({ type: "resume" }),
+            cancel: () => send({ type: "cancel" }),
+            note: (text, attachments = []) => send({ type: "note", project: projectId, text, attachments }),
+          })),
+    );
   }
 
   const transport: AgentTransport = {
@@ -496,7 +532,7 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
     },
 
     runTask(params, onMessage, onControl): Promise<TaskOutcome> {
-      return agentSession(
+      return taskSession(
         {
           type: "task",
           project: params.projectId,
@@ -506,24 +542,29 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
           continue: params.continue ?? false,
           lang: params.lang ?? null,
         },
+        params.projectId,
+        false,
         onMessage,
-        (msg) => {
-          if (msg.type === "done")
-            return { kind: "done", code: msg.code, status: msg.status, commit: msg.commit ?? undefined };
-          // `not_supported` answers a message to the agent (a note), not the task: the task goes on.
-          if (msg.type === "error" && msg.code === "not_supported") return null;
-          if (msg.type === "error") return { kind: "error", error: msg.error, code: msg.code ?? undefined };
-          if (msg.type === "cancelled") return { kind: "cancelled" };
-          return null;
+        onControl,
+      );
+    },
+
+    runOffer(params, onMessage, onControl): Promise<TaskOutcome> {
+      return taskSession(
+        {
+          type: "choose_offer",
+          project: params.projectId,
+          index: params.index,
+          title: params.title ?? null,
+          provider: params.provider ?? null,
+          model: params.model ?? null,
+          continue: params.continue ?? false,
+          lang: params.lang ?? null,
         },
-        onControl &&
-          ((send) =>
-            onControl({
-              stop: () => send({ type: "stop" }),
-              resume: () => send({ type: "resume" }),
-              cancel: () => send({ type: "cancel" }),
-              note: (text, attachments = []) => send({ type: "note", project: params.projectId, text, attachments }),
-            })),
+        params.projectId,
+        true,
+        onMessage,
+        onControl,
       );
     },
 

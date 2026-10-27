@@ -19,11 +19,14 @@ import { ProjectPage } from "./ProjectPage.tsx";
 describe("ProjectPage messages on the canvas", () => {
   let onMessage: ((m: ServerMessage) => void) | null = null;
   const control: TaskControl = { stop: vi.fn(), resume: vi.fn(), cancel: vi.fn(), note: vi.fn() };
-  const runTask = vi.fn((_params, on: (m: ServerMessage) => void, onControl?: (c: TaskControl) => void) => {
+  // A task that starts and runs on.
+  const running = (_params: unknown, on: (m: ServerMessage) => void, onControl?: (c: TaskControl) => void) => {
     onMessage = on;
     onControl?.(control);
     return new Promise<never>(() => {});
-  });
+  };
+  const runTask = vi.fn(running);
+  const runOffer = vi.fn(running);
 
   beforeEach(() => {
     useI18nStore.getState().setLocale("en");
@@ -34,20 +37,27 @@ describe("ProjectPage messages on the canvas", () => {
       getCanvas: async ({ from }: { from: number }) => ({ events: analysis.filter((r) => r.seq >= from), next: analysis.length + 1 }),
       getGraph: async () => ({ nodes: [], edges: [] }),
       runTask,
+      runOffer,
     } as unknown as AgentTransport);
+    runTask.mockClear();
+    runOffer.mockReset();
+    runOffer.mockImplementation(running);
   });
 
-  it("starts a task from the field, then sends notes to it; a note the agent did not take says so", async () => {
+  const page = () =>
     render(
       <MemoryRouter initialEntries={["/demo"]}>
         <Routes><Route path="/:projectId" element={<ProjectPage />} /></Routes>
       </MemoryRouter>,
     );
+
+  it("starts a task from the field, then sends notes to it; a note the agent did not take says so", async () => {
+    page();
     const field = (await screen.findByLabelText("Message to the agent")) as HTMLTextAreaElement;
     // The old chat field is not shown with the living canvas.
     expect(screen.getAllByRole("textbox")).toHaveLength(1);
 
-    fireEvent.click(screen.getByText("Dark theme"));
+    fireEvent.change(field, { target: { value: "Add a dark look" } });
     fireEvent.keyDown(field, { key: "Enter" });
     expect(runTask).toHaveBeenCalledWith(expect.objectContaining({ projectId: "demo", prompt: "Add a dark look" }), expect.any(Function), expect.any(Function));
     await waitFor(() => expect(field.placeholder).toBe("Tell the agent — it reads it after the current step"));
@@ -61,5 +71,32 @@ describe("ProjectPage messages on the canvas", () => {
 
     act(() => onMessage?.({ type: "error", error: "not supported by this version of the agent", code: "not_supported" }));
     expect(note().dataset.status).toBe("failed");
+  });
+
+  it("a click on an offer starts its task; notes go to it", async () => {
+    page();
+    const field = (await screen.findByLabelText("Message to the agent")) as HTMLTextAreaElement;
+    fireEvent.click(screen.getByText("Dark theme"));
+    expect(runOffer).toHaveBeenCalledWith(
+      expect.objectContaining({ projectId: "demo", index: 0, title: "Dark theme" }),
+      expect.any(Function),
+      expect.any(Function),
+    );
+    expect(runTask).not.toHaveBeenCalled();
+    await waitFor(() => expect(field.placeholder).toBe("Tell the agent — it reads it after the current step"));
+    expect(screen.getByTestId("person-message").textContent).toContain("Dark theme");
+    fireEvent.change(field, { target: { value: "Keep the toggle in the settings" } });
+    fireEvent.keyDown(field, { key: "Enter" });
+    expect(control.note).toHaveBeenCalledWith("Keep the toggle in the settings", []);
+  });
+
+  it("an offer the agent cannot start puts its text into the field", async () => {
+    runOffer.mockImplementation(async () => ({ kind: "error", error: "no", code: "bad_index" }) as never);
+    page();
+    const field = (await screen.findByLabelText("Message to the agent")) as HTMLTextAreaElement;
+    fireEvent.click(screen.getByText("Export to PDF"));
+    await waitFor(() => expect(field.value).toBe("Export to PDF\n\nSave a note as a PDF"));
+    expect(runOffer).toHaveBeenCalledWith(expect.objectContaining({ index: 1, title: "Export to PDF" }), expect.any(Function), expect.any(Function));
+    expect(runTask).not.toHaveBeenCalled();
   });
 });

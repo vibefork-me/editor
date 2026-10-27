@@ -34,6 +34,10 @@ import { useCanvasStore } from "../stores/canvasStore.ts";
 // The living map of the session stream; loaded on demand, it is not part of the first screen.
 const GraphCanvas = lazy(() => import("../canvas/graph/GraphCanvas.tsx").then((m) => ({ default: m.GraphCanvas })));
 import { feedLine, type FeedLine } from "../client/task-feed.ts";
+import type { Offer, ServerMessage } from "../client/protocol.generated.ts";
+
+// Errors of `choose_offer` that mean the offer did not start: an older agent, or stale offers.
+const OFFER_NOT_STARTED = new Set(["not_supported", "no_offers", "bad_index"]);
 
 export function ProjectPage() {
   const { t, locale } = useTranslation();
@@ -81,7 +85,8 @@ export function ProjectPage() {
   // What the person wrote to the agent on the canvas, this visit.
   const [messages, setMessages] = useState<PersonMessage[]>([]);
 
-  const startTask = useCallback(async (prompt: string) => {
+  // `offer`: the task is what an offer of the analysis suggests; the agent takes its text itself.
+  const startTask = useCallback(async (prompt: string, offer?: { index: number; title: string }) => {
     if (!prompt || !currentProjectId || isSending) return;
     const transport = getAgentTransport();
     if (!transport) {
@@ -94,9 +99,7 @@ export function ProjectPage() {
     setFeed((f) => [...f, { kind: "status", text: `> ${prompt}` }]);
     try {
       // The agent runs the task over its own messages; each one becomes a chat line.
-      const outcome = await transport.runTask(
-        { projectId: currentProjectId, prompt, lang: locale },
-        (m) => {
+      const onMessage = (m: ServerMessage) => {
         // The agent did not take a note (it has no notes yet): the person sees it was not delivered.
         if (m.type === "error" && m.code === "not_supported") {
           setMessages(markNotDelivered);
@@ -111,9 +114,17 @@ export function ProjectPage() {
         if (m.type === "step-done" || m.type === "done") {
           void useGraphStore.getState().refreshGraph();
         }
-      },
-        setTaskControl,
-      );
+      };
+      const outcome = offer
+        ? await transport.runOffer({ projectId: currentProjectId, index: offer.index, title: offer.title, lang: locale }, onMessage, setTaskControl)
+        : await transport.runTask({ projectId: currentProjectId, prompt, lang: locale }, onMessage, setTaskControl);
+      // The offer did not start (an older agent, or the offers changed): its text goes into the field.
+      if (offer && outcome.kind === "error" && outcome.code && OFFER_NOT_STARTED.has(outcome.code)) {
+        setChatDraft(prompt);
+        setChatStatus(t("project.offerInField"));
+        chatInputRef.current?.focus();
+        return;
+      }
       if (outcome.kind === "done") void useGraphStore.getState().refreshGraph();
       setChatStatus(
         outcome.kind === "done" && outcome.code === 0
@@ -146,6 +157,23 @@ export function ProjectPage() {
       setChatDraft("");
       if (taskControl) taskControl.note(text, attachments);
       else void startTask(promptWithText(text, attachments));
+    },
+    [isSending, taskControl, canvas.notesTaken.length, startTask],
+  );
+  // An offer of the analysis: starts its task when none runs, otherwise its text goes into the field.
+  const chooseOffer = useCallback(
+    (index: number, offer: Offer) => {
+      const prompt = offer.text ? `${offer.title}\n\n${offer.text}` : offer.title;
+      if (isSending || taskControl) {
+        setChatDraft(offer.text);
+        chatInputRef.current?.focus();
+        return;
+      }
+      setMessages((all) => [
+        ...all,
+        { id: `m${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, text: offer.title, attachments: [], at: Date.now(), kind: "task", takenBefore: canvas.notesTaken.length },
+      ]);
+      void startTask(prompt, { index, title: offer.title });
     },
     [isSending, taskControl, canvas.notesTaken.length, startTask],
   );
@@ -265,6 +293,7 @@ export function ProjectPage() {
                   draft={chatDraft}
                   onDraftChange={setChatDraft}
                   onSend={sendFromCanvas}
+                  onChooseOffer={chooseOffer}
                   onGoTo={partActions.onGoTo}
                   inputRef={chatInputRef}
                 >
