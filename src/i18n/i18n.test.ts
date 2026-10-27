@@ -12,7 +12,11 @@ import {
   useI18nStore,
 } from "./i18nStore.ts";
 import { en } from "./locales/en.ts";
+import { de } from "./locales/de.ts";
+import { es } from "./locales/es.ts";
+import { ptBR } from "./locales/pt-BR.ts";
 import { ru } from "./locales/ru.ts";
+import { LOCALE_NAMES, LOCALE_STATUS, READY_LOCALES } from "./config.ts";
 
 describe("i18n system", () => {
   beforeEach(() => {
@@ -20,7 +24,7 @@ describe("i18n system", () => {
     useI18nStore.getState().setLocale("ru");
   });
 
-  it("has identical structure between ru and en locales", () => {
+  it("has the English keys in every language", () => {
     function getKeys(obj: Record<string, unknown>, prefix = ""): string[] {
       let keys: string[] = [];
       for (const [key, value] of Object.entries(obj)) {
@@ -34,11 +38,23 @@ describe("i18n system", () => {
       return keys.sort();
     }
 
-    const ruKeys = getKeys(ru as unknown as Record<string, unknown>);
     const enKeys = getKeys(en as unknown as Record<string, unknown>);
+    for (const dictionary of [ru, ptBR, es, de]) {
+      expect(getKeys(dictionary as unknown as Record<string, unknown>)).toEqual(enKeys);
+    }
+    expect(enKeys.length).toBeGreaterThan(15);
+  });
 
-    expect(ruKeys).toEqual(enKeys);
-    expect(ruKeys.length).toBeGreaterThan(15);
+  it("offers all five languages, each named in itself", () => {
+    expect(READY_LOCALES).toEqual(["en", "ru", "pt-BR", "es", "de"]);
+    expect(Object.values(LOCALE_STATUS).every((s) => s === "ready")).toBe(true);
+    expect(LOCALE_NAMES).toEqual({
+      en: "English",
+      ru: "Русский",
+      "pt-BR": "Português (Brasil)",
+      es: "Español",
+      de: "Deutsch",
+    });
   });
 
   it("translates keys in Russian and English", () => {
@@ -142,16 +158,19 @@ describe("i18n system", () => {
     }
   });
 
-  it("shows a declared but untranslated language in English, and English in <html lang>", () => {
+  it("translates Portuguese, Spanish and German, and puts the language in <html lang>", async () => {
+    await Promise.all([loadLocale("pt-BR"), loadLocale("es"), loadLocale("de")]);
+    expect(translate("pt-BR", "agentOffline.openAgent")).toBe("Abrir o agente");
+    expect(translate("es", "agentOffline.openAgent")).toBe("Abrir el agente");
+    expect(translate("de", "agentOffline.openAgent")).toBe("Agenten öffnen");
     useI18nStore.getState().setLocale("de");
-    expect(useI18nStore.getState().t("common.copy")).toBe("Copy");
-    expect(translate("pt-BR", "agentOffline.openAgent")).toBe("Open agent");
-    expect(document.documentElement.lang).toBe("en");
-    useI18nStore.getState().setLocale("ru");
-    expect(document.documentElement.lang).toBe("ru");
+    expect(useI18nStore.getState().t("common.copy")).toBe("Kopieren");
+    expect(document.documentElement.lang).toBe("de");
+    useI18nStore.getState().setLocale("pt-BR");
+    expect(document.documentElement.lang).toBe("pt-BR");
   });
 
-  it("keeps a stored declared language", () => {
+  it("keeps a stored language", () => {
     localStorage.setItem(STORAGE_KEY, "es");
     expect(detectInitialLocale()).toBe("es");
     localStorage.setItem(STORAGE_KEY, "xx");
@@ -163,9 +182,8 @@ describe("i18n system", () => {
     await loadLocale("ru");
     expect(isLocaleLoaded("ru")).toBe(true);
     expect(LOCALES.ru).toBe(ru);
-    // No file yet: nothing to load, English is shown.
-    expect(isLocaleLoaded("de")).toBe(true);
-    await expect(loadLocale("de")).resolves.toBeUndefined();
+    await loadLocale("de");
+    expect(LOCALES.de).toBe(de);
   });
 
   it("chooses plural forms by the language's rules", () => {
@@ -174,6 +192,17 @@ describe("i18n system", () => {
     expect(translate("ru", "messages.tooMany", { count: 1 })).toBe("Не больше 1 вложения");
     expect(translate("ru", "messages.tooMany", { count: 3 })).toBe("Не больше 3 вложений");
     expect(translate("ru", "messages.tooMany", { count: 21 })).toBe("Не больше 21 вложения");
+  });
+
+  it("chooses Portuguese, Spanish and German plural forms", async () => {
+    await Promise.all([loadLocale("pt-BR"), loadLocale("es"), loadLocale("de")]);
+    expect(translate("pt-BR", "messages.tooMany", { count: 1 })).toBe("Até 1 anexo");
+    expect(translate("pt-BR", "messages.tooMany", { count: 2 })).toBe("Até 2 anexos");
+    expect(translate("es", "messages.tooMany", { count: 1 })).toBe("Hasta 1 adjunto");
+    expect(translate("es", "messages.tooMany", { count: 5 })).toBe("Hasta 5 adjuntos");
+    expect(translate("de", "messages.tooMany", { count: 1 })).toBe("Bis zu 1 Anhang");
+    expect(translate("de", "messages.tooMany", { count: 3 })).toBe("Bis zu 3 Anhänge");
+    expect(translate("de", "outcome.filesChanged", { count: 1000 })).toBe("1.000 Dateien geändert");
   });
 
   it("marks every dictionary text in the pseudo-language and leaves values as they are", () => {

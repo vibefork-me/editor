@@ -10,7 +10,7 @@ describe("LanguageSwitcher", () => {
     useI18nStore.getState().setLocale("ru");
   });
 
-  it("renders RU and EN buttons with active state", () => {
+  it("offers every language, the current one pressed", () => {
     render(<LanguageSwitcher />);
 
     const ruBtn = screen.getByRole("button", { name: "Русский" });
@@ -18,6 +18,10 @@ describe("LanguageSwitcher", () => {
 
     expect(ruBtn.getAttribute("aria-pressed")).toBe("true");
     expect(enBtn.getAttribute("aria-pressed")).toBe("false");
+    for (const name of ["Português (Brasil)", "Español", "Deutsch"]) {
+      expect(screen.getByRole("button", { name }).getAttribute("aria-pressed")).toBe("false");
+    }
+    expect(screen.getByRole("button", { name: "Deutsch" }).textContent).toBe("DE");
   });
 
   it("switches language on click", () => {

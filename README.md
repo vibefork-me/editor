@@ -35,13 +35,18 @@ part in the frame, no drift at rest and at least 45 frames per second; screensho
 
 Interface texts live in `src/i18n/locales/<code>.ts`; the languages and their status are in `src/i18n/config.ts`
 (`ready` — fully translated, offered to people; `declared` — recognized from the browser, any missing text shown
-in English). English is in the first-screen bundle, every other language is a separate chunk loaded when chosen.
+in English). The interface is in English, Russian, Brazilian Portuguese, Spanish and German; each language is
+named in itself (`LOCALE_NAMES`), outside the dictionaries. English is in the first-screen bundle, every other
+language is a separate chunk loaded when chosen.
 Texts are ICU messages: `{name}`, `{n, number}`, `{n, plural, one {# file} other {# files}}` (CLDR plural rules
 via `Intl.PluralRules`), `{kind, select, … other {…}}`. Numbers, sizes and dates go through `Intl`
 (`formatNumber`, `formatBytes`, `formatDate`).
 
 `check:i18n` fails when a ready language misses a key, any language has a key English lacks, or a text uses
-other values than the English one. On the dev server, `?pseudo` in the address shows every dictionary text
+other values than the English one. It also holds every language to the product glossary
+(`src/i18n/glossary.json`: the terms, their agreed translations and the form of address — `você`, `tú`, `du`):
+where the English text has a term, the translation uses the agreed word, and no text uses a forbidden spelling
+such as `VibeFork`. On the dev server, `?pseudo` in the address shows every dictionary text
 accented, longer and in `⟦…⟧`: text without the brackets is written into the code.
 
 ## License

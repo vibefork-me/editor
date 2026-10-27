@@ -348,8 +348,6 @@ export const en: TranslationSchema = {
     emptyFile: "(empty file)",
   },
   language: {
-    ru: "Русский",
-    en: "English",
     selectLanguage: "Switch language",
   },
   messages: {

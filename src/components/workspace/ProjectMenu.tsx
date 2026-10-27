@@ -1,6 +1,7 @@
 import { Menu } from "@base-ui/react/menu";
 import { useNavigate } from "react-router-dom";
 import { useModelLabel } from "../../hooks/useModelLabel.ts";
+import { LOCALE_NAMES, READY_LOCALES } from "../../i18n/config.ts";
 import { useTranslation } from "../../i18n/i18nStore.ts";
 import type { Locale } from "../../i18n/types.ts";
 import { useAiPanelStore } from "../../stores/aiPanelStore.ts";
@@ -136,12 +137,12 @@ export function ProjectMenu({ onHistory }: ProjectMenuProps) {
             <Menu.Group>
               <Menu.GroupLabel className={groupLabel}>{t("workspace.language")}</Menu.GroupLabel>
               <Menu.RadioGroup value={locale} onValueChange={(v) => setLocale(v as Locale)}>
-                {(["ru", "en"] as const).map((l) => (
-                  <Menu.RadioItem key={l} value={l} closeOnClick className={item}>
+                {READY_LOCALES.map((l) => (
+                  <Menu.RadioItem key={l} value={l} lang={l} closeOnClick className={item}>
                     <Menu.RadioItemIndicator keepMounted className="w-3 text-accent data-[unchecked]:invisible">
                       ●
                     </Menu.RadioItemIndicator>
-                    {t(`language.${l}`)}
+                    {LOCALE_NAMES[l]}
                   </Menu.RadioItem>
                 ))}
               </Menu.RadioGroup>

@@ -9,12 +9,33 @@
 export const LOCALE_STATUS = {
   en: "ready",
   ru: "ready",
-  "pt-BR": "declared",
-  es: "declared",
-  de: "declared",
+  "pt-BR": "ready",
+  es: "ready",
+  de: "ready",
 } as const;
 
 export type Locale = keyof typeof LOCALE_STATUS;
+
+/**
+ * Each language named in itself, the same in every interface language, so a person finds theirs whatever
+ * the current one is. Not in the dictionaries.
+ */
+export const LOCALE_NAMES: Record<Locale, string> = {
+  en: "English",
+  ru: "Русский",
+  "pt-BR": "Português (Brasil)",
+  es: "Español",
+  de: "Deutsch",
+};
+
+/** The short mark of each language on a compact switch. */
+export const LOCALE_MARKS: Record<Locale, string> = {
+  en: "EN",
+  ru: "RU",
+  "pt-BR": "PT",
+  es: "ES",
+  de: "DE",
+};
 
 /** English is the source language: bundled into the first screen, and the fallback for every other one. */
 export const SOURCE_LOCALE = "en" satisfies Locale;
