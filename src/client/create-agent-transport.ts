@@ -10,6 +10,7 @@ import {
   type AgentHealth,
   type AgentTransport,
   type BuildMessage,
+  type CanvasResponse,
   type BuildOutcome,
   type DescribeRequest,
   type GraphResponse,
@@ -322,6 +323,18 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
         throw error;
       }
       return (await res.json()) as GraphResponse;
+    },
+
+    async getCanvas({ projectId, from }): Promise<CanvasResponse> {
+      const q = new URLSearchParams({ project: projectId, from: String(from) });
+      const res = await apiFetch(`/v1/canvas?${q.toString()}`);
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        const error = new Error(err.error ?? `get canvas failed (${res.status})`);
+        (error as { status?: number }).status = res.status;
+        throw error;
+      }
+      return (await res.json()) as CanvasResponse;
     },
 
     async describeGraph(

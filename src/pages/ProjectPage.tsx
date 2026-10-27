@@ -11,6 +11,7 @@ import { useTranslation } from "../i18n/i18nStore.ts";
 import { getAgentTransport } from "../stores/agent-bridge.ts";
 import { useProjectStore } from "../stores/projectStore.ts";
 import { useGraphStore } from "../stores/graphStore.ts";
+import { useCanvasStore } from "../stores/canvasStore.ts";
 import { feedLine, phaseFromMessage, type FeedLine } from "../client/task-feed.ts";
 
 export function ProjectPage() {
@@ -42,6 +43,10 @@ export function ProjectPage() {
       const outcome = await transport.runTask(
         { projectId: currentProjectId, prompt, lang: locale },
         (m) => {
+        if (m.type === "canvas") {
+          useCanvasStore.getState().ingest(m);
+          return;
+        }
         const line = feedLine(m);
         if (line) setFeed((f) => [...f.slice(-499), line]);
         const nextPhase = phaseFromMessage(m);
@@ -86,6 +91,11 @@ export function ProjectPage() {
       void useGraphStore.getState().loadGraph(projectId);
     }
   }, [projectId, currentProjectId, selectProject]);
+
+  // The session stream of the project: what the agent did so far, then live events of a task.
+  useEffect(() => {
+    if (projectId) void useCanvasStore.getState().open(projectId);
+  }, [projectId]);
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col bg-surface font-sans text-text">

@@ -125,6 +125,7 @@ import type { TaskOutcome } from "./task-feed.ts";
 
 // Messages and bodies the agent defines: generated from its schema (src/client/protocol.generated.ts).
 import type {
+  CanvasResponse,
   DescribeRequest,
   FileDiffResponse,
   FileResponse,
@@ -138,6 +139,7 @@ import type {
 } from "./protocol.generated.ts";
 
 export type {
+  CanvasResponse,
   DescribeRequest,
   FileDiffResponse,
   FileResponse,
@@ -180,6 +182,8 @@ export interface AgentTransport {
     params: { projectId: string; lang?: string } | string,
     lang?: string,
   ): Promise<GraphResponse>;
+  /** The session stream of a project from event `from` (at most one page; follow `next`). */
+  getCanvas(params: { projectId: string; from: number }): Promise<CanvasResponse>;
 
   saveProject(params: { projectId: string; copy?: string }): Promise<SaveProjectResult>;
 
