@@ -202,6 +202,7 @@ export const en: TranslationSchema = {
     stepDone: "Step {n} of {of} done",
     stepFailed: "Step {n} of {of} failed",
     exitCode: "The task ended with an error (code {code})",
+    details: "Details",
   },
   canvas: {
     agentHere: "now here",
