@@ -26,6 +26,7 @@ import { useLayoutStore, type PanelId } from "../stores/layoutStore.ts";
 import { useBuildStore } from "../stores/buildStore.ts";
 import { programFailed, useProgramStore } from "../stores/programStore.ts";
 import { useProjectShellSync } from "../hooks/useProjectShellSync.ts";
+import { useRollback } from "../hooks/useRollback.ts";
 import { useTranslation } from "../i18n/i18nStore.ts";
 import { getAgentTransport } from "../stores/agent-bridge.ts";
 import { useProjectStore } from "../stores/projectStore.ts";
@@ -86,6 +87,11 @@ export function ProjectPage() {
   const [taskControl, setTaskControl] = useState<TaskControl | null>(null);
   // What the person wrote to the agent on the canvas, this visit.
   const [messages, setMessages] = useState<PersonMessage[]>([]);
+  // Putting a part back, or the project to a version; only while no task runs.
+  const rollback = useRollback(currentProjectId);
+  const taskRunning = isSending || taskControl !== null;
+  const rollingBack = rollback.part?.status.state === "confirm" || rollback.version?.status.state === "confirm";
+  const { loadVersions } = rollback;
 
   // `offer`: the task is what an offer of the analysis suggests; the agent takes its text itself.
   const startTask = useCallback(async (prompt: string, offer?: { index: number; title: string }) => {
@@ -140,8 +146,10 @@ export function ProjectPage() {
     } finally {
       setIsSending(false);
       setTaskControl(null);
+      // The task may have left a new version of the project.
+      void loadVersions();
     }
-  }, [currentProjectId, isSending, t, locale]);
+  }, [currentProjectId, isSending, t, locale, loadVersions]);
 
   // The field on the canvas: a note to the running task, or a new task.
   const sendFromCanvas = useCallback(
@@ -200,6 +208,15 @@ export function ProjectPage() {
       setPartPanel(false);
     },
   };
+
+  const partUndo = (id: string) =>
+    taskRunning
+      ? undefined
+      : {
+          status: rollback.part?.id === id ? rollback.part.status : null,
+          disabled: rollingBack,
+          onUndo: () => void rollback.undoPart(id),
+        };
 
   useProjectShellSync();
 
@@ -279,10 +296,22 @@ export function ProjectPage() {
                 }
               />
               {selectedPart && !partPanel && (
-                <PartCallout state={canvas} nodeId={selectedPart} api={graphApi} onMore={() => setPartPanel(true)} {...partActions} />
+                <PartCallout state={canvas} nodeId={selectedPart} api={graphApi} onMore={() => setPartPanel(true)} undo={partUndo(selectedPart)} {...partActions} />
               )}
-              {selectedPart && partPanel && <PartPanel state={canvas} nodeId={selectedPart} {...partActions} />}
-              <TaskLayer state={canvas} history={historyOpen} onHistoryChange={setHistoryOpen} />
+              {selectedPart && partPanel && <PartPanel state={canvas} nodeId={selectedPart} undo={partUndo(selectedPart)} {...partActions} />}
+              <TaskLayer
+                state={canvas}
+                history={historyOpen}
+                onHistoryChange={(open) => {
+                  setHistoryOpen(open);
+                  if (open) void rollback.loadVersions();
+                }}
+                versions={
+                  taskRunning
+                    ? undefined
+                    : { items: rollback.versions, restoring: rollback.version, disabled: rollingBack, onRestore: (commit) => void rollback.restoreVersion(commit) }
+                }
+              />
               <div className="pointer-events-none absolute inset-x-4 top-16 z-10">
                 <StageRail state={canvas} now={now} onStop={taskControl ? () => taskControl.stop() : undefined} />
               </div>
@@ -328,7 +357,16 @@ export function ProjectPage() {
             )}
             {/* Islands in the corners: the project with its menu and the panel buttons; help. */}
             <div className="pointer-events-none absolute left-3 top-3 z-30 flex items-center gap-2">
-              <ProjectMenu onHistory={canvas.history.length > 0 ? () => setHistoryOpen(true) : undefined} />
+              <ProjectMenu
+                onHistory={
+                  canvas.history.length > 0 || rollback.versions.length > 0
+                    ? () => {
+                        setHistoryOpen(true);
+                        void rollback.loadVersions();
+                      }
+                    : undefined
+                }
+              />
               <PanelToggles journalError={errors.agent || errors.build || errors.program} />
             </div>
             <div className="pointer-events-none absolute right-3 top-3 z-30">

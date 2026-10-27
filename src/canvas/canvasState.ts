@@ -269,8 +269,9 @@ export function applyCanvasEvent(state: CanvasState, ev: CanvasEvent, at: number
         exit: ev.exit,
         id: ev.id,
       };
-      // The finished task joins the history with what it produced.
-      const history = s.task
+      // The finished task joins the history with what it produced; a later result without a new task (a
+      // part put back as it was) does not.
+      const history = s.task && !s.result
         ? [
             ...s.history,
             {

@@ -44,7 +44,7 @@ function Dock({
   );
 }
 
-const field = () => screen.getByLabelText("Message to the agent") as HTMLTextAreaElement;
+const field = () => screen.getByRole("textbox", { name: "Message the agent" }) as HTMLTextAreaElement;
 
 describe("messages dock", () => {
   beforeEach(() => useI18nStore.getState().setLocale("en"));
@@ -94,6 +94,8 @@ describe("messages dock", () => {
     expect(screen.getByTestId("agent-reply").textContent).toContain("Kept the toggle in the settings");
     fireEvent.click(screen.getByText("Editor screen"));
     expect(onGoTo).toHaveBeenCalledWith("ui");
+    // The place is called "Message the agent", like the field.
+    expect(screen.getByRole("region", { name: "Message the agent" })).toBeTruthy();
     // The conversation folds.
     fireEvent.click(screen.getByText("Hide the conversation"));
     expect(screen.queryByTestId("conversation")).toBeNull();
@@ -130,5 +132,11 @@ describe("messages dock", () => {
     fireEvent.change(field(), { target: { value: "Like this" } });
     fireEvent.keyDown(field(), { key: "Enter" });
     expect(onSend).toHaveBeenCalledWith("Like this", [{ name: "shot.png", mime: "image/png", data: "AQID" }]);
+  });
+
+  it("is called «Сообщение агенту» in Russian", () => {
+    useI18nStore.getState().setLocale("ru");
+    render(<Dock state={at(30)} running />);
+    expect(screen.getByRole("textbox", { name: "Сообщение агенту" })).toBeTruthy();
   });
 });

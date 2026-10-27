@@ -268,6 +268,15 @@ export interface TranslationSchema {
     forDevelopers: string;
     files: string;
     noFiles: string;
+    undoConfirm: string;
+    undoDone: string;
+    undoNothing: string;
+    undoNotFound: string;
+    rollbackNotConfirmed: string;
+    rollbackNotSupported: string;
+    rollbackBusy: string;
+    rollbackForbidden: string;
+    rollbackFailed: string;
   };
   taskView: {
     task: string;
@@ -287,6 +296,11 @@ export interface TranslationSchema {
     where: string;
     size: string;
     noLines: string;
+    versions: string;
+    restore: string;
+    restoreDone: string;
+    restoreNotFound: string;
+    partRolledBack: string;
   };
   canvas: {
     agentHere: string;

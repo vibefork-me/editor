@@ -71,4 +71,18 @@ describe("part card", () => {
     const { container } = render(<PartPanel state={at(5)} nodeId="ui" {...actions()} />);
     expect(container.firstChild).toBeNull();
   });
+
+  it("puts the part back as it was only when offered, with how the last try went", () => {
+    const onUndo = vi.fn();
+    const { rerender } = render(<PartPanel state={at(39)} nodeId="ui" {...actions()} />);
+    expect(screen.queryByRole("button", { name: "Put it back as it was" })).toBeNull();
+    rerender(<PartPanel state={at(39)} nodeId="ui" undo={{ status: null, onUndo }} {...actions()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Put it back as it was" }));
+    expect(onUndo).toHaveBeenCalled();
+    rerender(<PartPanel state={at(39)} nodeId="ui" undo={{ status: { state: "failed", reason: "card.rollbackNotSupported" }, onUndo }} {...actions()} />);
+    expect(screen.getByRole("status").textContent).toBe("This version of the agent cannot do this; update the agent");
+    rerender(<PartCallout state={at(39)} nodeId="ui" api={null} onMore={() => {}} undo={{ status: { state: "confirm" }, onUndo }} {...actions()} />);
+    expect(screen.getByRole("status").textContent).toBe("Confirm in the agent's window");
+    expect((screen.getByRole("button", { name: "Put it back as it was" }) as HTMLButtonElement).disabled).toBe(true);
+  });
 });

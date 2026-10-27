@@ -626,4 +626,49 @@ describe("task control", () => {
       TaskSocket.last = null;
     }
   });
+
+  it("puts a part back with rollback_part: done on the agent's result, its errors by code", async () => {
+    const client = await taskClient();
+    const seen: string[] = [];
+    const outcome = client.rollbackPart({ projectId: "notes-app", id: "store" }, (m) => seen.push(m.type === "canvas" ? `canvas:${m.ev.type}` : m.type));
+    await vi.waitFor(() => expect(TaskSocket.last?.sent.map((m) => m.type)).toEqual(["auth", "rollback_part"]));
+    const socket = TaskSocket.last!;
+    expect(socket.sent[1]).toEqual({ type: "rollback_part", project: "notes-app", id: "store" });
+    socket.emit({ type: "canvas", project: "notes-app", session: "s1", seq: 7, at: 1, ev: { type: "change", id: "store", files: ["src/store.ts"] } });
+    socket.emit({ type: "canvas", project: "notes-app", session: "s1", seq: 8, at: 2, ev: { type: "result", text: "Part rolled back", detail: "" } });
+    await expect(outcome).resolves.toEqual({ kind: "done" });
+    expect(seen).toEqual(["canvas:change", "canvas:result"]);
+
+    for (const code of ["nothing_to_roll_back", "rollback_not_confirmed", "not_supported"]) {
+      TaskSocket.last = null;
+      const failed = client.rollbackPart({ projectId: "notes-app", id: "store" }, () => {});
+      await vi.waitFor(() => expect(TaskSocket.last?.sent.map((m) => m.type)).toEqual(["auth", "rollback_part"]));
+      TaskSocket.last!.emit({ type: "error", error: "no", code });
+      await expect(failed).resolves.toEqual({ kind: "error", error: "no", code });
+    }
+  });
+
+  it("reads the journal and resets the project to a version with POST /v1/rollback", async () => {
+    const calls: { url: string; body?: unknown }[] = [];
+    let confirmed = true;
+    const fetchMock = vi.fn(async (input: RequestInfo, init?: RequestInit) => {
+      const url = String(input);
+      calls.push({ url, body: init?.body ? JSON.parse(String(init.body)) : undefined });
+      if (url.includes("/v1/journal")) return jsonResponse({ entries: [{ at: "2026-01-02T10:00:00Z", provider: "claude", model: "m", prompt: "Add tags", commit: "abc1234" }] });
+      if (url.endsWith("/v1/rollback")) {
+        return confirmed
+          ? jsonResponse({ project: "notes-app", commit: "abc1234" })
+          : jsonResponse({ error: "rollback not confirmed", code: "rollback_not_confirmed" }, 403);
+      }
+      return jsonResponse({});
+    });
+    const client = createAgentTransport({ baseUrl: "http://127.0.0.1:47801", fetch: fetchMock as typeof fetch });
+    const journal = await client.getJournal("notes-app");
+    expect(journal.entries[0]?.commit).toBe("abc1234");
+    expect(calls[0]?.url).toBe("http://127.0.0.1:47801/v1/journal?project=notes-app");
+    await expect(client.rollback({ projectId: "notes-app", commit: "abc1234" })).resolves.toEqual({ project: "notes-app", commit: "abc1234" });
+    expect(calls[1]?.body).toEqual({ project: "notes-app", commit: "abc1234" });
+    confirmed = false;
+    await expect(client.rollback({ projectId: "notes-app", commit: "abc1234" })).rejects.toMatchObject({ status: 403, code: "rollback_not_confirmed" });
+  });
 });

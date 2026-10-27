@@ -1,5 +1,6 @@
 import type { Artifact, ArtifactKind } from "../../client/protocol.generated.ts";
 import { IconCheck, IconTriangleAlert } from "../../components/shell/icons.tsx";
+import type { ProjectVersion, RollbackStatus } from "../../hooks/useRollback.ts";
 import { useTranslation } from "../../i18n/i18nStore.ts";
 import type { TranslationKey } from "../../i18n/types.ts";
 import type { CanvasState } from "../canvasState.ts";
@@ -156,10 +157,72 @@ export function ArtifactWindow({ artifact, label, onClose }: { artifact: Artifac
   );
 }
 
-/** The project's finished tasks: the latest in green, earlier ones grey, each with what it produced. */
-export function HistoryPanel({ state, onOpen, onClose }: { state: CanvasState; onOpen: (a: Artifact) => void; onClose: () => void }) {
+/** Versions of the project from its journal the person can return to; absent while a task runs. */
+export interface HistoryVersions {
+  items: ProjectVersion[];
+  /** The version being returned to, or the last try. */
+  restoring: { commit: string; status: RollbackStatus } | null;
+  /** Another rollback is under way: the buttons wait. */
+  disabled?: boolean;
+  onRestore: (commit: string) => void;
+}
+
+function VersionList({ versions }: { versions: HistoryVersions }) {
+  const { t, locale } = useTranslation();
+  const when = (at: string) => {
+    const d = new Date(at);
+    return Number.isNaN(d.getTime()) ? at : d.toLocaleString(locale, { dateStyle: "short", timeStyle: "short" });
+  };
+  const waiting = versions.restoring?.status.state === "confirm";
+  return (
+    <section aria-label={t("taskView.versions")} className="flex flex-col gap-1.5">
+      <div className={`${caption} mt-1`}>{t("taskView.versions")}</div>
+      {versions.items.map((v) => {
+        const status = versions.restoring?.commit === v.commit ? versions.restoring.status : null;
+        return (
+          <article key={v.commit} className="flex flex-col gap-1 rounded-lg border border-[#30363d] bg-[#161b22] p-2.5 text-[12.5px] text-[#c9d1d9]">
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="min-w-0 break-words">{v.rollback ? t("taskView.partRolledBack") : v.title}</span>
+              <span className="shrink-0 text-[10.5px] text-[#8b93a7]">{v.current ? t("taskView.current") : when(v.at)}</span>
+            </div>
+            {!v.current && (
+              <button
+                type="button"
+                disabled={waiting || versions.disabled}
+                onClick={() => versions.onRestore(v.commit)}
+                className="self-start rounded-full border border-[#30363d] px-2.5 py-0.5 text-[11.5px] text-[#e6edf3] hover:border-[#58a6ff] disabled:cursor-wait disabled:opacity-60"
+              >
+                {t("taskView.restore")}
+              </button>
+            )}
+            {status && (
+              <p role="status" className={`text-xs ${status.state === "failed" ? "text-[#e3b341]" : status.state === "done" ? "text-[#8fd19e]" : "text-[#79c0ff]"}`}>
+                {status.state === "confirm" ? t("card.undoConfirm") : status.state === "done" ? t("taskView.restoreDone") : t(status.reason)}
+              </p>
+            )}
+          </article>
+        );
+      })}
+    </section>
+  );
+}
+
+/** The project's finished tasks: the latest in green, earlier ones grey, each with what it produced; then
+ * the versions of the project to return to. */
+export function HistoryPanel({
+  state,
+  versions,
+  onOpen,
+  onClose,
+}: {
+  state: CanvasState;
+  versions?: HistoryVersions;
+  onOpen: (a: Artifact) => void;
+  onClose: () => void;
+}) {
   const { t } = useTranslation();
   const items = [...state.history].reverse();
+  const hasVersions = (versions?.items.length ?? 0) > 0;
   return (
     <aside aria-label={t("taskView.history")} data-testid="history-panel" className={`${panel} flex max-h-full w-[360px] flex-col gap-2 overflow-y-auto p-4`}>
       <div className="flex items-center gap-2">
@@ -168,7 +231,7 @@ export function HistoryPanel({ state, onOpen, onClose }: { state: CanvasState; o
           ×
         </button>
       </div>
-      {items.length === 0 && <p className="text-[12.5px] text-[#6e7681]">{t("taskView.historyEmpty")}</p>}
+      {items.length === 0 && !hasVersions && <p className="text-[12.5px] text-[#6e7681]">{t("taskView.historyEmpty")}</p>}
       {items.map((h, i) => (
         <article
           key={`${h.at}-${i}`}
@@ -196,6 +259,7 @@ export function HistoryPanel({ state, onOpen, onClose }: { state: CanvasState; o
           </div>
         </article>
       ))}
+      {versions && hasVersions && <VersionList versions={versions} />}
     </aside>
   );
 }
