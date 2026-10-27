@@ -15,7 +15,7 @@ export type FeedLine = {
 /** How a task ended. */
 export type TaskOutcome =
   | { kind: "done"; code: number; status: string; commit?: string }
-  | { kind: "error"; error: string }
+  | { kind: "error"; error: string; code?: string }
   | { kind: "cancelled" };
 
 export type GraphPhase = "exploring" | "edit" | "build" | "test" | "check" | "done";

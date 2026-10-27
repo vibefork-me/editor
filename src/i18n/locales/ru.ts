@@ -192,6 +192,7 @@ export const ru: TranslationSchema = {
     chatStartFailed: "Не удалось отправить запрос. Попробуйте ещё раз.",
     taskDone: "Агент выполнил задачу.",
     taskFailed: "Задача не выполнена.",
+    offerInField: "Предложение не запустилось — его текст в поле: отправьте его как задачу.",
     taskCancelled: "Задача отменена.",
     workspaceTabs: "Панели рабочего пространства",
     mapTab: "Карта",

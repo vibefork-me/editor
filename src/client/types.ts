@@ -234,6 +234,22 @@ export interface AgentTransport {
     onMessage: (m: ServerMessage) => void,
     onControl?: (control: TaskControl) => void,
   ): Promise<TaskOutcome>;
+  /** Runs the task an offer of the analysis suggests (`index` in the last `offers` event, `title` as
+   * shown), like `runTask`. An agent without it ends with the error code `not_supported`; a stale offer
+   * with `no_offers` or `bad_index`. */
+  runOffer(
+    params: {
+      projectId: string;
+      index: number;
+      title?: string;
+      provider?: string;
+      model?: string;
+      continue?: boolean;
+      lang?: string;
+    },
+    onMessage: (m: ServerMessage) => void,
+    onControl?: (control: TaskControl) => void,
+  ): Promise<TaskOutcome>;
   /** Builds a project (the agent asks the user in a native dialog); streams its messages. */
   runBuild(project: string, onMessage: (m: BuildMessage) => void): Promise<BuildOutcome>;
 }
