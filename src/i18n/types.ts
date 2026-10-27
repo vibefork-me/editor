@@ -191,6 +191,12 @@ export interface TranslationSchema {
     mapTab: string;
     chatTab: string;
   };
+  feed: {
+    planning: string;
+    stepDone: string;
+    stepFailed: string;
+    exitCode: string;
+  };
   canvas: {
     agentHere: string;
     focusHere: string;

@@ -1,7 +1,16 @@
+import type { TranslationKey, TranslationParams } from "../i18n/types.ts";
 import type { ServerMessage } from "./protocol.generated.ts";
 
-/** One line of the chat feed while the agent works on a task. */
-export type FeedLine = { kind: "agent" | "tool" | "status" | "error"; text: string };
+/**
+ * One line of the chat feed while the agent works on a task.
+ * `text` is the raw line; `key` and `params`, when present, give a readable localized phrase for it.
+ */
+export type FeedLine = {
+  kind: "agent" | "tool" | "status" | "error";
+  text: string;
+  key?: TranslationKey;
+  params?: TranslationParams;
+};
 
 /** How a task ended. */
 export type TaskOutcome =
@@ -50,7 +59,7 @@ export function feedLine(m: ServerMessage): FeedLine | null {
     case "routing":
       return { kind: "status", text: `${m.choice.label} — ${m.rating.reason}` };
     case "planning":
-      return { kind: "status", text: "planning" };
+      return { kind: "status", text: "planning", key: "feed.planning" };
     case "plan":
       return { kind: "status", text: m.steps.map((s, i) => `${i + 1}. ${s.title}`).join("\n") };
     case "toolchain":
@@ -72,9 +81,18 @@ export function feedLine(m: ServerMessage): FeedLine | null {
           return null;
       }
     case "step-done":
-      return { kind: m.ok ? "status" : "error", text: `${m.n}/${m.of} ${m.ok ? "done" : "failed"}` };
-    case "done":
-      return { kind: m.code === 0 ? "status" : "error", text: m.status || `exit ${m.code}` };
+      return {
+        kind: m.ok ? "status" : "error",
+        text: `${m.n}/${m.of} ${m.ok ? "done" : "failed"}`,
+        key: m.ok ? "feed.stepDone" : "feed.stepFailed",
+        params: { n: m.n, of: m.of },
+      };
+    case "done": {
+      const kind = m.code === 0 ? "status" : "error";
+      if (m.status) return { kind, text: m.status };
+      if (m.code === 0) return { kind, text: "exit 0", key: "project.taskDone" };
+      return { kind, text: `exit ${m.code}`, key: "feed.exitCode", params: { code: m.code } };
+    }
     case "error":
       return { kind: "error", text: m.error };
     default:

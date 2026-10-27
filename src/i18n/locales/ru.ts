@@ -197,6 +197,12 @@ export const ru: TranslationSchema = {
     mapTab: "Карта",
     chatTab: "Чат",
   },
+  feed: {
+    planning: "Агент составляет план",
+    stepDone: "Шаг {n} из {of} готов",
+    stepFailed: "Шаг {n} из {of} не удался",
+    exitCode: "Задача завершилась с ошибкой (код {code})",
+  },
   canvas: {
     agentHere: "сейчас здесь",
     focusHere: "Направить сюда",
