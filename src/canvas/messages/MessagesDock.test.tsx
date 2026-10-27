@@ -2,7 +2,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { NoteAttachment } from "../../client/protocol.generated.ts";
+import type { NoteAttachment, Offer } from "../../client/protocol.generated.ts";
 import { useI18nStore } from "../../i18n/i18nStore.ts";
 import { buildCanvasState, type CanvasState } from "../canvasState.ts";
 import { after, stream } from "../testSessions.ts";
@@ -17,12 +17,14 @@ function Dock({
   messages = [],
   onSend = () => {},
   onGoTo,
+  onChooseOffer,
 }: {
   state: CanvasState;
   running?: boolean;
   messages?: PersonMessage[];
   onSend?: (text: string, attachments: NoteAttachment[]) => void;
   onGoTo?: (id: string) => void;
+  onChooseOffer?: (index: number, offer: Offer) => void;
 }) {
   const [draft, setDraft] = useState("");
   return (
@@ -37,6 +39,7 @@ function Dock({
         setDraft("");
       }}
       onGoTo={onGoTo}
+      onChooseOffer={onChooseOffer}
     />
   );
 }
@@ -64,6 +67,14 @@ describe("messages dock", () => {
     expect(screen.getByText("Asked for in 4 issues")).toBeTruthy();
     fireEvent.click(screen.getByText("Dark theme"));
     expect(field().value).toBe("Add a dark look");
+  });
+
+  it("starts the task of an offer when it can, leaving the field as it is", () => {
+    const onChooseOffer = vi.fn();
+    render(<Dock state={at(22)} onChooseOffer={onChooseOffer} />);
+    fireEvent.click(screen.getByText("Export to PDF"));
+    expect(onChooseOffer).toHaveBeenCalledWith(1, expect.objectContaining({ title: "Export to PDF", text: "Save a note as a PDF" }));
+    expect(field().value).toBe("");
   });
 
   it("hides the offers while a task runs and asks what to do next after it", () => {

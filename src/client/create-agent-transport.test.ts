@@ -517,4 +517,58 @@ describe("task control", () => {
     await expect(outcome).resolves.toMatchObject({ kind: "done", code: 0 });
     expect(seen).toEqual(["error", "done"]);
   });
+
+  async function taskClient() {
+    const fetchMock = vi.fn(async (input: RequestInfo) => {
+      const url = String(input);
+      if (url.endsWith("/v1/auth/challenge")) return jsonResponse({ nonce: "n" });
+      if (url.endsWith("/v1/auth/session")) return jsonResponse({ token: "t", expiresIn: 900 });
+      return jsonResponse({ agent: "vf", platform: "test", version: "0" });
+    });
+    const client = createAgentTransport({
+      baseUrl: "http://127.0.0.1:47801",
+      fetch: fetchMock as typeof fetch,
+      WebSocket: TaskSocket as unknown as typeof WebSocket,
+      getKeyId: async () => "key-1",
+      signNonce: async () => "sig",
+    });
+    await client.authenticateSession({} as CryptoKey);
+    return client;
+  }
+
+  it("runs the task of an offer with choose_offer; notes go to it like to any task", async () => {
+    const client = await taskClient();
+    let control: TaskControl | null = null;
+    const outcome = client.runOffer({ projectId: "p", index: 2, title: "Faster search", lang: "en" }, () => {}, (c) => (control = c));
+    await vi.waitFor(() => expect(control).not.toBeNull());
+    const socket = TaskSocket.last!;
+    expect(socket.sent[1]).toEqual({
+      type: "choose_offer",
+      project: "p",
+      index: 2,
+      title: "Faster search",
+      provider: null,
+      model: null,
+      continue: false,
+      lang: "en",
+    });
+    socket.emit({ type: "planning" });
+    control!.note("keep it simple");
+    expect(socket.sent[2]).toMatchObject({ type: "note", project: "p", text: "keep it simple" });
+    // Once the task runs, `not_supported` answers a note, not the task.
+    socket.emit({ type: "error", error: "not supported by this version of the agent", code: "not_supported" });
+    socket.emit({ type: "done", code: 0, status: "ok", diff: "" });
+    await expect(outcome).resolves.toMatchObject({ kind: "done", code: 0 });
+  });
+
+  it("ends the offer's session when the agent does not know it or the offer is gone", async () => {
+    const client = await taskClient();
+    for (const code of ["not_supported", "bad_index"]) {
+      const outcome = client.runOffer({ projectId: "p", index: 0 }, () => {});
+      await vi.waitFor(() => expect(TaskSocket.last?.sent.map((m) => m.type)).toEqual(["auth", "choose_offer"]));
+      TaskSocket.last!.emit({ type: "error", error: "no", code });
+      await expect(outcome).resolves.toEqual({ kind: "error", error: "no", code });
+      TaskSocket.last = null;
+    }
+  });
 });
