@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useI18nStore } from "../../i18n/i18nStore.ts";
 import { buildCanvasState } from "../canvasState.ts";
 import { after, stream } from "../testSessions.ts";
-import { StageRail } from "./StageRail.tsx";
+import { StageRail, amounts } from "./StageRail.tsx";
 import { StopBanner } from "./StopBanner.tsx";
 
 const at = (n: number) => buildCanvasState(stream, after(n));
@@ -24,6 +24,12 @@ describe("stage rail", () => {
     expect(screen.getByText("Parts")).toBeTruthy();
     expect(screen.getByTestId("stage-now").textContent).toContain("2 of 4 MB");
     expect(screen.getByTestId("stage-eta").textContent).toBe("Analysis: ≈ 2 min left");
+  });
+
+  it("writes sizes in the person's notation and units", () => {
+    expect(amounts("en", 1.5 * 1024 * 1024, 4 * 1024 * 1024, "bytes")).toEqual({ done: "1.5", total: "4", unit: "MB" });
+    expect(amounts("ru", 1.5 * 1024 * 1024, 4 * 1024 * 1024, "bytes")).toEqual({ done: "1,5", total: "4", unit: "МБ" });
+    expect(amounts("ru", 1234, 2000, "files")).toEqual({ done: "1234", total: "2000", unit: "files" });
   });
 
   it("shows what the agent thinks, then the stage line goes after a quiet while", () => {

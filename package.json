@@ -10,11 +10,12 @@
     "lint": "tsc -b",
     "typecheck": "tsc -b",
     "check:budget": "node scripts/check-first-screen-budget.mjs",
+    "check:i18n": "node scripts/check-i18n.mjs",
     "check:sources": "node scripts/check-sources.mjs",
     "check:canvas": "node scripts/check-canvas.mjs",
     "sync:protocol": "node scripts/sync-protocol.mjs",
     "test": "vitest run",
-    "check": "npm run build && npm run check:budget && npm run test",
+    "check": "npm run build && npm run check:i18n && npm run check:budget && npm run test",
     "preview": "vite preview"
   },
   "dependencies": {

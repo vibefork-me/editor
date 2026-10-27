@@ -1,4 +1,4 @@
-export type Locale = "ru" | "en";
+export type { Locale } from "./config.ts";
 
 export type Primitive = string | number;
 
@@ -411,3 +411,8 @@ export interface TranslationSchema {
 export type TranslationKey = {
   [K in keyof TranslationSchema]: `${K & string}.${keyof TranslationSchema[K] & string}`;
 }[keyof TranslationSchema];
+
+/** A dictionary of a language that is not fully translated yet: any key may be missing (shown in English). */
+export type PartialTranslation = {
+  [K in keyof TranslationSchema]?: Partial<TranslationSchema[K]>;
+};

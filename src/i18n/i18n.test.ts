@@ -4,7 +4,10 @@ import {
   LOCALES,
   STORAGE_KEY,
   detectInitialLocale,
+  isLocaleLoaded,
+  loadLocale,
   localeForLanguage,
+  setPseudoLocale,
   translate,
   useI18nStore,
 } from "./i18nStore.ts";
@@ -95,13 +98,30 @@ describe("i18n system", () => {
     });
 
     it("is English for Ukrainian and for any language it does not know", () => {
-      for (const tag of ["uk", "uk-UA", "de-DE", "fr", "zh-CN", "en-GB", ""]) {
+      for (const tag of ["uk", "uk-UA", "fr", "zh-CN", "en-GB", ""]) {
         browser([tag]);
         expect(detectInitialLocale()).toBe("en");
       }
       browser([]);
       expect(detectInitialLocale()).toBe("en");
-      expect(localeForLanguage("pt_BR")).toBe("en");
+    });
+
+    it("is Brazilian Portuguese for any Portuguese, Spanish and German for their variants", () => {
+      for (const [tag, locale] of [
+        ["pt", "pt-BR"],
+        ["pt-BR", "pt-BR"],
+        ["pt-PT", "pt-BR"],
+        ["es", "es"],
+        ["es-419", "es"],
+        ["es-MX", "es"],
+        ["de", "de"],
+        ["de-AT", "de"],
+        ["de-CH", "de"],
+      ] as const) {
+        browser([tag]);
+        expect(detectInitialLocale()).toBe(locale);
+      }
+      expect(localeForLanguage("pt_BR")).toBe("pt-BR");
     });
 
     it("keeps the person's choice over the browser", () => {
@@ -112,13 +132,60 @@ describe("i18n system", () => {
   });
 
   it("falls back to English for a key missing in Russian", () => {
-    const ruCommon = LOCALES.ru.common as Record<string, string>;
+    const ruCommon = LOCALES.ru!.common as Record<string, string>;
     const saved = ruCommon.copy;
     delete ruCommon.copy;
     try {
       expect(translate("ru", "common.copy")).toBe("Copy");
     } finally {
       ruCommon.copy = saved!;
+    }
+  });
+
+  it("shows a declared but untranslated language in English, and English in <html lang>", () => {
+    useI18nStore.getState().setLocale("de");
+    expect(useI18nStore.getState().t("common.copy")).toBe("Copy");
+    expect(translate("pt-BR", "agentOffline.openAgent")).toBe("Open agent");
+    expect(document.documentElement.lang).toBe("en");
+    useI18nStore.getState().setLocale("ru");
+    expect(document.documentElement.lang).toBe("ru");
+  });
+
+  it("keeps a stored declared language", () => {
+    localStorage.setItem(STORAGE_KEY, "es");
+    expect(detectInitialLocale()).toBe("es");
+    localStorage.setItem(STORAGE_KEY, "xx");
+    expect(["ru", "en"]).toContain(detectInitialLocale());
+  });
+
+  it("bundles only English; Russian comes as its own chunk", async () => {
+    expect(isLocaleLoaded("en")).toBe(true);
+    await loadLocale("ru");
+    expect(isLocaleLoaded("ru")).toBe(true);
+    expect(LOCALES.ru).toBe(ru);
+    // No file yet: nothing to load, English is shown.
+    expect(isLocaleLoaded("de")).toBe(true);
+    await expect(loadLocale("de")).resolves.toBeUndefined();
+  });
+
+  it("chooses plural forms by the language's rules", () => {
+    expect(translate("en", "messages.tooMany", { count: 1 })).toBe("Up to 1 attachment");
+    expect(translate("en", "messages.tooMany", { count: 5 })).toBe("Up to 5 attachments");
+    expect(translate("ru", "messages.tooMany", { count: 1 })).toBe("Не больше 1 вложения");
+    expect(translate("ru", "messages.tooMany", { count: 3 })).toBe("Не больше 3 вложений");
+    expect(translate("ru", "messages.tooMany", { count: 21 })).toBe("Не больше 21 вложения");
+  });
+
+  it("marks every dictionary text in the pseudo-language and leaves values as they are", () => {
+    setPseudoLocale(true);
+    try {
+      const text = translate("en", "agentOffline.networkBlockedDescription", { domain: "code.vibefork.me" });
+      expect(text.startsWith("⟦") && text.endsWith("⟧")).toBe(true);
+      expect(text).toContain("code.vibefork.me");
+      expect(text).not.toContain("allow");
+      expect(translate("en", "messages.tooMany", { count: 2 })).toBe("⟦Ûþ ţö ··2 àţţàçĥɱéñţš····⟧");
+    } finally {
+      setPseudoLocale(false);
     }
   });
 });
