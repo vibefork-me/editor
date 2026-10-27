@@ -3,6 +3,7 @@ import { buildCanvasState } from "../canvasState.ts";
 import { StageRail } from "../rail/StageRail.tsx";
 import { StopBanner } from "../rail/StopBanner.tsx";
 import { PartCallout, PartPanel } from "../card/PartCard.tsx";
+import { TaskLayer } from "../task/TaskLayer.tsx";
 import { GraphCanvas, type GraphApi } from "./GraphCanvas.tsx";
 import type { StableGraph } from "./stableGraph.ts";
 import { syntheticAnalysis } from "./syntheticSession.ts";
@@ -103,6 +104,7 @@ export default function CanvasPlayground() {
             <PartCallout state={state} nodeId={selected} api={api} onMore={() => setPanel(true)} {...actions} />
           );
         })()}
+        <TaskLayer state={state} />
         {stopped && (
           <div className="absolute inset-x-0 bottom-8 z-10 flex justify-center">
             <StopBanner onResume={() => setStopped(false)} onCancel={() => setStopped(false)} />

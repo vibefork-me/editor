@@ -245,6 +245,25 @@ export interface TranslationSchema {
     files: string;
     noFiles: string;
   };
+  taskView: {
+    task: string;
+    asked: string;
+    doneTitle: string;
+    openArtifact: string;
+    close: string;
+    history: string;
+    historyEmpty: string;
+    current: string;
+    changed: string;
+    artifactChanges: string;
+    artifactReport: string;
+    artifactBuild: string;
+    artifactBackup: string;
+    artifactLog: string;
+    where: string;
+    size: string;
+    noLines: string;
+  };
   canvas: {
     agentHere: string;
     focusHere: string;
