@@ -168,6 +168,20 @@ export interface TranslationSchema {
     errorNotConfirmed: string;
     errorGeneral: string;
   };
+  program: {
+    run: string;
+    runAgain: string;
+    stop: string;
+    running: string;
+    stopped: string;
+    exited: string;
+    cut: string;
+    confirmNote: string;
+    errorNotConfirmed: string;
+    errorNoRecipe: string;
+    errorNotSupported: string;
+    errorGeneral: string;
+  };
   project: {
     taskStarted: string;
     chatStartFailed: string;

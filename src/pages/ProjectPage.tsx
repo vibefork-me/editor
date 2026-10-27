@@ -24,6 +24,7 @@ import { partOfFile } from "../components/workspace/files.ts";
 import { IconClose } from "../components/workspace/icons.tsx";
 import { useLayoutStore, type PanelId } from "../stores/layoutStore.ts";
 import { useBuildStore } from "../stores/buildStore.ts";
+import { programFailed, useProgramStore } from "../stores/programStore.ts";
 import { useProjectShellSync } from "../hooks/useProjectShellSync.ts";
 import { useTranslation } from "../i18n/i18nStore.ts";
 import { getAgentTransport } from "../stores/agent-bridge.ts";
@@ -53,6 +54,7 @@ export function ProjectPage() {
   const setPanelOpen = useLayoutStore((s) => s.setOpen);
   const activePath = useViewerStore((s) => s.activePath);
   const buildFailed = useBuildStore((s) => s.status === "failed");
+  const programBad = useProgramStore(programFailed);
   const chatInputRef = useRef<HTMLTextAreaElement>(null);
   const stream = useCanvasStore((s) => s.canvas);
   const projectMeta = useProjectStore((s) => s.projectMeta);
@@ -220,7 +222,7 @@ export function ProjectPage() {
     if (activePath) setPanelOpen("code", true);
   }, [activePath, setPanelOpen]);
 
-  const errors = journalErrors(feed, buildFailed, canvas);
+  const errors = journalErrors(feed, buildFailed, canvas, programBad);
   const partId = activePath ? partOfFile(canvas, activePath) : null;
   const label = (id: string) => canvas.nodes[id]?.label ?? id;
 

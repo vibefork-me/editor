@@ -503,6 +503,43 @@ describe("task control", () => {
     expect(socket.sent).toHaveLength(6);
   });
 
+  it("runs the program with run, streams its output and stops it with cancel", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo) => {
+      const url = String(input);
+      if (url.endsWith("/v1/auth/challenge")) return jsonResponse({ nonce: "n" });
+      if (url.endsWith("/v1/auth/session")) return jsonResponse({ token: "t", expiresIn: 900 });
+      return jsonResponse({ agent: "vf", platform: "test", version: "0" });
+    });
+    const client = createAgentTransport({
+      baseUrl: "http://127.0.0.1:47801",
+      fetch: fetchMock as typeof fetch,
+      WebSocket: TaskSocket as unknown as typeof WebSocket,
+      getKeyId: async () => "key-1",
+      signNonce: async () => "sig",
+    });
+    await client.authenticateSession({} as CryptoKey);
+    let stop: (() => void) | null = null;
+    const seen: string[] = [];
+    const first = client.runProgram("notes-app", (m) => m.type === "program_log" && seen.push(`${m.stream}:${m.text}`), (s) => (stop = s));
+    await vi.waitFor(() => expect(stop).not.toBeNull());
+    let socket = TaskSocket.last!;
+    socket.emit({ type: "program_log", stream: "stdout", text: "notes: 3" });
+    socket.emit({ type: "program_log", stream: "stderr", text: "no config" });
+    socket.emit({ type: "program_done", code: 1, cut: false, seconds: 0.5 });
+    await expect(first).resolves.toEqual({ kind: "done", code: 1, cut: false });
+    expect(seen).toEqual(["stdout:notes: 3", "stderr:no config"]);
+    expect(socket.sent.map((m) => m.type)).toEqual(["auth", "run"]);
+
+    stop = null;
+    const second = client.runProgram("notes-app", () => {}, (s) => (stop = s));
+    await vi.waitFor(() => expect(stop).not.toBeNull());
+    socket = TaskSocket.last!;
+    stop!();
+    socket.emit({ type: "cancelled" });
+    await expect(second).resolves.toEqual({ kind: "cancelled" });
+    expect(socket.sent.map((m) => m.type)).toEqual(["auth", "run", "cancel"]);
+  });
+
   it("sends a note over the task's connection; an agent without notes does not end the task", async () => {
     const fetchMock = vi.fn(async (input: RequestInfo) => {
       const url = String(input);

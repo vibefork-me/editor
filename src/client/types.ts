@@ -169,6 +169,12 @@ export type BuildOutcome =
   | { kind: "error"; error: string; code?: string }
   | { kind: "cancelled" };
 
+/** How a run of the project's program ended. */
+export type ProgramOutcome =
+  | { kind: "done"; code: number; cut: boolean }
+  | { kind: "error"; error: string; code?: string }
+  | { kind: "cancelled" };
+
 /** What the person can do with a running task. */
 export interface TaskControl {
   /** Pauses it at once. */
@@ -258,4 +264,9 @@ export interface AgentTransport {
   ): Promise<TaskOutcome>;
   /** Builds a project (the agent asks the user in a native dialog); streams its messages. */
   runBuild(project: string, onMessage: (m: BuildMessage) => void): Promise<BuildOutcome>;
+  /**
+   * Runs the project's program (the agent asks the user in a native dialog); streams its output
+   * (`program_log`). `onStop` gets a function that stops it. An older agent answers `not_supported`.
+   */
+  runProgram(project: string, onMessage: (m: ServerMessage) => void, onStop?: (stop: () => void) => void): Promise<ProgramOutcome>;
 }
