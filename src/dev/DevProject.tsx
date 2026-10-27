@@ -41,6 +41,11 @@ function devTransport(records: CanvasRecord[], withStream: boolean): AgentTransp
     getCanvas: async ({ from }: { from: number }) => ({ events: events.filter((r) => r.seq >= from), next: events.length + 1 }),
     getGraph: async () => graph,
     describeGraph: async () => graph,
+    // The files of the parts, and some no part lists.
+    listFiles: async () => ({
+      files: [...new Set(records.flatMap(({ ev }) => (ev.type === "found" || ev.type === "subsystem" ? (ev.files ?? []) : [])))].concat("README.md", "package.json"),
+      truncated: false,
+    }),
     readFile: async ({ path }: { path: string }) => ({ path, content: sample(path, "light"), binary: false, tooLarge: false, size: 120 }),
     readDiff: async ({ path }: { path: string }) => ({ path, original: sample(path, "light"), modified: sample(path, "dark"), binary: false, tooLarge: false }),
     getModels: async () => [{ provider: "claude", model: "sonnet", label: "Claude Sonnet", cost: "", tier: 0 }],

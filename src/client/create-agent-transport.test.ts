@@ -339,6 +339,24 @@ describe("agent-client transport", () => {
     });
   });
 
+  it("lists project files from /v1/files and reports a missing endpoint by status", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo) => {
+      const url = String(input);
+      if (url.includes("/v1/files?project=notes-app")) {
+        return jsonResponse({ files: ["README.md", "src/list.ts"], truncated: false });
+      }
+      return new Response(JSON.stringify({ error: "not found" }), { status: 404, headers: { "Content-Type": "application/json" } });
+    });
+    const client = createAgentTransport({
+      baseUrl: "http://127.0.0.1:47801",
+      fetch: fetchMock as typeof fetch,
+      WebSocket: MockWebSocket as unknown as typeof WebSocket,
+    });
+
+    expect(await client.listFiles("notes-app")).toEqual({ files: ["README.md", "src/list.ts"], truncated: false });
+    await expect(client.listFiles("other")).rejects.toMatchObject({ status: 404 });
+  });
+
   it("assertSafePath rejects path traversal and secret files before fetch", async () => {
     const fetchMock = vi.fn();
     const client = createAgentTransport({

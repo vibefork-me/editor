@@ -138,6 +138,7 @@ import type {
   ImportRequest,
   ImportResponse,
   NoteAttachment,
+  ProjectFilesResponse,
   ServerMessage,
 } from "./protocol.generated.ts";
 
@@ -149,6 +150,7 @@ export type {
   FileResponse,
   GraphResponse,
   GraphSource,
+  ProjectFilesResponse,
 };
 
 /** `GET /v1/hello` of the agent. */
@@ -204,6 +206,8 @@ export interface AgentTransport {
 
   saveProject(params: { projectId: string; copy?: string }): Promise<SaveProjectResult>;
 
+  /** Files of the project for the file tree (`.gitignore` respected); an agent without `/v1/files` fails with status 404. */
+  listFiles(projectId: string): Promise<ProjectFilesResponse>;
   readFile(params: { projectId: string; path: string }): Promise<FileResponse>;
   readDiff(params: {
     projectId: string;

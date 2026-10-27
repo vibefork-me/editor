@@ -1,8 +1,10 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { CanvasState } from "../../canvas/canvasState.ts";
 import { useTranslation } from "../../i18n/i18nStore.ts";
+import { getAgentTransport } from "../../stores/agent-bridge.ts";
+import { useProjectStore } from "../../stores/projectStore.ts";
 import { useViewerStore } from "../../stores/viewerStore.ts";
-import { fileTree, knownFiles, type TreeEntry } from "./files.ts";
+import { fileTree, treeFiles, type TreeEntry } from "./files.ts";
 import { IconFile, IconFolder } from "./icons.tsx";
 
 const row = "flex w-full items-center gap-1.5 rounded px-1.5 py-0.5 text-left text-[12.5px] hover:bg-surface-elevated";
@@ -11,6 +13,26 @@ const row = "flex w-full items-center gap-1.5 rounded px-1.5 py-0.5 text-left te
 function open(path: string, changed: boolean) {
   const viewer = useViewerStore.getState();
   void (changed ? viewer.openDiff(path) : viewer.openFile(path));
+}
+
+/** The project's files from the agent, again whenever the agent changes a file; `null` — the agent cannot list them. */
+function useListedFiles(changes: number): { files: string[]; truncated: boolean } | null {
+  const projectId = useProjectStore((s) => s.currentProjectId);
+  const [listed, setListed] = useState<{ project: string; files: string[]; truncated: boolean } | null>(null);
+  useEffect(() => {
+    const transport = getAgentTransport();
+    if (!projectId || !transport?.listFiles) return;
+    let live = true;
+    transport.listFiles(projectId).then(
+      (r) => live && setListed({ project: projectId, files: r.files, truncated: r.truncated }),
+      // An older agent without the list, or no access: the files the canvas knows.
+      () => live && setListed(null),
+    );
+    return () => {
+      live = false;
+    };
+  }, [projectId, changes]);
+  return listed && listed.project === projectId ? listed : null;
 }
 
 function Entry({ entry, depth, changed, active }: { entry: TreeEntry; depth: number; changed: ReadonlySet<string>; active: string | null }) {
@@ -62,7 +84,8 @@ export function FilesPanel({ state, partLabel }: { state: CanvasState; partLabel
   const { t } = useTranslation();
   const active = useViewerStore((s) => s.activePath);
   const changed = useMemo(() => new Set(state.changedFiles.map((f) => f.path)), [state.changedFiles]);
-  const tree = useMemo(() => fileTree(knownFiles(state)), [state]);
+  const listed = useListedFiles(state.changedFiles.length);
+  const tree = useMemo(() => fileTree(treeFiles(state, listed?.files ?? null)), [state, listed]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto py-2 font-sans" data-testid="files-panel">
@@ -99,6 +122,7 @@ export function FilesPanel({ state, partLabel }: { state: CanvasState; partLabel
           ))}
         </ul>
       )}
+      {listed?.truncated && <p className="px-3 pt-1 text-[11px] text-text-muted" data-testid="files-truncated">{t("files.truncated")}</p>}
     </div>
   );
 }

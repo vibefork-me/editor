@@ -376,6 +376,7 @@ export const en: TranslationSchema = {
     noChanges: "The agent has not changed files yet",
     tree: "Project",
     treeEmpty: "Files appear as the agent maps the project",
+    truncated: "Not every file is shown: the project is too large",
     changedMark: "changed",
   },
   code: {
