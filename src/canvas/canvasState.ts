@@ -259,8 +259,9 @@ export function applyCanvasEvent(state: CanvasState, ev: CanvasEvent, at: number
       return { ...s, notesTaken: [...s.notesTaken, { noteId: ev.noteId, related: ev.related, reply: ev.reply, at }] };
     case "result": {
       const result = { text: ev.text, detail: ev.detail, artifacts: ev.artifacts ?? [] };
-      // The finished task joins the history with what it produced.
-      const history = s.task
+      // The finished task joins the history with what it produced; a later result without a new task (a
+      // part put back as it was) does not.
+      const history = s.task && !s.result
         ? [
             ...s.history,
             {

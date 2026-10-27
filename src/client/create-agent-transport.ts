@@ -21,6 +21,7 @@ import {
   type PairStatusResult,
   type ProgramOutcome,
   type ProjectMetadata,
+  type RollbackPartOutcome,
   type SaveProjectResult,
   type TaskControl,
 } from "./types.ts";
@@ -37,8 +38,11 @@ import type {
   FileResponse,
   GithubConnectResponse,
   GithubStatusResponse,
+  JournalResponse,
   ProjectFilesResponse,
   ProjectsResponse,
+  RollbackRequest,
+  RollbackResponse,
   ServerMessage,
 } from "./protocol.generated.ts";
 import type { TaskOutcome } from "./task-feed.ts";
@@ -532,6 +536,34 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
         });
       }
       return (await res.json()) as ImportProjectResult;
+    },
+
+    async getJournal(projectId: string): Promise<JournalResponse> {
+      const res = await apiFetch(`/v1/journal?project=${encodeURIComponent(projectId)}`);
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string; code?: string };
+        throw new AgentApiError(err.error ?? `read journal failed (${res.status})`, res.status, { code: err.code });
+      }
+      return (await res.json()) as JournalResponse;
+    },
+
+    async rollback(params): Promise<RollbackResponse> {
+      const body: RollbackRequest = { project: params.projectId, commit: params.commit };
+      const res = await apiFetch("/v1/rollback", { method: "POST", body: JSON.stringify(body) });
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string; code?: string };
+        throw new AgentApiError(err.error ?? `rollback failed (${res.status})`, res.status, { code: err.code });
+      }
+      return (await res.json()) as RollbackResponse;
+    },
+
+    rollbackPart(params, onMessage): Promise<RollbackPartOutcome> {
+      return agentSession({ type: "rollback_part", project: params.projectId, id: params.id }, onMessage, (msg) => {
+        // The part is back once the agent reports the result on the canvas.
+        if (msg.type === "canvas" && msg.ev.type === "result") return { kind: "done" } as const;
+        if (msg.type === "error") return { kind: "error", error: msg.error, code: msg.code ?? undefined } as const;
+        return null;
+      });
     },
 
     runBuild(project: string, onMessage: (m: BuildMessage) => void): Promise<BuildOutcome> {

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import type { ArtifactFile } from "../../client/protocol.generated.ts";
+import type { RollbackStatus } from "../../hooks/useRollback.ts";
 import { useTranslation } from "../../i18n/i18nStore.ts";
 import { canvasNodes, type CanvasNodeView, type CanvasState } from "../canvasState.ts";
 import type { GraphApi } from "../graph/GraphCanvas.tsx";
@@ -24,6 +25,14 @@ export interface PartActions {
   /** Selects another part. */
   onGoTo: (id: string) => void;
   onClose: () => void;
+}
+
+/** Putting the part back as it was; absent while a task runs. `status`: of the last try for this part. */
+export interface PartUndo {
+  status: RollbackStatus | null;
+  /** Another rollback is under way: the button waits. */
+  disabled?: boolean;
+  onUndo: () => void;
 }
 
 function Badges({ node }: { node: CanvasNodeView }) {
@@ -65,7 +74,26 @@ function Related({ state, node, onGoTo }: { state: CanvasState; node: CanvasNode
 }
 
 const actionClass =
-  "flex items-center gap-1.5 rounded-lg border border-[#30363d] bg-[#1b1f28] px-2.5 py-1.5 text-left text-[12.5px] text-[#e6edf3] hover:border-[#58a6ff]";
+  "flex items-center gap-1.5 rounded-lg border border-[#30363d] bg-[#1b1f28] px-2.5 py-1.5 text-left text-[12.5px] text-[#e6edf3] hover:border-[#58a6ff] disabled:cursor-wait disabled:opacity-60";
+
+/** "Put it back as it was", and how the last try went: confirm in the agent's window, done, or why not. */
+function UndoAction({ undo }: { undo: PartUndo }) {
+  const { t } = useTranslation();
+  const status = undo.status;
+  const waiting = status?.state === "confirm";
+  return (
+    <div className="flex flex-col gap-1">
+      <button type="button" className={actionClass} disabled={waiting || undo.disabled} onClick={undo.onUndo}>
+        {t("card.undo")}
+      </button>
+      {status && (
+        <p role="status" className={`text-xs leading-snug ${status.state === "failed" ? "text-[#e3b341]" : status.state === "done" ? "text-[#8fd19e]" : "text-[#79c0ff]"}`}>
+          {status.state === "confirm" ? t("card.undoConfirm") : status.state === "done" ? t("card.undoDone") : t(status.reason)}
+        </p>
+      )}
+    </div>
+  );
+}
 
 /**
  * The part's card next to its node (it follows the node as the graph moves): states, the agent's latest
@@ -76,8 +104,9 @@ export function PartCallout({
   nodeId,
   api,
   onMore,
+  undo,
   ...actions
-}: PartActions & { state: CanvasState; nodeId: string; api: GraphApi | null; onMore: () => void }) {
+}: PartActions & { state: CanvasState; nodeId: string; api: GraphApi | null; onMore: () => void; undo?: PartUndo }) {
   const { t } = useTranslation();
   const boxRef = useRef<HTMLDivElement>(null);
   const node = canvasNodes(state).find((n) => n.id === nodeId);
@@ -141,6 +170,7 @@ export function PartCallout({
             {t("card.showChanges")}
           </button>
         )}
+        {undo && <UndoAction undo={undo} />}
       </div>
       <Related state={state} node={node} onGoTo={actions.onGoTo} />
       <button type="button" onClick={onMore} className="self-start px-0.5 py-1 text-xs text-[#79c0ff] hover:underline">
@@ -151,7 +181,7 @@ export function PartCallout({
 }
 
 /** Everything about the part, in a panel on the right; its files for developers open in the code viewer. */
-export function PartPanel({ state, nodeId, ...actions }: PartActions & { state: CanvasState; nodeId: string }) {
+export function PartPanel({ state, nodeId, undo, ...actions }: PartActions & { state: CanvasState; nodeId: string; undo?: PartUndo }) {
   const { t } = useTranslation();
   const node = canvasNodes(state).find((n) => n.id === nodeId);
   if (!node) return null;
@@ -198,6 +228,7 @@ export function PartPanel({ state, nodeId, ...actions }: PartActions & { state: 
           ))}
         </section>
       )}
+      {undo && <UndoAction undo={undo} />}
       <Related state={state} node={node} onGoTo={actions.onGoTo} />
       <details className="text-[12.5px] text-[#c9d1d9]">
         <summary className="cursor-pointer select-none text-[#8b93a7]">{t("card.forDevelopers")}</summary>
