@@ -302,6 +302,30 @@ export interface TranslationSchema {
     en: string;
     selectLanguage: string;
   };
+  messages: {
+    title: string;
+    inputLabel: string;
+    placeholderTask: string;
+    placeholderRunning: string;
+    placeholderNext: string;
+    send: string;
+    attach: string;
+    removeAttachment: string;
+    pastedText: string;
+    tooLarge: string;
+    tooMany: string;
+    imagesNeedTask: string;
+    statusWaiting: string;
+    statusTaken: string;
+    statusFailed: string;
+    statusTask: string;
+    agent: string;
+    showConversation: string;
+    hideConversation: string;
+    offersTitle: string;
+    offersNext: string;
+    capsule: string;
+  };
   status: {
     aiConnect: string;
     aiManage: string;

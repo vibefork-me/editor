@@ -135,10 +135,12 @@ import type {
   Hello,
   ImportRequest,
   ImportResponse,
+  NoteAttachment,
   ServerMessage,
 } from "./protocol.generated.ts";
 
 export type {
+  NoteAttachment,
   CanvasResponse,
   DescribeRequest,
   FileDiffResponse,
@@ -171,6 +173,9 @@ export interface TaskControl {
   resume(): void;
   /** Cancels it; a paused task's changes are undone too. */
   cancel(): void;
+  /** Sends a message to the agent; it is taken into account at the next point that allows it
+   * (`note.taken` on the canvas). An agent without notes answers `error` with code `not_supported`. */
+  note(text: string, attachments?: NoteAttachment[]): void;
 }
 
 export interface AgentTransport {

@@ -510,6 +510,8 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
         (msg) => {
           if (msg.type === "done")
             return { kind: "done", code: msg.code, status: msg.status, commit: msg.commit ?? undefined };
+          // `not_supported` answers a message to the agent (a note), not the task: the task goes on.
+          if (msg.type === "error" && msg.code === "not_supported") return null;
           if (msg.type === "error") return { kind: "error", error: msg.error, code: msg.code ?? undefined };
           if (msg.type === "cancelled") return { kind: "cancelled" };
           return null;
@@ -520,6 +522,7 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
               stop: () => send({ type: "stop" }),
               resume: () => send({ type: "resume" }),
               cancel: () => send({ type: "cancel" }),
+              note: (text, attachments = []) => send({ type: "note", project: params.projectId, text, attachments }),
             })),
       );
     },
