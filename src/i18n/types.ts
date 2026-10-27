@@ -370,6 +370,7 @@ export interface TranslationSchema {
     noChanges: string;
     tree: string;
     treeEmpty: string;
+    truncated: string;
     changedMark: string;
   };
   code: {

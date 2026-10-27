@@ -376,6 +376,7 @@ export const ru: TranslationSchema = {
     noChanges: "Агент пока не менял файлы",
     tree: "Проект",
     treeEmpty: "Файлы появятся, когда агент разберёт проект",
+    truncated: "Показаны не все файлы: проект слишком большой",
     changedMark: "изменён",
   },
   code: {

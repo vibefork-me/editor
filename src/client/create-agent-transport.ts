@@ -36,6 +36,7 @@ import type {
   FileResponse,
   GithubConnectResponse,
   GithubStatusResponse,
+  ProjectFilesResponse,
   ProjectsResponse,
   ServerMessage,
 } from "./protocol.generated.ts";
@@ -398,6 +399,17 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
         throw error;
       }
       return (await res.json()) as GraphResponse;
+    },
+
+    async listFiles(projectId: string): Promise<ProjectFilesResponse> {
+      const res = await apiFetch(`/v1/files?project=${encodeURIComponent(projectId)}`);
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        const error = new Error(err.error ?? `list files failed (${res.status})`);
+        (error as { status?: number }).status = res.status;
+        throw error;
+      }
+      return (await res.json()) as ProjectFilesResponse;
     },
 
     async readFile(params): Promise<FileResponse> {

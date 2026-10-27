@@ -16,6 +16,17 @@ export function knownFiles(state: CanvasState): string[] {
   return [...all];
 }
 
+/**
+ * The files of the tree: the project's files as the agent lists them (`GET /v1/files`) with the files
+ * the agent changed since; an agent without the list — the files the canvas knows.
+ */
+export function treeFiles(state: CanvasState, listed: readonly string[] | null): string[] {
+  if (!listed) return knownFiles(state);
+  const all = new Set(listed);
+  for (const f of state.changedFiles) all.add(f.path);
+  return [...all];
+}
+
 /** The tree of folders and files from paths like `src/ui/editor.tsx`. */
 export function fileTree(paths: string[]): TreeEntry[] {
   const root: TreeEntry = { name: "", path: "", children: [] };
