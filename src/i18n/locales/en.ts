@@ -192,6 +192,7 @@ export const en: TranslationSchema = {
     chatStartFailed: "Could not send the request. Try again.",
     taskDone: "The agent finished the task.",
     taskFailed: "The task failed.",
+    offerInField: "The offer did not start — its text is in the field: send it as a task.",
     taskCancelled: "The task was cancelled.",
     workspaceTabs: "Workspace panels",
     mapTab: "Map",

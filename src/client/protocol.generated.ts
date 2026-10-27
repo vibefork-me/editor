@@ -56,7 +56,7 @@ export type ChallengeResponse = { nonce: string };
 export type CliHomeMode = "agent" | "user";
 
 /** Messages from the browser. */
-export type ClientMessage = { token: string; type: "auth" } | { continue?: boolean; lang?: string | null; model?: string | null; project: string; prompt: string; provider?: string | null; type: "task" } | { project: string; type: "build" } | { type: "cancel" } | { attachments?: (NoteAttachment)[]; project: string; text: string; type: "note" } | { type: "stop" } | { type: "resume" } | { index: number; project: string; type: "choose_offer" } | { id: string; project: string; type: "rollback_part" };
+export type ClientMessage = { token: string; type: "auth" } | { continue?: boolean; lang?: string | null; model?: string | null; project: string; prompt: string; provider?: string | null; type: "task" } | { project: string; type: "build" } | { type: "cancel" } | { attachments?: (NoteAttachment)[]; project: string; text: string; type: "note" } | { type: "stop" } | { type: "resume" } | { continue?: boolean; index: number; lang?: string | null; model?: string | null; project: string; provider?: string | null; title?: string | null; type: "choose_offer" } | { id: string; project: string; type: "rollback_part" };
 
 /** Cost class of a model. */
 export type CostClass = "subscription" | "free" | "paid";
@@ -110,7 +110,7 @@ export type ImportRequest = { ref?: string | null; repo: string; upstream?: stri
 export type ImportResponse = { commit: string; foreign?: ForeignChanges | null; project: string; upstream: string };
 
 /** One journal entry: a task or a plan step. */
-export type JournalEntry = { at: string; commit?: string | null; commits?: (string)[]; costUsd?: number | null; files?: string; handoff?: boolean; model: string; ms?: number | null; prompt: string; promptVersion?: string | null; provider: string; session?: string | null; summary?: string; usage?: Usage | null };
+export type JournalEntry = { artifacts?: (Artifact)[]; at: string; commit?: string | null; commits?: (string)[]; costUsd?: number | null; files?: string; handoff?: boolean; model: string; ms?: number | null; prompt: string; promptVersion?: string | null; provider: string; session?: string | null; summary?: string; usage?: Usage | null };
 
 /** Response of `GET /v1/journal?project=…`. */
 export type JournalResponse = { entries: (JournalEntry)[] };

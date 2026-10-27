@@ -186,6 +186,7 @@ export interface TranslationSchema {
     chatStartFailed: string;
     taskDone: string;
     taskFailed: string;
+    offerInField: string;
     taskCancelled: string;
     workspaceTabs: string;
     mapTab: string;
