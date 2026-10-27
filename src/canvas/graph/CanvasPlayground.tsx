@@ -8,6 +8,14 @@ import { GraphCanvas, type GraphApi } from "./GraphCanvas.tsx";
 import type { StableGraph } from "./stableGraph.ts";
 import { syntheticAnalysis } from "./syntheticSession.ts";
 import { stream as notesSession } from "../testSessions.ts";
+import { MessagesDock } from "../messages/MessagesDock.tsx";
+import { NoteCapsule } from "../messages/NoteCapsule.tsx";
+import { conversation, waitingCount, type PersonMessage } from "../messages/messages.ts";
+
+// The note the person sends during the task of the notes session; the agent takes it at event 37.
+const NOTES_MESSAGES: PersonMessage[] = [
+  { id: "n1", text: "Put the switch in the settings, please", attachments: [], at: 30_500, kind: "note", takenBefore: 0 },
+];
 
 declare global {
   interface Window {
@@ -65,6 +73,8 @@ export default function CanvasPlayground() {
   const [panel, setPanel] = useState(params.get("panel") === "1");
   const [api, setApi] = useState<GraphApi | null>(null);
   const [stopped, setStopped] = useState(params.get("stopped") === "1");
+  const [sent, setSent] = useState<PersonMessage[]>(notes ? NOTES_MESSAGES : []);
+  const [draft, setDraft] = useState("");
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -77,6 +87,8 @@ export default function CanvasPlayground() {
   }, []);
 
   const state = useMemo(() => buildCanvasState(records, now), [records, now]);
+  const messages = sent.filter((m) => m.at <= now);
+  const running = state.task !== null && state.result === null;
   return (
     <div className="flex h-screen flex-col bg-surface text-text">
       <div className="px-3 py-1 text-xs text-neutral-400">
@@ -105,11 +117,34 @@ export default function CanvasPlayground() {
           );
         })()}
         <TaskLayer state={state} />
-        {stopped && (
-          <div className="absolute inset-x-0 bottom-8 z-10 flex justify-center">
-            <StopBanner onResume={() => setStopped(false)} onCancel={() => setStopped(false)} />
-          </div>
-        )}
+        <NoteCapsule api={api} nodeId={state.focusedId} count={waitingCount(conversation(messages, state.notesTaken))} />
+        <div className="pointer-events-none absolute inset-x-0 bottom-4 z-10 flex justify-center px-4">
+          <MessagesDock
+            state={state}
+            running={running}
+            messages={messages}
+            draft={draft}
+            onDraftChange={setDraft}
+            onSend={(text, attachments) => {
+              const at = streamNow();
+              setSent((all) => [
+                ...all,
+                { id: `m${all.length + 1}`, text, attachments: attachments.map((a) => a.name), at, kind: running ? "note" : "task", takenBefore: state.notesTaken.length },
+              ]);
+              setDraft("");
+            }}
+            onGoTo={(id) => {
+              setSelected(id);
+              api?.centerOn(id);
+            }}
+          >
+            {stopped && (
+              <div className="flex justify-center">
+                <StopBanner onResume={() => setStopped(false)} onCancel={() => setStopped(false)} />
+              </div>
+            )}
+          </MessagesDock>
+        </div>
         <GraphCanvas
           state={state}
           selectedId={selected}

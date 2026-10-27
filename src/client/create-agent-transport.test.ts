@@ -484,4 +484,37 @@ describe("task control", () => {
     control!.stop();
     expect(socket.sent).toHaveLength(6);
   });
+
+  it("sends a note over the task's connection; an agent without notes does not end the task", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo) => {
+      const url = String(input);
+      if (url.endsWith("/v1/auth/challenge")) return jsonResponse({ nonce: "n" });
+      if (url.endsWith("/v1/auth/session")) return jsonResponse({ token: "t", expiresIn: 900 });
+      return jsonResponse({ agent: "vf", platform: "test", version: "0" });
+    });
+    const client = createAgentTransport({
+      baseUrl: "http://127.0.0.1:47801",
+      fetch: fetchMock as typeof fetch,
+      WebSocket: TaskSocket as unknown as typeof WebSocket,
+      getKeyId: async () => "key-1",
+      signNonce: async () => "sig",
+    });
+    await client.authenticateSession({} as CryptoKey);
+    let control: TaskControl | null = null;
+    const seen: string[] = [];
+    const outcome = client.runTask({ projectId: "p", prompt: "x" }, (m) => seen.push(m.type), (c) => (control = c));
+    await vi.waitFor(() => expect(control).not.toBeNull());
+    const socket = TaskSocket.last!;
+    control!.note("keep the toggle", [{ name: "pasted.txt", mime: "text/plain", data: "aGk=" }]);
+    expect(socket.sent[2]).toEqual({
+      type: "note",
+      project: "p",
+      text: "keep the toggle",
+      attachments: [{ name: "pasted.txt", mime: "text/plain", data: "aGk=" }],
+    });
+    socket.emit({ type: "error", error: "not supported by this version of the agent", code: "not_supported" });
+    socket.emit({ type: "done", code: 0, status: "ok", diff: "" });
+    await expect(outcome).resolves.toMatchObject({ kind: "done", code: 0 });
+    expect(seen).toEqual(["error", "done"]);
+  });
 });
