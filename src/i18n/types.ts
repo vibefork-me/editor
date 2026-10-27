@@ -231,6 +231,13 @@ export interface TranslationSchema {
     reconnectingNotice: string;
     emptyCanvasTitle: string;
     emptyCanvasDescription: string;
+    badgeAgentHere: string;
+    badgeThinking: string;
+    badgeWorking: string;
+    badgeFailed: string;
+    badgeChanged: string;
+    badgeTask: string;
+    badgeOtherVersion: string;
   };
   viewer: {
     title: string;

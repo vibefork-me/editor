@@ -49,6 +49,10 @@ export default defineConfig({
             if (/monaco|elkjs/.test(id)) {
               return "blocked-heavy-vendor";
             }
+            // The canvas graph and what only it uses go with the lazily loaded canvas, not into the first screen.
+            if (/node_modules[\/](force-graph|d3-(array|binarytree|force-3d|format|octree|quadtree|scale|scale-chromatic|time|time-format)|@tweenjs|accessor-fn|bezier-js|canvas-color-tracker|float-tooltip|index-array-by|internmap|kapsule|lodash-es|preact|tinycolor2)[\/]/.test(id)) {
+              return undefined;
+            }
             return "vendor";
           }
         },

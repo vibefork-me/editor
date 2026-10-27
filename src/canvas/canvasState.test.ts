@@ -47,6 +47,11 @@ describe("canvas state: analysis", () => {
     expect(node(16, "store")?.touchCount).toBe(2);
   });
 
+  it("remembers the parts the agent has been in", () => {
+    expect(at(10).visited).toEqual(["root"]);
+    expect(at(16).visited).toEqual(["root", "ui", "store"]);
+  });
+
   it("keeps an insight once", () => {
     expect(node(17, "ui")?.insights).toEqual(["Notes are written in Markdown"]);
   });

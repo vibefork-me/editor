@@ -71,6 +71,8 @@ export interface CanvasState {
   history: CanvasHistoryItem[];
   /** Messages of the person the agent has taken into account. */
   notesTaken: { noteId: string; related: string[]; reply: string; at: number }[];
+  /** Parts the agent has been in (looked at, thought about, moved through), first visit first. */
+  visited: string[];
 }
 
 export const initialCanvasState: CanvasState = {
@@ -94,7 +96,13 @@ export const initialCanvasState: CanvasState = {
   eta: null,
   history: [],
   notesTaken: [],
+  visited: [],
 };
+
+function visit(visited: string[], ...ids: string[]): string[] {
+  const added = ids.filter((id) => !visited.includes(id));
+  return added.length ? [...visited, ...added] : visited;
+}
 
 function withNode(state: CanvasState, node: CanvasNode): Pick<CanvasState, "nodes" | "order"> {
   return {
@@ -169,7 +177,7 @@ export function applyCanvasEvent(state: CanvasState, ev: CanvasEvent, at: number
       };
     }
     case "focus":
-      return { ...s, focusedId: ev.id };
+      return { ...s, focusedId: ev.id, visited: visit(s.visited, ev.id) };
     case "touch": {
       const nodes = { ...s.nodes };
       const from = touched(nodes[ev.from], at);
@@ -179,7 +187,12 @@ export function applyCanvasEvent(state: CanvasState, ev: CanvasEvent, at: number
       const fwd = `${ev.from}->${ev.to}`;
       const existing = s.links[fwd] ?? s.links[`${ev.to}->${ev.from}`];
       const link = existing ?? { id: fwd, source: ev.from, target: ev.to, hierarchy: false, touchCount: 0, lastTouchAt: 0 };
-      return { ...s, nodes, links: withLink(s.links, { ...link, touchCount: link.touchCount + 1, lastTouchAt: at }) };
+      return {
+        ...s,
+        nodes,
+        links: withLink(s.links, { ...link, touchCount: link.touchCount + 1, lastTouchAt: at }),
+        visited: visit(s.visited, ev.from, ev.to),
+      };
     }
     case "insight": {
       const node = s.nodes[ev.id];
@@ -194,7 +207,7 @@ export function applyCanvasEvent(state: CanvasState, ev: CanvasEvent, at: number
     case "eta":
       return { ...s, eta: { scope: ev.scope, seconds: ev.seconds, at } };
     case "think":
-      return { ...s, thinking: { id: ev.id, text: ev.text, since: at } };
+      return { ...s, thinking: { id: ev.id, text: ev.text, since: at }, visited: visit(s.visited, ev.id) };
     case "offers":
       return { ...s, offers: ev.items };
     case "task":

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { CanvasPanel } from "../components/canvas/index.ts";
 import { ChatComposer } from "../components/chat/ChatComposer.tsx";
@@ -12,6 +12,9 @@ import { getAgentTransport } from "../stores/agent-bridge.ts";
 import { useProjectStore } from "../stores/projectStore.ts";
 import { useGraphStore } from "../stores/graphStore.ts";
 import { useCanvasStore } from "../stores/canvasStore.ts";
+
+// The living map of the session stream; loaded on demand, it is not part of the first screen.
+const GraphCanvas = lazy(() => import("../canvas/graph/GraphCanvas.tsx").then((m) => ({ default: m.GraphCanvas })));
 import { feedLine, phaseFromMessage, type FeedLine } from "../client/task-feed.ts";
 
 export function ProjectPage() {
@@ -25,6 +28,8 @@ export function ProjectPage() {
   const [chatStatus, setChatStatus] = useState<string | null>(null);
   const [smallScreenTab, setSmallScreenTab] = useState<"map" | "chat">("map");
   const chatInputRef = useRef<HTMLTextAreaElement>(null);
+  const canvas = useCanvasStore((s) => s.canvas);
+  const hasStream = canvas.order.length > 0;
 
   const sendMessage = useCallback(async () => {
     const prompt = chatDraft.trim();
@@ -112,7 +117,13 @@ export function ProjectPage() {
         </nav>
         <div className="flex min-h-0 flex-1 overflow-hidden">
           <section aria-label={t("project.mapTab")} className={`relative flex min-h-0 min-w-0 flex-1 overflow-hidden ${smallScreenTab === "chat" ? "hidden lg:flex" : "flex"}`}>
-            <CanvasPanel onAskAbout={handleAskAbout} />
+            {hasStream ? (
+              <Suspense fallback={null}>
+                <GraphCanvas state={canvas} />
+              </Suspense>
+            ) : (
+              <CanvasPanel onAskAbout={handleAskAbout} />
+            )}
             <ViewerLayoutContainer />
           </section>
           <aside aria-label={t("project.chatTab")} className={`flex min-h-0 w-full shrink-0 flex-col border-l border-border bg-surface lg:w-[360px] min-[1280px]:w-[400px] ${smallScreenTab === "map" ? "hidden lg:flex" : "flex"}`}>
