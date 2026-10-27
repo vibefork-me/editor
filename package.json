@@ -10,6 +10,7 @@
     "lint": "tsc -b",
     "typecheck": "tsc -b",
     "check:budget": "node scripts/check-first-screen-budget.mjs",
+    "check:sources": "node scripts/check-sources.mjs",
     "sync:protocol": "node scripts/sync-protocol.mjs",
     "test": "vitest run",
     "check": "npm run build && npm run check:budget && npm run test",
