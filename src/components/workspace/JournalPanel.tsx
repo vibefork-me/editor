@@ -1,5 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { CanvasState } from "../../canvas/canvasState.ts";
+import { checkText } from "../../canvas/outcomeText.ts";
+import { agentErrorKey } from "../../client/agent-errors.ts";
 import type { FeedLine } from "../../client/task-feed.ts";
 import { useTranslation } from "../../i18n/i18nStore.ts";
 import type { TranslationKey } from "../../i18n/types.ts";
@@ -58,6 +60,7 @@ function BuildSection({ state }: { state: CanvasState }) {
   const log = useBuildStore((s) => s.log);
   const outcome = useBuildStore((s) => s.outcome);
   const errorKey = useBuildStore((s) => s.errorKey);
+  const errorCodeKey = useBuildStore((s) => (s.outcome?.kind === "error" ? agentErrorKey(s.outcome.code) : undefined));
   const error = useBuildStore((s) => s.error);
   const copied = useBuildStore((s) => s.copiedArtifacts);
   const startBuild = useBuildStore((s) => s.startBuild);
@@ -116,7 +119,9 @@ function BuildSection({ state }: { state: CanvasState }) {
                 ? t("build.errorProcessFailed")
                 : errorKey === "buildNotConfirmed"
                   ? t("build.errorNotConfirmed")
-                  : (error ?? t("build.errorGeneral"))}
+                  : errorCodeKey
+                    ? t(errorCodeKey)
+                    : (error ?? t("build.errorGeneral"))}
           </span>
         </div>
       )}
@@ -127,7 +132,7 @@ function BuildSection({ state }: { state: CanvasState }) {
             {state.checks.map((c, i) => (
               <li key={i} className={`flex items-center gap-1.5 ${c.ok ? "text-success" : "text-danger"}`}>
                 {c.ok ? <IconCheck className="size-3.5 shrink-0" /> : <IconTriangleAlert className="size-3.5 shrink-0" />}
-                <span className="text-text">{c.text}</span>
+                <span className="text-text">{checkText(t, c)}</span>
               </li>
             ))}
           </ul>
