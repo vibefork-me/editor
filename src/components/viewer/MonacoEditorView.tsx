@@ -33,6 +33,7 @@ export function MonacoEditorView({
   diffOriginal,
   diffModified,
   readOnly = true,
+  onlyChanges = false,
 }: CodeViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [monacoLoaded, setMonacoLoaded] = useState(false);
@@ -64,7 +65,15 @@ export function MonacoEditorView({
             contextmenu: false,
             fontFamily: "IBM Plex Mono, monospace",
             fontSize: 13,
-            renderSideBySide: true,
+            // The whole file with its changes marked in the margin; or only the changed regions.
+            renderSideBySide: false,
+            renderMarginRevertIcon: false,
+            hideUnchangedRegions: { enabled: onlyChanges, contextLineCount: 3, minimumLineCount: 3 },
+          });
+          // The first change is in view when the file opens.
+          const revealed = diffEditor.onDidUpdateDiff(() => {
+            revealed.dispose();
+            diffEditor.revealFirstDiff();
           });
 
           const origModel = monaco.editor.createModel(diffOriginal || "", language);
@@ -107,7 +116,7 @@ export function MonacoEditorView({
       isMounted = false;
       editorInstance?.dispose();
     };
-  }, [activePath, mode, content, diffOriginal, diffModified, readOnly]);
+  }, [activePath, mode, content, diffOriginal, diffModified, readOnly, onlyChanges]);
 
   return (
     <div className="relative h-full w-full min-h-0 flex-1 overflow-hidden bg-[#1e1e1e] font-mono text-sm">

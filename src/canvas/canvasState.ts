@@ -75,6 +75,8 @@ export interface CanvasState {
   visited: string[];
   /** The person paused the task; it goes on after resume. */
   paused: boolean;
+  /** Files the agent changed in this stream, with their part; the latest change first. */
+  changedFiles: { path: string; node: string; at: number }[];
 }
 
 export const initialCanvasState: CanvasState = {
@@ -100,7 +102,13 @@ export const initialCanvasState: CanvasState = {
   notesTaken: [],
   visited: [],
   paused: false,
+  changedFiles: [],
 };
+
+function withChangedFiles(list: CanvasState["changedFiles"], node: string, paths: string[], at: number): CanvasState["changedFiles"] {
+  if (paths.length === 0) return list;
+  return [...paths.map((path) => ({ path, node, at })), ...list.filter((f) => !paths.includes(f.path))];
+}
 
 function visit(visited: string[], ...ids: string[]): string[] {
   const added = ids.filter((id) => !visited.includes(id));
@@ -235,6 +243,7 @@ export function applyCanvasEvent(state: CanvasState, ev: CanvasEvent, at: number
         ...s,
         changed: s.changed.includes(ev.id) ? s.changed : [...s.changed, ev.id],
         failed: s.failed.filter((id) => id !== ev.id),
+        changedFiles: withChangedFiles(s.changedFiles, ev.id, ev.files ?? [], at),
       };
     case "check":
       return {
@@ -263,7 +272,15 @@ export function applyCanvasEvent(state: CanvasState, ev: CanvasEvent, at: number
             },
           ]
         : s.history;
-      return { ...s, result, history, paused: false };
+      // Files of the changes the task reports, when the stream did not name them on the way.
+      let changedFiles = s.changedFiles;
+      for (const a of result.artifacts) {
+        if (a.kind !== "changes") continue;
+        for (const f of a.files ?? []) {
+          if (!changedFiles.some((c) => c.path === f.path)) changedFiles = [...changedFiles, { path: f.path, node: f.node ?? "", at }];
+        }
+      }
+      return { ...s, result, history, paused: false, changedFiles };
     }
   }
 }

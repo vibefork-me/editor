@@ -7,8 +7,16 @@ async function currentProjectId(): Promise<string | null> {
   return useProjectStore.getState().currentProjectId;
 }
 
+/** A file open in the code panel. */
+export interface ViewerTab {
+  path: string;
+  mode: ViewerMode;
+}
+
 export const initialViewerState = {
   isOpen: false,
+  tabs: [] as ViewerTab[],
+  onlyChanges: false,
   activePath: null as string | null,
   mode: "file" as ViewerMode,
   content: null as string | null,
@@ -23,6 +31,10 @@ export const initialViewerState = {
 
 export interface ViewerState {
   isOpen: boolean;
+  /** Open files, in the order they were opened. */
+  tabs: ViewerTab[];
+  /** A changed file shows only its changes instead of the whole file with marks. */
+  onlyChanges: boolean;
   activePath: string | null;
   mode: ViewerMode;
   content: string | null;
@@ -35,11 +47,20 @@ export interface ViewerState {
   isForbidden: boolean;
   openFile: (path: string) => Promise<void>;
   openDiff: (path: string) => Promise<void>;
+  /** Closes one tab; the neighbour becomes active. */
+  closeTab: (path: string) => void;
+  setOnlyChanges: (onlyChanges: boolean) => void;
   closeViewer: () => void;
   resetViewer: () => void;
 }
 
-export const useViewerStore = create<ViewerState>((set) => ({
+function withTab(tabs: ViewerTab[], tab: ViewerTab): ViewerTab[] {
+  const i = tabs.findIndex((t) => t.path === tab.path);
+  if (i < 0) return [...tabs, tab];
+  return tabs.map((t, j) => (j === i ? tab : t));
+}
+
+export const useViewerStore = create<ViewerState>((set, get) => ({
   ...initialViewerState,
   openFile: async (path) => {
     const projectId = await currentProjectId();
@@ -48,7 +69,8 @@ export const useViewerStore = create<ViewerState>((set) => ({
       set({ error: "Cannot open file", isOpen: false, activePath: null });
       return;
     }
-    set({
+    set((s) => ({
+      tabs: withTab(s.tabs, { path, mode: "file" }),
       isOpen: true,
       activePath: path,
       mode: "file",
@@ -59,7 +81,7 @@ export const useViewerStore = create<ViewerState>((set) => ({
       isForbidden: false,
       diffOriginal: null,
       diffModified: null,
-    });
+    }));
     try {
       const res = await transport.readFile({ projectId, path });
       if (res.tooLarge) {
@@ -88,7 +110,8 @@ export const useViewerStore = create<ViewerState>((set) => ({
       set({ error: "Cannot open diff", isOpen: false, activePath: null });
       return;
     }
-    set({
+    set((s) => ({
+      tabs: withTab(s.tabs, { path, mode: "diff" }),
       isOpen: true,
       activePath: path,
       mode: "diff",
@@ -98,7 +121,7 @@ export const useViewerStore = create<ViewerState>((set) => ({
       isBinary: false,
       isForbidden: false,
       content: null,
-    });
+    }));
     try {
       const res = await transport.readDiff({ projectId, path });
       if (res.tooLarge) {
@@ -135,8 +158,30 @@ export const useViewerStore = create<ViewerState>((set) => ({
       });
     }
   },
+  closeTab: (path) => {
+    const { tabs, activePath } = get();
+    const i = tabs.findIndex((t) => t.path === path);
+    if (i < 0) {
+      if (path === activePath) get().closeViewer();
+      return;
+    }
+    const rest = tabs.filter((t) => t.path !== path);
+    if (path !== activePath) {
+      set({ tabs: rest });
+      return;
+    }
+    const next = rest[Math.min(i, rest.length - 1)];
+    if (!next) {
+      get().closeViewer();
+      return;
+    }
+    set({ tabs: rest });
+    void (next.mode === "diff" ? get().openDiff(next.path) : get().openFile(next.path));
+  },
+  setOnlyChanges: (onlyChanges) => set({ onlyChanges }),
   closeViewer: () =>
     set({
+      tabs: [],
       isOpen: false,
       activePath: null,
       content: null,
@@ -148,5 +193,5 @@ export const useViewerStore = create<ViewerState>((set) => ({
       isBinary: false,
       isForbidden: false,
     }),
-  resetViewer: () => set({ ...initialViewerState }),
+  resetViewer: () => set({ ...initialViewerState, tabs: [] }),
 }));

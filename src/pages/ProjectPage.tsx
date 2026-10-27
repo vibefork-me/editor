@@ -1,8 +1,7 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useParams } from "react-router-dom";
 import { CanvasPanel } from "../components/canvas/index.ts";
 import { ChatComposer } from "../components/chat/ChatComposer.tsx";
-import { FeedLineView } from "../components/chat/FeedLineView.tsx";
 import { PhaseRail } from "../components/shell/PhaseRail.tsx";
 import { StageRail, useNow } from "../canvas/rail/StageRail.tsx";
 import { StopBanner } from "../canvas/rail/StopBanner.tsx";
@@ -14,8 +13,17 @@ import type { NoteAttachment, TaskControl } from "../client/types.ts";
 import { MessagesDock } from "../canvas/messages/MessagesDock.tsx";
 import { NoteCapsule } from "../canvas/messages/NoteCapsule.tsx";
 import { conversation, markNotDelivered, promptWithText, waitingCount, type PersonMessage } from "../canvas/messages/messages.ts";
-import { StatusBar } from "../components/shell/StatusBar.tsx";
 import { ViewerLayoutContainer } from "../components/viewer/index.ts";
+import { ProjectMenu } from "../components/workspace/ProjectMenu.tsx";
+import { PanelToggles, PANEL_NAMES } from "../components/workspace/PanelToggles.tsx";
+import { HelpButton } from "../components/workspace/HelpButton.tsx";
+import { ResizeHandle } from "../components/workspace/ResizeHandle.tsx";
+import { FilesPanel } from "../components/workspace/FilesPanel.tsx";
+import { JournalPanel, journalErrors } from "../components/workspace/JournalPanel.tsx";
+import { partOfFile } from "../components/workspace/files.ts";
+import { IconClose } from "../components/workspace/icons.tsx";
+import { useLayoutStore, type PanelId } from "../stores/layoutStore.ts";
+import { useBuildStore } from "../stores/buildStore.ts";
 import { useProjectShellSync } from "../hooks/useProjectShellSync.ts";
 import { useTranslation } from "../i18n/i18nStore.ts";
 import { getAgentTransport } from "../stores/agent-bridge.ts";
@@ -37,7 +45,11 @@ export function ProjectPage() {
   const [feed, setFeed] = useState<FeedLine[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [chatStatus, setChatStatus] = useState<string | null>(null);
-  const [smallScreenTab, setSmallScreenTab] = useState<"map" | "chat">("map");
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const panels = useLayoutStore((s) => s.panels);
+  const setPanelOpen = useLayoutStore((s) => s.setOpen);
+  const activePath = useViewerStore((s) => s.activePath);
+  const buildFailed = useBuildStore((s) => s.status === "failed");
   const chatInputRef = useRef<HTMLTextAreaElement>(null);
   const canvas = useCanvasStore((s) => s.canvas);
   const hasStream = isCanvasStreamEnabled() && canvas.order.length > 0;
@@ -166,21 +178,50 @@ export function ProjectPage() {
     if (projectId) void useCanvasStore.getState().open(projectId);
   }, [projectId]);
 
+  // A file opened from the map, the card or Files shows in the code panel.
+  useEffect(() => {
+    if (activePath) setPanelOpen("code", true);
+  }, [activePath, setPanelOpen]);
+
+  const errors = journalErrors(feed, buildFailed, canvas);
+  const partId = activePath ? partOfFile(canvas, activePath) : null;
+  const label = (id: string) => canvas.nodes[id]?.label ?? id;
+
+  /** A panel at an edge: a title with its close button, and what it shows. */
+  const panelFrame = (id: PanelId, body: ReactNode) => {
+    const name = t(PANEL_NAMES[id]);
+    return (
+      <section aria-label={name} data-testid={`panel-${id}`} className="flex h-full min-h-0 w-full min-w-0 flex-col bg-surface">
+        <div className="flex h-9 shrink-0 items-center border-b border-border bg-surface-elevated px-3">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">{name}</span>
+          <button
+            type="button"
+            aria-label={t("workspace.closePanel", { name })}
+            onClick={() => setPanelOpen(id, false)}
+            className="ml-auto flex size-6 items-center justify-center rounded text-text-muted hover:bg-surface hover:text-text"
+          >
+            <IconClose className="size-3.5" />
+          </button>
+        </div>
+        {body}
+      </section>
+    );
+  };
+
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col bg-surface font-sans text-text">
-      <StatusBar />
-      {hasStream ? null : <PhaseRail />}
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <nav aria-label={t("project.workspaceTabs")} className="flex shrink-0 border-b border-border lg:hidden">
-          <button type="button" aria-pressed={smallScreenTab === "map"} onClick={() => setSmallScreenTab("map")} className="flex-1 px-4 py-2 text-sm aria-pressed:text-accent">
-            {t("project.mapTab")}
-          </button>
-          <button type="button" aria-pressed={smallScreenTab === "chat"} onClick={() => setSmallScreenTab("chat")} className="flex-1 px-4 py-2 text-sm aria-pressed:text-accent">
-            {t("project.chatTab")}
-          </button>
-        </nav>
-        <div className="flex min-h-0 flex-1 overflow-hidden">
-          <section aria-label={t("project.mapTab")} className={`relative flex min-h-0 min-w-0 flex-1 overflow-hidden ${smallScreenTab === "chat" ? "hidden lg:flex" : "flex"}`}>
+    <div className="flex h-dvh w-full flex-none overflow-hidden bg-surface font-sans text-text" data-testid="workspace">
+      {panels.files.open && (
+        <>
+          <div className="flex shrink-0" style={{ width: panels.files.size }}>
+            {panelFrame("files", <FilesPanel state={canvas} partLabel={label} />)}
+          </div>
+          <ResizeHandle panel="files" edge="right" label={t("workspace.resizePanel", { name: t("workspace.filesPanel") })} />
+        </>
+      )}
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <section aria-label={t("project.mapTab")} className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+          {!hasStream && <PhaseRail />}
+          <div className="relative min-h-0 flex-1">
             {hasStream ? (
               <Suspense fallback={null}>
                 <GraphCanvas
@@ -196,12 +237,12 @@ export function ProjectPage() {
                   <PartCallout state={canvas} nodeId={selectedPart} api={graphApi} onMore={() => setPartPanel(true)} {...partActions} />
                 )}
                 {selectedPart && partPanel && <PartPanel state={canvas} nodeId={selectedPart} {...partActions} />}
-                <TaskLayer state={canvas} />
-                <div className="pointer-events-none absolute inset-x-4 top-4 z-10">
+                <TaskLayer state={canvas} history={historyOpen} onHistoryChange={setHistoryOpen} />
+                <div className="pointer-events-none absolute inset-x-4 top-16 z-10">
                   <StageRail state={canvas} now={now} onStop={taskControl ? () => taskControl.stop() : undefined} />
                 </div>
                 <NoteCapsule api={graphApi} nodeId={canvas.focusedId} count={waitingNotes} />
-                <div className="pointer-events-none absolute inset-x-0 bottom-4 z-10 flex justify-center px-4">
+                <div className="pointer-events-none absolute inset-x-0 bottom-4 z-10 flex justify-center px-16">
                   <MessagesDock
                     state={canvas}
                     running={taskControl !== null}
@@ -223,28 +264,51 @@ export function ProjectPage() {
             ) : (
               <CanvasPanel onAskAbout={handleAskAbout} />
             )}
-            <ViewerLayoutContainer />
-          </section>
-          <aside aria-label={t("project.chatTab")} className={`flex min-h-0 w-full shrink-0 flex-col border-l border-border bg-surface lg:w-[360px] min-[1280px]:w-[400px] ${smallScreenTab === "map" ? "hidden lg:flex" : "flex"}`}>
-            <div className="min-h-0 flex-1 overflow-y-auto p-3 space-y-1.5 text-sm" aria-live="polite" data-testid="task-feed">
-              {feed.map((line, i) => (
-                <FeedLineView key={i} line={line} />
-              ))}
+            {/* Islands in the corners: the project with its menu and the panel buttons; help. */}
+            <div className="pointer-events-none absolute left-3 top-3 z-30 flex items-center gap-2">
+              <ProjectMenu onHistory={canvas.history.length > 0 ? () => setHistoryOpen(true) : undefined} />
+              <PanelToggles journalError={errors.agent || errors.build || errors.program} />
             </div>
-            {/* With the living canvas the field is on the canvas. */}
-            {!hasStream && (
-              <ChatComposer
-                value={chatDraft}
-                onChange={setChatDraft}
-                onSend={sendMessage}
-                isSending={isSending}
-                statusMessage={chatStatus}
-                inputRef={chatInputRef}
-              />
-            )}
-          </aside>
-        </div>
+            <div className="pointer-events-none absolute bottom-4 right-4 z-30">
+              <HelpButton />
+            </div>
+          </div>
+          {/* Until the living canvas shows the map, the field is under it. */}
+          {!hasStream && (
+            <ChatComposer
+              value={chatDraft}
+              onChange={setChatDraft}
+              onSend={sendMessage}
+              isSending={isSending}
+              statusMessage={chatStatus}
+              inputRef={chatInputRef}
+            />
+          )}
+        </section>
+        {panels.journal.open && (
+          <>
+            <ResizeHandle panel="journal" edge="top" label={t("workspace.resizePanel", { name: t("workspace.journalPanel") })} />
+            <div className="flex shrink-0" style={{ height: panels.journal.size }}>
+              <JournalPanel feed={feed} taskStatus={chatStatus} state={canvas} errors={errors} />
+            </div>
+          </>
+        )}
       </div>
+      {panels.code.open && (
+        <>
+          <ResizeHandle panel="code" edge="left" label={t("workspace.resizePanel", { name: t("workspace.codePanel") })} />
+          <div className="flex shrink-0" style={{ width: panels.code.size }}>
+            {panelFrame(
+              "code",
+              activePath ? (
+                <ViewerLayoutContainer part={partId ? { label: label(partId), onGoTo: () => partActions.onGoTo(partId) } : null} />
+              ) : (
+                <p className="p-4 text-sm text-text-muted">{t("code.empty")}</p>
+              ),
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }

@@ -8,10 +8,22 @@ import { ArtifactWindow, HistoryPanel, ResultScreen, TaskPanel } from "./TaskVie
  * The task over the canvas: its panel bottom left while it runs, the "Done" screen at its end, the history
  * of changes, and a window for what a task produced.
  */
-export function TaskLayer({ state }: { state: CanvasState }) {
+export function TaskLayer({
+  state,
+  history: shownHistory,
+  onHistoryChange,
+}: {
+  state: CanvasState;
+  /** With `onHistoryChange` the history is opened from outside (the project menu), without its own button. */
+  history?: boolean;
+  onHistoryChange?: (open: boolean) => void;
+}) {
   const { t } = useTranslation();
   const [open, setOpen] = useState<Artifact | null>(null);
-  const [history, setHistory] = useState(false);
+  const [ownHistory, setOwnHistory] = useState(false);
+  const controlled = onHistoryChange !== undefined;
+  const history = controlled ? (shownHistory ?? false) : ownHistory;
+  const setHistory = (next: boolean) => (controlled ? onHistoryChange(next) : setOwnHistory(next));
   // The "Done" screen of a result goes once closed; a new result shows it again.
   const resultAt = state.history[state.history.length - 1]?.at ?? null;
   const [closedAt, setClosedAt] = useState<number | null>(null);
@@ -29,10 +41,10 @@ export function TaskLayer({ state }: { state: CanvasState }) {
           <ResultScreen state={state} onOpen={setOpen} onClose={() => setClosedAt(resultAt)} />
         </div>
       )}
-      {state.history.length > 0 && (
+      {!controlled && state.history.length > 0 && (
         <button
           type="button"
-          onClick={() => setHistory((h) => !h)}
+          onClick={() => setHistory(!history)}
           aria-pressed={history}
           className="absolute left-4 top-4 z-10 rounded-full border border-[#30363d] bg-[rgba(20,22,29,0.92)] px-3 py-1 text-xs text-[#c9d1d9] hover:border-[#58a6ff]"
         >
