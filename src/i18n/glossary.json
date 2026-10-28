@@ -29,7 +29,7 @@
     {
       "id": "subpart",
       "note": "A part inside a part.",
-      "say": { "en": "subpart", "ru": "подчасть", "pt-BR": "subparte", "es": "subparte", "de": "Unterteil" }
+      "say": { "en": "subpart", "ru": "подчасть", "pt-BR": "subparte", "es": "subparte", "de": "Teilbereich" }
     },
     {
       "id": "map",
@@ -88,23 +88,16 @@
         "ru": "Вернуть как было",
         "pt-BR": "Deixar como estava",
         "es": "Dejar como estaba",
-        "de": "Zurücksetzen"
+        "de": "Rückgängig machen"
       },
-      "expect": { "ru": ["как было"], "pt-BR": ["como estava"], "es": ["como estaba"], "de": ["zurückgesetzt", "zurücksetz"] }
+      "expect": { "ru": ["как было"], "pt-BR": ["como estava"], "es": ["como estaba"], "de": ["wie vorher", "rückgängig"] }
     },
     {
       "id": "build",
-      "note": "Building the project into a ready program.",
+      "note": "Building the project into a ready program. de: the noun is \"Build\", the verb \"bauen\".",
       "match": "\\bbuild(s|ing)?\\b|\\bbuilt\\b",
       "say": { "en": "build", "ru": "сборка, собрать", "pt-BR": "compilação, compilar", "es": "compilación, compilar", "de": "Build, bauen" },
-      "expect": { "ru": ["сбор", "собр", "собир"], "pt-BR": ["compil"], "es": ["compil"], "de": ["build", "bau"] },
-      "except": {
-        "ru": ["canvas.emptyCanvasDescription"],
-        "pt-BR": ["canvas.emptyCanvasDescription"],
-        "es": ["canvas.emptyCanvasDescription"],
-        "de": ["canvas.emptyCanvasDescription"]
-      },
-      "exceptNote": "\"build a graph\" is drawing the map, not building the project."
+      "expect": { "ru": ["сбор", "собр", "собир"], "pt-BR": ["compil"], "es": ["compil"], "de": ["build", "bau"] }
     },
     {
       "id": "program",

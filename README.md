@@ -49,6 +49,12 @@ where the English text has a term, the translation uses the agreed word, and no 
 such as `VibeFork`. On the dev server, `?pseudo` in the address shows every dictionary text
 accented, longer and in `⟦…⟧`: text without the brackets is written into the code.
 
+`npm run i18n:context` prints every text for review: its translations, where it is used (file, component), its
+role (button, title, error, hint…), the keys next to it, and flags — a translation too long for a narrow role
+(button, badge, tab, tray) or still equal to English. `-- --key <prefix>` narrows it, `-- --flags` keeps the
+flagged texts, `-- --agent <dir>` adds the agent's Fluent messages with the place each one is read,
+`-- --json` prints JSON.
+
 ## License
 
 MIT
