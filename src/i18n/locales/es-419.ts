@@ -1,7 +1,8 @@
 import type { TranslationSchema } from "../types.ts";
 
-// Spanish. The person is addressed as "tú"; terms follow ../glossary.json.
-export const es: TranslationSchema = {
+// Spanish (Latin America): neutral Latin American usage ("computadora", "agregar", the simple past).
+// The person is addressed as "tú"; terms follow ../glossary.json.
+export const es419: TranslationSchema = {
   common: {
     appTitle: "Editor Vibefork",
     backToHome: "Volver al inicio",
@@ -44,7 +45,7 @@ export const es: TranslationSchema = {
   },
   connectAi: {
     connectedTitle: "Conectadas",
-    addTitle: "Añadir una IA",
+    addTitle: "Agregar una IA",
     searchPlaceholder: "Buscar una IA",
     groupSubscription: "Con suscripción",
     groupFree: "Gratis",
@@ -142,7 +143,7 @@ export const es: TranslationSchema = {
     changedFiles: "Archivos cambiados respecto al original:",
     changesDependencies: "Cambia dependencias:",
     changesBuildScripts: "Cambia scripts de compilación:",
-    changesBinaries: "Añade o cambia archivos binarios:",
+    changesBinaries: "Agrega o cambia archivos binarios:",
     incompleteCheck: "No se comprobaron todos los archivos cambiados — revisa los cambios antes de compilar.",
     viewChanges: "Ver los cambios en GitHub",
     projectReady: "Proyecto listo:",

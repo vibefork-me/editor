@@ -35,8 +35,10 @@ part in the frame, no drift at rest and at least 45 frames per second; screensho
 
 Interface texts live in `src/i18n/locales/<code>.ts`; the languages and their status are in `src/i18n/config.ts`
 (`ready` — fully translated, offered to people; `declared` — recognized from the browser, any missing text shown
-in English). The interface is in English, Russian, Brazilian Portuguese, Spanish and German; each language is
-named in itself (`LOCALE_NAMES`), outside the dictionaries. English is in the first-screen bundle, every other
+in English). The interface is in English, Russian, Brazilian Portuguese, Spanish of Spain (`es-ES`), Latin
+American Spanish (`es-419`) and German; each language is named in itself (`LOCALE_NAMES`), outside the
+dictionaries. A browser in `es-ES` gets Spain's Spanish, any other Spanish one Latin American Spanish; a choice
+stored as `es` by earlier versions is read as `es-419`. English is in the first-screen bundle, every other
 language is a separate chunk loaded when chosen.
 Texts are ICU messages: `{name}`, `{n, number}`, `{n, plural, one {# file} other {# files}}` (CLDR plural rules
 via `Intl.PluralRules`), `{kind, select, … other {…}}`. Numbers, sizes and dates go through `Intl`
