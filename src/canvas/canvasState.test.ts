@@ -142,3 +142,21 @@ describe("canvas state: task", () => {
     expect(JSON.stringify(initialCanvasState)).toBe(before);
   });
 });
+
+describe("canvas state: work of an unknown amount", () => {
+  const records = [
+    { seq: 1, at: 1000, session: "b1", ev: { type: "project", id: "root", label: "notes-app", summary: "" } },
+    { seq: 2, at: 2000, session: "b1", ev: { type: "stage", id: "check" } },
+    { seq: 3, at: 2000, session: "b1", ev: { type: "eta", scope: "task", seconds: 40 } },
+    { seq: 4, at: 2100, session: "b1", ev: { type: "progress", done: 0, total: 0, eta: 0, id: "root", spec: "go@1.23" } },
+    { seq: 5, at: 9000, session: "b1", ev: { type: "check", ok: true, text: "The build passed", kind: "build", exit: 0 } },
+  ] as const;
+  const state = (n: number) => buildCanvasState(records.slice(0, n) as never);
+
+  it("spins on the build's node until the next event", () => {
+    expect(state(4).progress).toMatchObject({ unit: undefined, spec: "go@1.23", id: "root" });
+    expect(canvasNodes(state(4)).find((n) => n.id === "root")?.progress).toBe(-1);
+    expect(etaLeft(state(4), 2000)).toEqual({ scope: "task", left: 40 });
+    expect(state(5).progress).toBeNull();
+  });
+});
