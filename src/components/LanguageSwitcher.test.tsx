@@ -18,10 +18,12 @@ describe("LanguageSwitcher", () => {
 
     expect(ruBtn.getAttribute("aria-pressed")).toBe("true");
     expect(enBtn.getAttribute("aria-pressed")).toBe("false");
-    for (const name of ["Português (Brasil)", "Español", "Deutsch"]) {
+    for (const name of ["Português (Brasil)", "Español (España)", "Español (Latinoamérica)", "Deutsch"]) {
       expect(screen.getByRole("button", { name }).getAttribute("aria-pressed")).toBe("false");
     }
     expect(screen.getByRole("button", { name: "Deutsch" }).textContent).toBe("DE");
+    expect(screen.getByRole("button", { name: "Español (España)" }).textContent).toBe("ES");
+    expect(screen.getByRole("button", { name: "Español (Latinoamérica)" }).textContent).toBe("LAT");
   });
 
   it("switches language on click", () => {

@@ -48,21 +48,28 @@ export function loadLocale(locale: Locale): Promise<void> {
 
 export const STORAGE_KEY = "vf_locale";
 
-// Belarusian and Kazakh readers get Russian; every Portuguese reader gets Brazilian Portuguese.
+// Belarusian and Kazakh readers get Russian; every Portuguese reader gets Brazilian Portuguese; Spanish
+// readers get Latin American Spanish, except Spain's.
 const LANGUAGE_LOCALES: Record<string, Locale> = {
   ru: "ru",
   be: "ru",
   kk: "ru",
   pt: "pt-BR",
-  es: "es",
+  es: "es-419",
   de: "de",
 };
 
 /** The language for a browser language tag; English for one the editor does not know (Ukrainian too). */
 export function localeForLanguage(tag: string): Locale {
-  const lang = tag.toLowerCase().split(/[-_]/)[0] ?? "";
+  const [lang = "", region = ""] = tag.toLowerCase().split(/[-_]/);
+  if (lang === "es" && region === "es") return "es-ES";
   return LANGUAGE_LOCALES[lang] ?? "en";
 }
+
+/** Choices stored by earlier versions under a code that is no longer a language of the editor. */
+const RENAMED_LOCALES: Record<string, Locale> = {
+  es: "es-419",
+};
 
 /** The person's choice, else by the browser's first language; English when it is unknown. */
 export function detectInitialLocale(): Locale {
@@ -71,6 +78,12 @@ export function detectInitialLocale(): Locale {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (isLocale(stored)) {
         return stored;
+      }
+      const renamed =
+        stored !== null && Object.prototype.hasOwnProperty.call(RENAMED_LOCALES, stored) ? RENAMED_LOCALES[stored] : undefined;
+      if (renamed) {
+        localStorage.setItem(STORAGE_KEY, renamed);
+        return renamed;
       }
     } catch {
       // Storage might be restricted by browser policy

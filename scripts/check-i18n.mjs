@@ -6,7 +6,8 @@
 // - every text parses as a message and uses the same values as the English one;
 // - no file in src/i18n/locales belongs to an undeclared language;
 // - the terms of src/i18n/glossary.json: where the English text has a term, the translation says it the
-//   agreed way; no text uses a forbidden spelling.
+//   agreed way; no text uses a forbidden spelling; the form of address and every term are given for every
+//   language.
 // Runs the TypeScript sources directly (Node strips the types).
 import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -84,6 +85,12 @@ for (const [locale, texts] of dictionaries) {
     for (const spelling of glossary.forbidden ?? []) {
       if (typeof text === "string" && text.includes(spelling)) errors.push(`${locale}: ${key}: "${spelling}" (glossary forbids it)`);
     }
+  }
+}
+for (const locale of Object.keys(LOCALE_STATUS)) {
+  if (!glossary.address?.[locale]) errors.push(`glossary: no form of address for ${locale}`);
+  for (const term of glossary.terms) {
+    if (!term.say?.[locale]) errors.push(`glossary: term "${term.id}" is not given for ${locale}`);
   }
 }
 for (const term of glossary.terms) {

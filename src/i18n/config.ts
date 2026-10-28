@@ -10,7 +10,8 @@ export const LOCALE_STATUS = {
   en: "ready",
   ru: "ready",
   "pt-BR": "ready",
-  es: "ready",
+  "es-ES": "ready",
+  "es-419": "ready",
   de: "ready",
 } as const;
 
@@ -24,7 +25,8 @@ export const LOCALE_NAMES: Record<Locale, string> = {
   en: "English",
   ru: "Русский",
   "pt-BR": "Português (Brasil)",
-  es: "Español",
+  "es-ES": "Español (España)",
+  "es-419": "Español (Latinoamérica)",
   de: "Deutsch",
 };
 
@@ -33,7 +35,8 @@ export const LOCALE_MARKS: Record<Locale, string> = {
   en: "EN",
   ru: "RU",
   "pt-BR": "PT",
-  es: "ES",
+  "es-ES": "ES",
+  "es-419": "LAT",
   de: "DE",
 };
 

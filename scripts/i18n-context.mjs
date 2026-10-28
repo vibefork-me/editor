@@ -194,7 +194,7 @@ if (asJson) {
     console.log(`## ${e.surface}: ${e.key} — ${e.role}${e.group ? ` (${e.group})` : ""}`);
     console.log(`used: ${e.used.join("; ") || "—"}`);
     console.log(`next to: ${e.neighbours.join(", ") || "—"}`);
-    for (const [locale, text] of Object.entries(e.texts)) console.log(`  ${locale.padEnd(5)} ${String(text).replaceAll("\n", "⏎")}`);
+    for (const [locale, text] of Object.entries(e.texts)) console.log(`  ${locale.padEnd(6)} ${String(text).replaceAll("\n", "⏎")}`);
     for (const f of e.flags) console.log(`  ! ${f}`);
     console.log("");
   }
