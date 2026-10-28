@@ -26,6 +26,16 @@ describe("stage rail", () => {
     expect(screen.getByTestId("stage-eta").textContent).toBe("Analysis: ≈ 2 min left");
   });
 
+  it("shows a tool being prepared without a known size as work going on", () => {
+    const state = buildCanvasState([
+      { seq: 1, at: 1000, session: "t1", ev: { type: "stage", id: "change" } },
+      { seq: 2, at: 1000, session: "t1", ev: { type: "progress", done: 0, total: 0, eta: 0, id: "root", spec: "rust@stable" } },
+    ]);
+    render(<StageRail state={state} now={1500} />);
+    expect(screen.getByTestId("stage-now").textContent).toContain("rust@stable");
+    expect(screen.getByTestId("stage-progress").firstElementChild?.className).toContain("animate-pulse");
+  });
+
   it("writes sizes in the person's notation and units", () => {
     expect(amounts("en", 1.5 * 1024 * 1024, 4 * 1024 * 1024, "bytes")).toEqual({ done: "1.5", total: "4", unit: "MB" });
     expect(amounts("ru", 1.5 * 1024 * 1024, 4 * 1024 * 1024, "bytes")).toEqual({ done: "1,5", total: "4", unit: "МБ" });

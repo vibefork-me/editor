@@ -136,7 +136,7 @@ export function StageRail({ state, now, onStop }: StageRailProps) {
           </button>
         )}
       </div>
-      {(state.thinking || (p && p.done < p.total) || !quiet) && (
+      {(state.thinking || (p && (!p.unit || p.done < p.total)) || !quiet) && (
         <div
           key={state.thinking?.text ?? stage}
           data-testid="stage-now"
@@ -160,15 +160,16 @@ export function StageRail({ state, now, onStop }: StageRailProps) {
           )}
           {p && (
             <>
-              <span className="h-1.5 w-40 overflow-hidden rounded bg-[#262b36]">
+              <span className="h-1.5 w-40 overflow-hidden rounded bg-[#262b36]" data-testid="stage-progress">
                 <span
-                  className="block h-full bg-[linear-gradient(90deg,#388bfd,#58a6ff)] transition-[width] duration-300"
-                  style={{ width: `${Math.min(100, (p.done / Math.max(1, p.total)) * 100)}%` }}
+                  className={`block h-full bg-[linear-gradient(90deg,#388bfd,#58a6ff)] transition-[width] duration-300 ${p.unit ? "" : "animate-pulse"}`}
+                  style={{ width: p.unit ? `${Math.min(100, (p.done / Math.max(1, p.total)) * 100)}%` : "100%" }}
                 />
               </span>
               <span className="truncate tabular-nums text-[#8b93a7]">
                 {[
                   p.text,
+                  p.spec,
                   p.unit && t("stages.amount", amounts(locale, p.done, p.total, p.unit)),
                   p.done < p.total && formatEta(t, p.eta),
                 ]

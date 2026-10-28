@@ -31,10 +31,14 @@ export interface CanvasLink {
 export interface CanvasProgress {
   done: number;
   total: number;
-  unit: string;
+  /** None when the amount is unknown: the work goes on, `total` and `eta` are 0. */
+  unit?: string;
   eta: number;
   text?: string;
+  /** The map node the work belongs to. */
   id?: string;
+  /** The tool being prepared (`java@temurin-21`). */
+  spec?: string;
 }
 
 export interface CanvasHistoryItem {
@@ -217,7 +221,18 @@ export function applyCanvasEvent(state: CanvasState, ev: CanvasEvent, at: number
     case "stage":
       return { ...s, stage: ev.id, stageStartedAt: at, progress: null };
     case "progress":
-      return { ...s, progress: { done: ev.done, total: ev.total, unit: ev.unit, eta: ev.eta, text: ev.text ?? undefined, id: ev.id ?? undefined } };
+      return {
+        ...s,
+        progress: {
+          done: ev.done,
+          total: ev.total,
+          unit: ev.unit ?? undefined,
+          eta: ev.eta,
+          text: ev.text ?? undefined,
+          id: ev.id ?? undefined,
+          spec: ev.spec ?? undefined,
+        },
+      };
     case "eta":
       return { ...s, eta: { scope: ev.scope, seconds: ev.seconds, at } };
     case "think":
