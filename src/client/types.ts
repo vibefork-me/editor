@@ -185,6 +185,12 @@ export type ProgramOutcome =
  * (`not_found`, `nothing_to_roll_back`, `rollback_not_confirmed`, `not_supported`, …). */
 export type RollbackPartOutcome = { kind: "done" } | { kind: "error"; error: string; code?: string };
 
+/** How a question to explain ended: `done` once the agent's answer (or why there is none) is on the canvas
+ * (`explained`); an error before that has the agent's code (`not_found`, `bad_prompt`,
+ * `task_already_running`, `project_forbidden`, `not_supported` — also for an agent that does not know the
+ * message, …). */
+export type ExplainOutcome = { kind: "done" } | { kind: "error"; error: string; code?: string };
+
 /** What the person can do with a running task. */
 export interface TaskControl {
   /** Pauses it at once. */
@@ -280,6 +286,13 @@ export interface AgentTransport {
   /** Puts one part of the map back as it was before the last task that changed it (the agent asks the
    * user in a native dialog); streams its messages (`canvas` events). Only while no task runs. */
   rollbackPart(params: { projectId: string; id: string }, onMessage: (m: ServerMessage) => void): Promise<RollbackPartOutcome>;
+  /** Has the agent answer a question about the project, or about part `part` of its map, in words: nothing
+   * in the project changes and nothing is asked in the agent's window. Streams its messages (`canvas`
+   * events `question` and `explained`). Only while no task runs in the project. */
+  explain(
+    params: { projectId: string; question: string; part?: string; provider?: string; model?: string; lang?: string },
+    onMessage: (m: ServerMessage) => void,
+  ): Promise<ExplainOutcome>;
   /** Builds a project (the agent asks the user in a native dialog); streams its messages. */
   runBuild(project: string, onMessage: (m: BuildMessage) => void): Promise<BuildOutcome>;
   /**

@@ -648,6 +648,34 @@ describe("task control", () => {
     }
   });
 
+  it("explains with explain: done on the agent's answer, its errors by code, an echo as not supported", async () => {
+    const client = await taskClient();
+    const seen: string[] = [];
+    const outcome = client.explain({ projectId: "notes-app", question: "What is it?", part: "p2", lang: "ru" }, (m) =>
+      seen.push(m.type === "canvas" ? `canvas:${m.ev.type}` : m.type),
+    );
+    await vi.waitFor(() => expect(TaskSocket.last?.sent.map((m) => m.type)).toEqual(["auth", "explain"]));
+    const socket = TaskSocket.last!;
+    expect(socket.sent[1]).toEqual({ type: "explain", project: "notes-app", question: "What is it?", part: "p2", provider: null, model: null, lang: "ru" });
+    socket.emit({ type: "canvas", project: "notes-app", session: "s1", seq: 7, at: 1, ev: { type: "question", text: "What is it?", id: "p2" } });
+    socket.emit({ type: "canvas", project: "notes-app", session: "s1", seq: 8, at: 2, ev: { type: "explained", text: "Notes.", id: "p2" } });
+    await expect(outcome).resolves.toEqual({ kind: "done" });
+    expect(seen).toEqual(["canvas:question", "canvas:explained"]);
+
+    TaskSocket.last = null;
+    const busy = client.explain({ projectId: "notes-app", question: "What?" }, () => {});
+    await vi.waitFor(() => expect(TaskSocket.last?.sent.map((m) => m.type)).toEqual(["auth", "explain"]));
+    TaskSocket.last!.emit({ type: "error", error: "busy", code: "task_already_running" });
+    await expect(busy).resolves.toEqual({ kind: "error", error: "busy", code: "task_already_running" });
+
+    // An agent that does not know the message echoes it.
+    TaskSocket.last = null;
+    const old = client.explain({ projectId: "notes-app", question: "What?" }, () => {});
+    await vi.waitFor(() => expect(TaskSocket.last?.sent.map((m) => m.type)).toEqual(["auth", "explain"]));
+    TaskSocket.last!.emit({ type: "echo", data: "{}" });
+    await expect(old).resolves.toMatchObject({ kind: "error", code: "not_supported" });
+  });
+
   it("reads the journal and resets the project to a version with POST /v1/rollback", async () => {
     const calls: { url: string; body?: unknown }[] = [];
     let confirmed = true;

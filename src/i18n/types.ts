@@ -269,6 +269,8 @@ export interface TranslationSchema {
     close: string;
     askAgent: string;
     askPrefix: string;
+    explain: string;
+    explainQuestion: string;
     showChanges: string;
     undo: string;
     relatedTo: string;
@@ -362,6 +364,18 @@ export interface TranslationSchema {
     placeholderRunning: string;
     placeholderNext: string;
     send: string;
+    explain: string;
+    explainHint: string;
+    statusExplaining: string;
+    statusExplained: string;
+    explainNoModels: string;
+    explainFailed: string;
+    explainCancelled: string;
+    explainBusy: string;
+    explainNotFound: string;
+    explainForbidden: string;
+    explainNotSupported: string;
+    explainBadPrompt: string;
     attach: string;
     removeAttachment: string;
     pastedText: string;

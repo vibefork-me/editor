@@ -67,6 +67,19 @@ describe("part card", () => {
     expect(a.onOpenFile).toHaveBeenCalledWith("src/ui/editor.tsx");
   });
 
+  it("explains the part in words only when offered, waiting while an explanation is under way", () => {
+    const onExplain = vi.fn();
+    const { rerender } = render(<PartCallout state={at(39)} nodeId="ui" api={null} onMore={() => {}} {...actions()} />);
+    expect(screen.queryByRole("button", { name: "Explain this part" })).toBeNull();
+    rerender(<PartCallout state={at(39)} nodeId="ui" api={null} onMore={() => {}} {...actions()} onExplain={onExplain} />);
+    const button = screen.getByRole("button", { name: "Explain this part" }) as HTMLButtonElement;
+    expect(button.title).toBe("Get an answer in words; nothing in the project changes");
+    fireEvent.click(button);
+    expect(onExplain).toHaveBeenCalledWith("ui");
+    rerender(<PartPanel state={at(39)} nodeId="ui" {...actions()} onExplain={onExplain} explaining />);
+    expect((screen.getByRole("button", { name: "Explain this part" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
   it("shows nothing for a part that is not on the canvas", () => {
     const { container } = render(<PartPanel state={at(5)} nodeId="ui" {...actions()} />);
     expect(container.firstChild).toBeNull();
