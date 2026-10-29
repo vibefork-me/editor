@@ -30,7 +30,7 @@ export function TaskPanel({ state }: { state: CanvasState }) {
   return (
     <section aria-label={t("taskView.task")} data-testid="task-panel" className={`${panel} flex max-h-[42vh] w-80 flex-col max-sm:max-h-[28vh] max-sm:w-auto gap-2 overflow-y-auto p-3.5`}>
       <div className={caption}>{t("taskView.task")}</div>
-      <div className="text-[13.5px] text-[#f4f5f8]">{state.task.text}</div>
+      <div className="text-[14px] font-semibold text-[#e2c5ff]">{state.task.text}</div>
       {state.plan.length > 0 && (
         <ol className="flex flex-col gap-1.5">
           {state.plan.map((text, i) => {
@@ -75,19 +75,24 @@ export function ResultScreen({ state, onOpen, onClose }: { state: CanvasState; o
   if (!result) return null;
   const detail = resultDetail(t, result, (id) => state.nodes[id]?.label);
   return (
-    <section aria-label={t("taskView.doneTitle")} data-testid="result-screen" className={`${panel} flex w-[380px] flex-col gap-3 p-4`}>
-      <div className="flex items-start gap-2">
-        <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#238636] text-white">
-          <IconCheck className="h-3.5 w-3.5" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <h2 className="text-[15px] font-bold text-[#f4f5f8]">{resultText(t, result)}</h2>
-          {detail && <p className="mt-0.5 text-[12.5px] text-[#c9d1d9]">{detail}</p>}
-        </div>
-        <button type="button" onClick={onClose} aria-label={t("taskView.close")} className={closeButton}>
-          ×
-        </button>
+    <section
+      aria-label={t("taskView.doneTitle")}
+      data-testid="result-screen"
+      className="relative flex w-[520px] max-w-full animate-slide-up flex-col gap-3 rounded-2xl border border-[rgba(46,160,67,0.55)] bg-[rgba(22,27,34,0.97)] px-6 py-[22px] shadow-[0_20px_60px_rgba(0,0,0,0.5),0_0_0_1px_rgba(46,160,67,0.15)] max-sm:px-4 max-sm:py-4"
+    >
+      <button type="button" onClick={onClose} aria-label={t("taskView.close")} className={`${closeButton} absolute right-2.5 top-2.5 h-7 w-7 rounded-lg`}>
+        ×
+      </button>
+      <div className="flex items-center gap-3 pr-9">
+        <IconPackage />
+        <h2 className="text-[20px] font-bold leading-tight text-[#f4f5f8] max-sm:text-[17px]">{resultText(t, result)}</h2>
       </div>
+      {detail && <p className="text-[14px] leading-normal text-[#c9d1d9]">{detail}</p>}
+      {state.changed.length > 0 && (
+        <p className="text-[12.5px] leading-[1.45] text-[#8b93a7]" data-testid="result-changed">
+          {t("taskView.changed", { parts: state.changed.map((id) => state.nodes[id]?.label ?? id).join(", ") })}
+        </p>
+      )}
       {result.artifacts.length > 0 && (
         <ul className="flex flex-col gap-1">
           {result.artifacts.map((a, i) => (
@@ -111,12 +116,31 @@ export function ResultScreen({ state, onOpen, onClose }: { state: CanvasState; o
           disabled={programLive}
           title={t("program.confirmNote")}
           onClick={() => void runProgramInJournal(projectId)}
-          className="self-start rounded-lg bg-[#238636] px-3 py-1.5 text-[12.5px] font-semibold text-white hover:bg-[#2ea043] disabled:opacity-60"
+          className="mt-1.5 flex items-center gap-1.5 self-start rounded-[9px] border border-[#2ea043] bg-[#238636] px-3.5 py-[9px] text-[13.5px] font-semibold text-white hover:bg-[#2ea043] disabled:opacity-60"
         >
+          <IconPlay />
           {programLive ? t("program.running") : t("program.run")}
         </button>
       )}
     </section>
+  );
+}
+
+function IconPackage() {
+  return (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#3fb950" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0">
+      <path d="M16 16l2 2 4-4" />
+      <path d="M21 10V8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l2-1.1" />
+      <path d="M3.3 7 12 12l8.7-5M12 22V12" />
+    </svg>
+  );
+}
+
+function IconPlay() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M6 3l14 9-14 9z" />
+    </svg>
   );
 }
 

@@ -383,6 +383,24 @@ export function ProjectPage() {
               />
               <PanelToggles journalError={errors.agent || errors.build || errors.program} />
             </div>
+            {/* The history of changes under the project, once there is some; the "Done" screen folds into it. */}
+            {canvas.history.length > 0 && !historyOpen && (
+              <button
+                type="button"
+                data-testid="history-pill"
+                onClick={() => {
+                  setHistoryOpen(true);
+                  void rollback.loadVersions();
+                }}
+                className="absolute left-3 top-14 z-30 flex items-center max-sm:hidden gap-1.5 rounded-full border border-[#30363d] bg-[rgba(20,22,29,0.92)] px-2.5 py-1 text-xs text-[#c9d1d9] hover:border-[#58a6ff]"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M3 12a9 9 0 1 0 9-9 9.8 9.8 0 0 0-6.7 2.7L3 8" />
+                  <path d="M3 3v5h5M12 7v5l4 2" />
+                </svg>
+                {t("taskView.history")} · {canvas.history.length}
+              </button>
+            )}
             <div className="pointer-events-none absolute right-3 top-3 z-30">
               <MapControls />
             </div>

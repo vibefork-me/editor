@@ -40,10 +40,18 @@ export function TaskLayer({
         <TaskPanel state={state} />
       </div>
       {state.result && resultAt !== closedAt && !open && !history && (
-        // Above the message field at the bottom of the canvas.
-        <div className="absolute inset-x-0 bottom-40 z-10 flex justify-center">
-          <ResultScreen state={state} onOpen={setOpen} onClose={() => setClosedAt(resultAt)} />
-        </div>
+        // The moment the person came for: in the middle, the map behind it dimmed; the message field stays above.
+        <>
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 z-10 animate-[fade-in_1s_ease-out_1.2s_both] bg-[radial-gradient(ellipse_at_center,rgba(20,22,29,0.35)_0%,rgba(20,22,29,0.8)_70%)]"
+          />
+          <div className="pointer-events-none absolute inset-x-3 bottom-40 top-24 z-10 flex items-center justify-center">
+            <div className="pointer-events-auto max-h-full max-w-full overflow-y-auto">
+              <ResultScreen state={state} onOpen={setOpen} onClose={() => setClosedAt(resultAt)} />
+            </div>
+          </div>
+        </>
       )}
       {!controlled && state.history.length > 0 && (
         <button
