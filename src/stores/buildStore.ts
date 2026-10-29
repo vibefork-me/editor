@@ -1,5 +1,7 @@
 import { create } from "zustand";
 import type { BuildMessage, BuildOutcome } from "../client/types.ts";
+import { toolErrorKey } from "../client/agent-errors.ts";
+import { translate, useI18nStore } from "../i18n/i18nStore.ts";
 import { getAgentTransport } from "./agent-bridge.ts";
 
 export function buildLogLine(m: BuildMessage): string | null {
@@ -8,8 +10,12 @@ export function buildLogLine(m: BuildMessage): string | null {
     case "build_log":
     case "stderr":
       return m.text;
-    case "toolchain":
+    case "toolchain": {
+      // A known code is worded in the person's language; an unknown one keeps the agent's text.
+      const key = toolErrorKey(m.code);
+      if (key) return translate(useI18nStore.getState().locale, key, { tool: m.tool });
       return `${m.tool}: ${m.status}${m.error ? ` — ${m.error}` : ""}`;
+    }
     default:
       return null;
   }

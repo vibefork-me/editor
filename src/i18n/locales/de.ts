@@ -230,6 +230,14 @@ export const de: TranslationSchema = {
     notEnoughResources: "Dieser Computer hat nicht genug Arbeitsspeicher oder Speicherplatz für den Build",
     buildStartFailed: "Der Build konnte nicht starten",
   },
+  toolErrors: {
+    unsupportedPlatform: "{tool} lässt sich auf dem System dieses Computers nicht installieren",
+    downloadFailed: "Das Installationsprogramm für Werkzeuge konnte nicht heruntergeladen werden, daher ist {tool} nicht installiert. Prüfe die Internetverbindung",
+    installFailed: "{tool} konnte nicht installiert werden",
+    timedOut: "Die Installation von {tool} hat zu lange gedauert und wurde gestoppt",
+    cancelled: "Die Installation von {tool} wurde abgebrochen",
+    notAllowed: "{tool} wurde nicht installiert: Du hast es nicht erlaubt",
+  },
   stages: {
     download: "Download",
     downloadLong: "Das Projekt wird heruntergeladen",
@@ -319,6 +327,8 @@ export const de: TranslationSchema = {
     describingMap: "Die Karte des Projekts wird gezeichnet…",
     partsFailed: "Das Projekt ließ sich nicht in Teile gliedern — Ordner werden angezeigt.",
     partsRetry: "Noch einmal versuchen",
+    partsNoModels: "Verbinde eine KI, um das Projekt in Teile zu gliedern — Ordner werden angezeigt.",
+    partsNoFiles: "Das Projekt hat noch keine Dateien, es gibt noch keine Teile.",
     reconnectingNotice: "Verbindung zum Agenten wird wiederhergestellt…",
     emptyCanvasTitle: "Noch keine Karte",
     emptyCanvasDescription: "Der Agent zeichnet die Karte der Teile, während er das Projekt erkundet.",

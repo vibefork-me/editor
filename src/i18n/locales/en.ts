@@ -228,6 +228,14 @@ export const en: TranslationSchema = {
     notEnoughResources: "This computer does not have enough memory or disk for the build",
     buildStartFailed: "The build could not start",
   },
+  toolErrors: {
+    unsupportedPlatform: "{tool} cannot be installed on this computer's system",
+    downloadFailed: "The installer of tools could not be downloaded, so {tool} is not installed. Check the internet connection",
+    installFailed: "{tool} could not be installed",
+    timedOut: "Installing {tool} took too long and was stopped",
+    cancelled: "Installing {tool} was cancelled",
+    notAllowed: "{tool} was not installed: you did not allow it",
+  },
   stages: {
     download: "Download",
     downloadLong: "Downloading the project",
@@ -317,6 +325,8 @@ export const en: TranslationSchema = {
     describingMap: "Drawing project map…",
     partsFailed: "Could not split the project into parts — showing folders.",
     partsRetry: "Try again",
+    partsNoModels: "Connect an AI to split the project into parts — showing folders.",
+    partsNoFiles: "The project has no files yet, so there are no parts to show.",
     reconnectingNotice: "Reconnecting to the agent…",
     emptyCanvasTitle: "No map yet",
     emptyCanvasDescription: "The agent draws the map of the parts as it explores the project.",

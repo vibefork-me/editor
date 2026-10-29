@@ -1,8 +1,16 @@
 import { useTranslation } from "../i18n/i18nStore.ts";
+import { useAiPanelStore } from "../stores/aiPanelStore.ts";
 import { useGraphStore } from "../stores/graphStore.ts";
 import { useSessionStore } from "../stores/sessionStore.ts";
 
 const pill = "pointer-events-auto flex h-9 items-center gap-2 rounded-lg border bg-surface-elevated/95 px-3 text-xs shadow-lg backdrop-blur";
+
+/** What the notice says, by the agent's code; an older agent sends none. */
+function noticeKey(code: string | undefined) {
+  if (code === "no_models") return "canvas.partsNoModels" as const;
+  if (code === "project_empty") return "canvas.partsNoFiles" as const;
+  return "canvas.partsFailed" as const;
+}
 
 /**
  * The top right island of the canvas: parts or folders, and what the map is waiting for — the model
@@ -15,6 +23,7 @@ export function MapControls() {
   const isDescribing = useGraphStore((s) => s.isDescribing);
   const mapNotice = useGraphStore((s) => s.mapNotice);
   const retryParts = useGraphStore((s) => s.retryParts);
+  const openAiPanel = useAiPanelStore((s) => s.setOpen);
   const reconnecting = useSessionStore((s) => s.connectionStatus === "reconnecting");
 
   return (
@@ -41,10 +50,18 @@ export function MapControls() {
       )}
       {!isDescribing && mapNotice && (
         <div data-testid="map-notice" role="status" title={mapNotice.reason} className={`${pill} border-border text-text-muted`}>
-          {t("canvas.partsFailed")}
-          <button type="button" className="font-medium text-accent hover:underline" onClick={() => void retryParts()}>
-            {t("canvas.partsRetry")}
-          </button>
+          {t(noticeKey(mapNotice.code))}
+          {mapNotice.code === "no_models" ? (
+            <button type="button" className="font-medium text-accent hover:underline" onClick={() => openAiPanel(true)}>
+              {t("status.aiConnect")}
+            </button>
+          ) : (
+            mapNotice.code !== "project_empty" && (
+              <button type="button" className="font-medium text-accent hover:underline" onClick={() => void retryParts()}>
+                {t("canvas.partsRetry")}
+              </button>
+            )
+          )}
         </div>
       )}
       {reconnecting && (

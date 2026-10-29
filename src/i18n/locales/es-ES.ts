@@ -231,6 +231,14 @@ export const esES: TranslationSchema = {
     notEnoughResources: "Este ordenador no tiene suficiente memoria o espacio en disco para la compilación",
     buildStartFailed: "No se ha podido iniciar la compilación",
   },
+  toolErrors: {
+    unsupportedPlatform: "{tool} no se puede instalar en el sistema de este ordenador",
+    downloadFailed: "No se ha podido descargar el instalador de herramientas, así que {tool} no está instalado. Comprueba la conexión a internet",
+    installFailed: "No se ha podido instalar {tool}",
+    timedOut: "La instalación de {tool} tardaba demasiado y se ha detenido",
+    cancelled: "Se ha cancelado la instalación de {tool}",
+    notAllowed: "{tool} no se ha instalado: no lo has permitido",
+  },
   stages: {
     download: "Descarga",
     downloadLong: "Descargando el proyecto",
@@ -320,6 +328,8 @@ export const esES: TranslationSchema = {
     describingMap: "Dibujando el mapa del proyecto…",
     partsFailed: "No se ha podido dividir el proyecto en partes — se muestran las carpetas.",
     partsRetry: "Intentar de nuevo",
+    partsNoModels: "Conecta una IA para dividir el proyecto en partes — se muestran las carpetas.",
+    partsNoFiles: "El proyecto aún no tiene archivos, así que no hay partes que mostrar.",
     reconnectingNotice: "Reconectando con el agente…",
     emptyCanvasTitle: "Todavía no hay mapa",
     emptyCanvasDescription: "El agente dibujará el mapa de las partes mientras explora el proyecto.",
