@@ -239,13 +239,13 @@ describe("Workspace build and foreign changes flow", () => {
 
       await waitFor(() => {
         expect(screen.getByRole("alert")).toBeTruthy();
-        expect(screen.getByText(/Build was not confirmed in the agent dialog\./i)).toBeTruthy();
+        expect(screen.getByText(/The build was not allowed in the agent window./i)).toBeTruthy();
       });
 
       useI18nStore.getState().setLocale("ru");
       await waitFor(() => {
         expect(
-          screen.getByText(/Сборка не была подтверждена в окне агента\./i)
+          screen.getByText(/Сборка не была разрешена в окне агента./i)
         ).toBeTruthy();
       });
       useI18nStore.getState().setLocale("en");

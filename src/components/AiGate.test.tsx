@@ -125,7 +125,7 @@ describe("AiGate", () => {
 
     expect(mocks.client.connectAi).toHaveBeenCalledWith("claude");
     expect(
-      await screen.findByText(/Подтвердите в окне агента и войдите в браузере…/i),
+      await screen.findByText(/Разрешите в окне агента и войдите в браузере…/i),
     ).toBeTruthy();
 
     // 3. Polling runs and picks up ready: true
@@ -155,11 +155,11 @@ describe("AiGate", () => {
 
     const signIn = await screen.findByRole("button", { name: "Войти" });
     fireEvent.click(signIn);
-    expect(await screen.findByText(/Подтвердите в окне агента/i)).toBeTruthy();
+    expect(await screen.findByText(/Разрешите в окне агента/i)).toBeTruthy();
 
     // A few polls with Claude still signing in: the card keeps waiting.
     await new Promise((r) => setTimeout(r, 120));
-    expect(screen.getByText(/Подтвердите в окне агента/i)).toBeTruthy();
+    expect(screen.getByText(/Разрешите в окне агента/i)).toBeTruthy();
 
     // Claude signed in: the card shows it without reopening the panel.
     mocks.client.getAiStatus.mockResolvedValue({
@@ -464,7 +464,7 @@ describe("AiGate", () => {
 
     expect(mocks.client.connectAi).toHaveBeenCalledWith("claude", "user");
     expect(
-      await screen.findByText("Действие заблокировано или отменено в окне агента."),
+      await screen.findByText("Не разрешено в окне агента — ничего не сделано."),
     ).toBeTruthy();
   });
 
