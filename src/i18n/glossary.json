@@ -151,14 +151,14 @@
     {
       "id": "computer",
       "note": "The person's computer, where the agent runs. es-ES says \"ordenador\", es-419 \"computadora\".",
-      "match": "\bcomputers?\b",
+      "match": "\\bcomputers?\\b",
       "say": { "en": "computer", "ru": "компьютер", "pt-BR": "computador", "es-ES": "ordenador", "es-419": "computadora", "de": "Computer" },
       "expect": { "es-ES": ["ordenador"], "es-419": ["computadora"] }
     },
     {
       "id": "add",
       "note": "Adding something (an AI, a file). es-ES says \"añadir\", es-419 \"agregar\".",
-      "match": "\badds?\b",
+      "match": "\\badds?\\b",
       "say": { "en": "add", "ru": "добавить", "pt-BR": "adicionar", "es-ES": "añadir", "es-419": "agregar", "de": "hinzufügen" },
       "expect": { "es-ES": ["añad"], "es-419": ["agreg"] }
     },
