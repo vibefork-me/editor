@@ -2,6 +2,7 @@ import { create } from "zustand";
 import type { ProgramStream, ServerMessage } from "../client/protocol.generated.ts";
 import type { ProgramOutcome } from "../client/types.ts";
 import { getAgentTransport } from "./agent-bridge.ts";
+import { useLayoutStore } from "./layoutStore.ts";
 
 /** Most lines of the program's output kept on the page; older ones go. */
 export const PROGRAM_LINES_KEPT = 1000;
@@ -13,7 +14,14 @@ export interface ProgramLine {
 }
 
 export type ProgramStatus = "idle" | "starting" | "running" | "exited" | "failed" | "cancelled";
-export type ProgramErrorKind = "noConnection" | "notConfirmed" | "noRecipe" | "notSupported" | "agentError";
+export type ProgramErrorKind =
+  | "noConnection"
+  | "notConfirmed"
+  | "noRecipe"
+  | "notSupported"
+  | "startFailed"
+  | "notFound"
+  | "agentError";
 
 export interface ProgramState {
   /** The project whose program the output belongs to. */
@@ -45,6 +53,10 @@ function errorKind(outcome: { error: string; code?: string }): ProgramErrorKind 
       return "noRecipe";
     case "not_supported":
       return "notSupported";
+    case "run_failed":
+      return "startFailed";
+    case "not_found":
+      return "notFound";
     default:
       return "agentError";
   }
@@ -95,3 +107,11 @@ export const useProgramStore = create<ProgramState>((set, get) => ({
     }
   },
 }));
+
+/** Starts the project's program and shows its output: the Journal opens on "Program". */
+export function runProgramInJournal(projectId: string): Promise<ProgramOutcome | null> {
+  const layout = useLayoutStore.getState();
+  layout.setJournalTab("program");
+  layout.setOpen("journal", true);
+  return useProgramStore.getState().start(projectId);
+}

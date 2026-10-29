@@ -186,6 +186,7 @@ export const en: TranslationSchema = {
     errorNotConfirmed: "The run was not allowed in the agent window.",
     errorNoRecipe: "The agent does not know how to run this project.",
     errorNotSupported: "This version of the agent cannot run programs. Update the agent.",
+    errorStartFailed: "The program did not start. Rebuild the project and try again.",
     errorGeneral: "Could not run the program.",
   },
   project: {

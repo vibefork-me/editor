@@ -5,6 +5,11 @@ import { useI18nStore } from "../../i18n/i18nStore.ts";
 import { buildCanvasState } from "../canvasState.ts";
 import { after, stream } from "../testSessions.ts";
 import { ArtifactWindow, HistoryPanel, ResultScreen, TaskPanel } from "./TaskViews.tsx";
+import type { AgentTransport } from "../../client/types.ts";
+import { bindAgentTransport } from "../../stores/agent-bridge.ts";
+import { useLayoutStore } from "../../stores/layoutStore.ts";
+import { useProgramStore } from "../../stores/programStore.ts";
+import { useProjectStore } from "../../stores/projectStore.ts";
 
 const at = (n: number) => buildCanvasState(stream, after(n));
 
@@ -33,6 +38,18 @@ describe("task views", () => {
     expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ kind: "changes" }));
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it("result screen: a task that built the project offers to run its program in the Journal", async () => {
+    const runProgram = vi.fn(async () => ({ kind: "done", code: 0, cut: false }) as const);
+    bindAgentTransport({ runProgram } as unknown as AgentTransport);
+    useProgramStore.getState().setActiveProject(null);
+    useProjectStore.setState({ currentProjectId: "notes-app" });
+    render(<ResultScreen state={at(39)} onOpen={() => {}} onClose={() => {}} />);
+    fireEvent.click(screen.getByTestId("result-run"));
+    expect(runProgram).toHaveBeenCalledWith("notes-app", expect.any(Function), expect.any(Function));
+    expect(useLayoutStore.getState().journalTab).toBe("program");
+    expect(useLayoutStore.getState().panels.journal.open).toBe(true);
   });
 
   it("artifact window: changed files with their part and lines", () => {

@@ -189,6 +189,7 @@ export const esES: TranslationSchema = {
     errorNotConfirmed: "La ejecución no se ha permitido en la ventana del agente.",
     errorNoRecipe: "El agente no sabe cómo ejecutar este proyecto.",
     errorNotSupported: "Esta versión del agente no puede ejecutar programas. Actualiza el agente.",
+    errorStartFailed: "El programa no se ha iniciado. Compila el proyecto de nuevo y vuelve a intentarlo.",
     errorGeneral: "No se ha podido ejecutar el programa.",
   },
   project: {

@@ -188,6 +188,7 @@ export const ptBR: TranslationSchema = {
     errorNotConfirmed: "A execução não foi permitida na janela do agente.",
     errorNoRecipe: "O agente não sabe como executar este projeto.",
     errorNotSupported: "Esta versão do agente não consegue executar programas. Atualize o agente.",
+    errorStartFailed: "O programa não iniciou. Compile o projeto de novo e tente outra vez.",
     errorGeneral: "Não foi possível executar o programa.",
   },
   project: {

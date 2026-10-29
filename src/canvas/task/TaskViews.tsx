@@ -3,6 +3,8 @@ import { IconCheck, IconTriangleAlert } from "../../components/shell/icons.tsx";
 import type { ProjectVersion, RollbackStatus } from "../../hooks/useRollback.ts";
 import { useTranslation } from "../../i18n/i18nStore.ts";
 import type { TranslationKey } from "../../i18n/types.ts";
+import { runProgramInJournal, useProgramStore } from "../../stores/programStore.ts";
+import { useProjectStore } from "../../stores/projectStore.ts";
 import type { CanvasState } from "../canvasState.ts";
 import { checkText, resultDetail, resultText } from "../outcomeText.ts";
 import { TASK_STAGES } from "../rail/StageRail.tsx";
@@ -67,6 +69,8 @@ export function TaskPanel({ state }: { state: CanvasState }) {
 /** The end of a task: what came out, and what it produced. */
 export function ResultScreen({ state, onOpen, onClose }: { state: CanvasState; onOpen: (a: Artifact) => void; onClose: () => void }) {
   const { t } = useTranslation();
+  const projectId = useProjectStore((s) => s.currentProjectId);
+  const programLive = useProgramStore((s) => s.status === "starting" || s.status === "running");
   const result = state.result;
   if (!result) return null;
   const detail = resultDetail(t, result, (id) => state.nodes[id]?.label);
@@ -99,6 +103,18 @@ export function ResultScreen({ state, onOpen, onClose }: { state: CanvasState; o
             </li>
           ))}
         </ul>
+      )}
+      {projectId && result.artifacts.some((a) => a.kind === "build") && (
+        <button
+          type="button"
+          data-testid="result-run"
+          disabled={programLive}
+          title={t("program.confirmNote")}
+          onClick={() => void runProgramInJournal(projectId)}
+          className="self-start rounded-lg bg-[#238636] px-3 py-1.5 text-[12.5px] font-semibold text-white hover:bg-[#2ea043] disabled:opacity-60"
+        >
+          {programLive ? t("program.running") : t("program.run")}
+        </button>
       )}
     </section>
   );
