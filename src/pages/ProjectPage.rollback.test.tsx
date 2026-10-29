@@ -93,7 +93,7 @@ describe("ProjectPage rollback", () => {
     const card = await screen.findByTestId("part-callout");
     fireEvent.click(within(card).getByRole("button", { name: "Put it back as it was" }));
     expect(rollbackPart).toHaveBeenCalledWith({ projectId: "demo", id: "store" }, expect.any(Function));
-    expect(within(card).getByRole("status").textContent).toBe("Confirm in the agent's window");
+    expect(within(card).getByRole("status").textContent).toBe("Allow it in the agent's window");
     expect((within(card).getByRole("button", { name: "Put it back as it was" }) as HTMLButtonElement).disabled).toBe(true);
 
     await act(async () => finishPart!({ kind: "error", error: "nothing to roll back", code: "nothing_to_roll_back" }));
@@ -119,9 +119,9 @@ describe("ProjectPage rollback", () => {
 
     fireEvent.click(restore[0]!);
     expect(rollback).toHaveBeenCalledWith({ projectId: "demo", commit: "aaa1111" });
-    expect(within(history).getByRole("status").textContent).toBe("Confirm in the agent's window");
+    expect(within(history).getByRole("status").textContent).toBe("Allow it in the agent's window");
     await act(async () => finishRestore!(false));
-    expect(within(history).getByRole("status").textContent).toBe("Cancelled in the agent's window; nothing changed");
+    expect(within(history).getByRole("status").textContent).toBe("Not allowed in the agent's window; nothing changed");
 
     fireEvent.click(within(history).getByRole("button", { name: "Restore this version" }));
     const journalReads = getJournal.mock.calls.length;

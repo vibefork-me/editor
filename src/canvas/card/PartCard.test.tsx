@@ -82,7 +82,7 @@ describe("part card", () => {
     rerender(<PartPanel state={at(39)} nodeId="ui" undo={{ status: { state: "failed", reason: "card.rollbackNotSupported" }, onUndo }} {...actions()} />);
     expect(screen.getByRole("status").textContent).toBe("This version of the agent cannot do this; update the agent");
     rerender(<PartCallout state={at(39)} nodeId="ui" api={null} onMore={() => {}} undo={{ status: { state: "confirm" }, onUndo }} {...actions()} />);
-    expect(screen.getByRole("status").textContent).toBe("Confirm in the agent's window");
+    expect(screen.getByRole("status").textContent).toBe("Allow it in the agent's window");
     expect((screen.getByRole("button", { name: "Put it back as it was" }) as HTMLButtonElement).disabled).toBe(true);
   });
 });
