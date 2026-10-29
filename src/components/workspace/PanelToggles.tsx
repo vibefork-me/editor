@@ -33,7 +33,7 @@ export function PanelToggles({ journalError = false }: { journalError?: boolean 
   }, []);
 
   return (
-    <div role="toolbar" aria-label={t("workspace.panels")} className="pointer-events-auto flex h-9 items-center gap-0.5 rounded-lg border border-border bg-surface-elevated/95 px-1 shadow-lg backdrop-blur">
+    <div role="toolbar" aria-label={t("workspace.panels")} className="pointer-events-auto flex h-10 items-center gap-0.5 rounded-xl border border-[#30363d] bg-[rgba(20,22,29,0.94)] p-1 shadow-[0_8px_24px_rgba(0,0,0,0.3)] backdrop-blur">
       {ORDER.map((id) => {
         const Icon = ICONS[id];
         const name = t(PANEL_NAMES[id]);
@@ -48,7 +48,7 @@ export function PanelToggles({ journalError = false }: { journalError?: boolean 
             title={`${t(open ? "workspace.hidePanel" : "workspace.showPanel", { name })} (Alt+${ORDER.indexOf(id) + 1})${error ? ` · ${t("workspace.hasError")}` : ""}`}
             data-testid={`toggle-${id}`}
             onClick={() => toggle(id)}
-            className="relative flex size-7 items-center justify-center rounded text-text-muted hover:bg-surface hover:text-text aria-pressed:bg-accent/15 aria-pressed:text-accent"
+            className="relative flex h-8 w-[34px] items-center justify-center rounded-lg text-[#8b93a7] hover:bg-surface hover:text-text aria-pressed:bg-[rgba(56,139,253,0.18)] aria-pressed:text-[#79c0ff]"
           >
             <Icon className="size-4" />
             {error && <span data-testid="journal-error-badge" className="absolute right-0.5 top-0.5 size-2 rounded-full bg-danger ring-2 ring-surface-elevated" />}

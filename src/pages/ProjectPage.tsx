@@ -318,8 +318,10 @@ export function ProjectPage() {
                     : { items: rollback.versions, restoring: rollback.version, disabled: rollingBack, onRestore: (commit) => void rollback.restoreVersion(commit) }
                 }
               />
-              <div className="pointer-events-none absolute inset-x-4 top-16 z-10">
+              {/* The stages in the top row between the islands; under them on a narrow screen. */}
+              <div className="pointer-events-none absolute inset-x-4 top-16 z-10 flex flex-col items-center gap-2 lg:left-[260px] lg:right-[180px] lg:top-3">
                 <StageRail state={canvas} now={now} onStop={taskControl ? () => taskControl.stop() : undefined} />
+                {canvas.paused && taskControl && <StopBanner onResume={() => taskControl.resume()} onCancel={() => taskControl.cancel()} />}
               </div>
               <NoteCapsule api={graphApi} nodeId={canvas.focusedId} count={waitingNotes} />
               <div className="pointer-events-none absolute inset-x-0 bottom-4 z-10 flex justify-center pl-3 pr-14 sm:px-16">
@@ -341,13 +343,7 @@ export function ProjectPage() {
                   onChooseOffer={chooseOffer}
                   onGoTo={partActions.onGoTo}
                   inputRef={chatInputRef}
-                >
-                  {canvas.paused && taskControl && (
-                    <div className="flex justify-center">
-                      <StopBanner onResume={() => taskControl.resume()} onCancel={() => taskControl.cancel()} />
-                    </div>
-                  )}
-                </MessagesDock>
+                />
               </div>
             </Suspense>
             {canvas.order.length === 0 && !graphLoading && (
@@ -392,7 +388,7 @@ export function ProjectPage() {
                   setHistoryOpen(true);
                   void rollback.loadVersions();
                 }}
-                className="absolute left-3 top-14 z-30 flex items-center max-sm:hidden gap-1.5 rounded-full border border-[#30363d] bg-[rgba(20,22,29,0.92)] px-2.5 py-1 text-xs text-[#c9d1d9] hover:border-[#58a6ff]"
+                className="absolute left-3 top-14 z-30 hidden items-center gap-1.5 lg:flex rounded-full border border-[#30363d] bg-[rgba(20,22,29,0.92)] px-2.5 py-1 text-xs text-[#c9d1d9] hover:border-[#58a6ff]"
               >
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M3 12a9 9 0 1 0 9-9 9.8 9.8 0 0 0-6.7 2.7L3 8" />
