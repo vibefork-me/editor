@@ -317,6 +317,8 @@ export const ru: TranslationSchema = {
     describingMap: "Составляю карту…",
     partsFailed: "Не получилось разбить проект на части — показываю папки.",
     partsRetry: "Повторить",
+    partsNoModels: "Подключите ИИ, чтобы разбить проект на части — пока показываю папки.",
+    partsNoFiles: "В проекте ещё нет файлов — частей пока нет.",
     reconnectingNotice: "Переподключение к агенту…",
     emptyCanvasTitle: "Карта проекта строится",
     emptyCanvasDescription: "Агент рисует карту частей, пока изучает проект.",

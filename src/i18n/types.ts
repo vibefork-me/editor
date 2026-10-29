@@ -311,6 +311,8 @@ export interface TranslationSchema {
     describingMap: string;
     partsFailed: string;
     partsRetry: string;
+    partsNoModels: string;
+    partsNoFiles: string;
     reconnectingNotice: string;
     emptyCanvasTitle: string;
     emptyCanvasDescription: string;
