@@ -1,14 +1,20 @@
 // Key check of the interface languages (part of `npm run check`).
 //
-// For every language in src/i18n/config.ts against English, the source:
+// - src/i18n/shared is an unchanged copy of the shared language list and glossary: the sha256 of each file
+//   is the one in src/i18n/shared/SOURCE.json (`npm run sync:i18n` makes the copy);
+// - the languages of src/i18n/config.ts are exactly those of the shared list, and its source language is
+//   the shared one;
+// For every language against English, the source:
 // - `ready`: the file exists and has exactly the English keys;
-// - `declared`: the file may be missing or partial (coverage is printed), but has no keys English lacks;
+// - `planned`: the file may be missing or partial (coverage is printed), but has no keys English lacks;
 // - every text parses as a message and uses the same values as the English one;
-// - no file in src/i18n/locales belongs to an undeclared language;
-// - the terms of src/i18n/glossary.json: where the English text has a term, the translation says it the
-//   agreed way; no text uses a forbidden spelling; the form of address and every term are given for every
-//   language.
+// - no file in src/i18n/locales belongs to an unlisted language;
+// - the terms of the shared glossary: where the English text has a term, the translation says it the
+//   agreed way, except the keys in src/i18n/glossary.except.json (which name glossary terms, languages and
+//   English keys); no text uses a forbidden spelling; the form of address and every term are given for
+//   every language.
 // Runs the TypeScript sources directly (Node strips the types).
+import { createHash } from "node:crypto";
 import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -19,6 +25,7 @@ const load = (file) => import(pathToFileURL(join(i18n, file)).href);
 
 const { LOCALE_STATUS, SOURCE_LOCALE } = await load("config.ts");
 const { messageArguments } = await load("format.ts");
+const readJson = (...path) => JSON.parse(readFileSync(join(i18n, ...path), "utf8"));
 
 function flatten(obj, prefix = "", out = new Map()) {
   for (const [key, value] of Object.entries(obj)) {
@@ -37,6 +44,25 @@ async function dictionary(locale) {
 }
 
 const errors = [];
+
+// The shared copy and the language list.
+const record = readJson("shared", "SOURCE.json");
+for (const [file, sha256] of Object.entries(record.files ?? {})) {
+  const actual = createHash("sha256").update(readFileSync(join(i18n, "shared", file))).digest("hex");
+  if (actual !== sha256) {
+    errors.push(`src/i18n/shared/${file}: changed by hand (sha256 differs from SOURCE.json); run npm run sync:i18n`);
+  }
+}
+const sharedLocales = readJson("shared", "locales.json");
+const sharedCodes = sharedLocales.locales.map((l) => l.code);
+const codes = Object.keys(LOCALE_STATUS);
+if (JSON.stringify(codes) !== JSON.stringify(sharedCodes)) {
+  errors.push(`config.ts: languages ${codes.join(", ")} differ from the shared list ${sharedCodes.join(", ")}`);
+}
+if (SOURCE_LOCALE !== sharedLocales.source) {
+  errors.push(`config.ts: source language ${SOURCE_LOCALE}, the shared list says ${sharedLocales.source}`);
+}
+
 const source = flatten(await dictionary(SOURCE_LOCALE));
 const sourceArgs = new Map();
 for (const [key, text] of source) {
@@ -73,7 +99,17 @@ for (const [locale, status] of Object.entries(LOCALE_STATUS)) {
 }
 
 // Glossary: checked in every language with a dictionary; a missing key is the key check's business.
-const glossary = JSON.parse(readFileSync(join(i18n, "glossary.json"), "utf8"));
+const glossary = readJson("shared", "glossary.json");
+const exempt = readJson("glossary.except.json").terms ?? {};
+for (const [id, { keys = {} }] of Object.entries(exempt)) {
+  if (!glossary.terms.some((t) => t.id === id)) errors.push(`glossary.except.json: "${id}" is not a glossary term`);
+  for (const [locale, list] of Object.entries(keys)) {
+    if (!(locale in LOCALE_STATUS)) errors.push(`glossary.except.json: ${id}: ${locale} is not a language`);
+    for (const key of list) {
+      if (!source.has(key)) errors.push(`glossary.except.json: ${id}: ${key} is not an English key`);
+    }
+  }
+}
 const dictionaries = new Map([[SOURCE_LOCALE, source]]);
 for (const locale of Object.keys(LOCALE_STATUS)) {
   if (locale === SOURCE_LOCALE) continue;
@@ -101,7 +137,7 @@ for (const term of glossary.terms) {
     // Values such as `{parts}` are names, not words of the text.
     if (typeof english !== "string" || !pattern.test(english.replace(/\{\s*\w+\s*\}/g, ""))) continue;
     for (const [locale, texts] of dictionaries) {
-      if (locale === SOURCE_LOCALE || term.except?.[locale]?.includes(key)) continue;
+      if (locale === SOURCE_LOCALE || exempt[term.id]?.keys?.[locale]?.includes(key)) continue;
       const text = texts.get(key);
       const expected = term.expect?.[locale];
       if (typeof text !== "string" || !expected) continue;
@@ -114,7 +150,7 @@ for (const term of glossary.terms) {
 
 for (const file of readdirSync(join(i18n, "locales"))) {
   const locale = file.replace(/\.ts$/, "");
-  if (!(locale in LOCALE_STATUS)) errors.push(`src/i18n/locales/${file}: language not declared in config.ts`);
+  if (!(locale in LOCALE_STATUS)) errors.push(`src/i18n/locales/${file}: language not listed in config.ts`);
 }
 
 if (errors.length) {

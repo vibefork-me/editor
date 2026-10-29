@@ -13,7 +13,7 @@ export const LOCALES: Partial<Record<Locale, TranslationSchema | PartialTranslat
 };
 
 // One file per language in `locales/`, named by its code (`ru.ts`, `pt-BR.ts`) and exporting the dictionary
-// under the code without the dash (`ru`, `ptBR`). A declared language without a file is shown in English.
+// under the code without the dash (`ru`, `ptBR`). A planned language without a file is shown in English.
 const LOADERS = import.meta.glob<Record<string, PartialTranslation>>(["./locales/*.ts", "!./locales/en.ts"]);
 
 function loaderFor(locale: Locale): (() => Promise<Record<string, PartialTranslation>>) | undefined {
