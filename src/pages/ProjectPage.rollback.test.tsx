@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ServerMessage } from "../client/protocol.generated.ts";
 import { AgentApiError, type AgentTransport, type RollbackPartOutcome } from "../client/types.ts";
 import type { CanvasState } from "../canvas/canvasState.ts";
@@ -28,6 +28,11 @@ vi.mock("../canvas/graph/GraphCanvas.tsx", () => ({
 }));
 
 import { ProjectPage } from "./ProjectPage.tsx";
+
+// The canvas is a lazy chunk of the page; load it before the tests, so they wait for a render, not an import.
+beforeAll(async () => {
+  await import("../canvas/graph/GraphCanvas.tsx");
+});
 
 describe("ProjectPage rollback", () => {
   let finishPart: ((o: RollbackPartOutcome) => void) | null = null;
@@ -89,7 +94,7 @@ describe("ProjectPage rollback", () => {
 
   it("puts a part back from its card: confirm in the agent's window, then why not or done with the map read again", async () => {
     page();
-    fireEvent.click(await screen.findByRole("button", { name: "Note storage" }));
+    fireEvent.click(await screen.findByText("Note storage", { selector: "button" }));
     const card = await screen.findByTestId("part-callout");
     fireEvent.click(within(card).getByRole("button", { name: "Put it back as it was" }));
     expect(rollbackPart).toHaveBeenCalledWith({ projectId: "demo", id: "store" }, expect.any(Function));
@@ -132,10 +137,10 @@ describe("ProjectPage rollback", () => {
 
   it("has no rollback while a task runs", async () => {
     page();
-    const field = await screen.findByRole("textbox", { name: "Message the agent" });
+    const field = await screen.findByLabelText("Message the agent");
     fireEvent.change(field, { target: { value: "Add a dark theme" } });
     fireEvent.keyDown(field, { key: "Enter" });
-    fireEvent.click(await screen.findByRole("button", { name: "Note storage" }));
+    fireEvent.click(await screen.findByText("Note storage", { selector: "button" }));
     const card = await screen.findByTestId("part-callout");
     expect(within(card).queryByRole("button", { name: "Put it back as it was" })).toBeNull();
   });

@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ServerMessage } from "../client/protocol.generated.ts";
 import type { AgentTransport, TaskControl } from "../client/types.ts";
 import { stream } from "../canvas/testSessions.ts";
@@ -15,6 +15,11 @@ vi.mock("../components/viewer/index.ts", () => ({ ViewerLayoutContainer: () => n
 vi.mock("../canvas/graph/GraphCanvas.tsx", () => ({ GraphCanvas: () => <div data-testid="graph" /> }));
 
 import { ProjectPage } from "./ProjectPage.tsx";
+
+// The canvas is a lazy chunk of the page; load it before the tests, so they wait for a render, not an import.
+beforeAll(async () => {
+  await import("../canvas/graph/GraphCanvas.tsx");
+});
 
 describe("ProjectPage messages on the canvas", () => {
   let onMessage: ((m: ServerMessage) => void) | null = null;
@@ -53,7 +58,7 @@ describe("ProjectPage messages on the canvas", () => {
 
   it("starts a task from the field, then sends notes to it; a note the agent did not take says so", async () => {
     page();
-    const field = (await screen.findByRole("textbox", { name: "Message the agent" })) as HTMLTextAreaElement;
+    const field = (await screen.findByLabelText("Message the agent")) as HTMLTextAreaElement;
     // The old chat field is not shown with the living canvas.
     expect(screen.getAllByRole("textbox")).toHaveLength(1);
 
@@ -75,7 +80,7 @@ describe("ProjectPage messages on the canvas", () => {
 
   it("a click on an offer starts its task; notes go to it", async () => {
     page();
-    const field = (await screen.findByRole("textbox", { name: "Message the agent" })) as HTMLTextAreaElement;
+    const field = (await screen.findByLabelText("Message the agent")) as HTMLTextAreaElement;
     fireEvent.click(screen.getByText("Dark theme"));
     expect(runOffer).toHaveBeenCalledWith(
       expect.objectContaining({ projectId: "demo", index: 0, title: "Dark theme" }),
@@ -93,7 +98,7 @@ describe("ProjectPage messages on the canvas", () => {
   it("an offer the agent cannot start puts its text into the field", async () => {
     runOffer.mockImplementation(async () => ({ kind: "error", error: "no", code: "bad_index" }) as never);
     page();
-    const field = (await screen.findByRole("textbox", { name: "Message the agent" })) as HTMLTextAreaElement;
+    const field = (await screen.findByLabelText("Message the agent")) as HTMLTextAreaElement;
     fireEvent.click(screen.getByText("Export to PDF"));
     await waitFor(() => expect(field.value).toBe("Export to PDF\n\nSave a note as a PDF"));
     expect(runOffer).toHaveBeenCalledWith(expect.objectContaining({ index: 1, title: "Export to PDF" }), expect.any(Function), expect.any(Function));
