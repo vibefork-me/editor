@@ -32,6 +32,28 @@ describe("ConnectAiScreen", () => {
     expect(onDisconnect).toHaveBeenCalledWith("claude");
   });
 
+  it("offers GitHub Copilot as a subscription with its own sign-in and the user's ~/.copilot", () => {
+    const onConnect = vi.fn();
+    render(
+      <ConnectAiScreen
+        providers={[p("claude", "subscription"), { ...p("copilot", "subscription"), userSignedIn: true }, p("openrouter", "free")]}
+        onConnect={onConnect}
+      />,
+    );
+    const card = screen.getByTestId("provider-card-copilot");
+    expect(card.textContent).toContain("GitHub Copilot");
+    expect(card.textContent).toContain("Copilot Free");
+    fireEvent.click(screen.getByTestId("connect-copilot"));
+    expect(onConnect).toHaveBeenCalledWith("copilot");
+    fireEvent.click(screen.getByTestId("switch-to-user-copilot"));
+    expect(onConnect).toHaveBeenCalledWith("copilot", "user");
+  });
+
+  it("lists GitHub Copilot among subscriptions before the agent answers", () => {
+    render(<ConnectAiScreen providers={[]} />);
+    expect(screen.getByTestId("provider-card-copilot").textContent).toContain("GitHub Copilot");
+  });
+
   it("shows a search once the catalog is long and filters it", () => {
     const many = [
       p("claude", "subscription"),

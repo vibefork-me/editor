@@ -56,6 +56,7 @@ export interface TranslationSchema {
     nothingFound: string;
     claudeDescription: string;
     codexDescription: string;
+    copilotDescription: string;
     moreAction: string;
     replaceKeyAction: string;
     close: string;
@@ -226,6 +227,8 @@ export interface TranslationSchema {
     notEnoughResources: string;
     buildStartFailed: string;
     startNotConfirmed: string;
+    copilotUnavailable: string;
+    copilotLimit: string;
   };
   toolErrors: {
     unsupportedPlatform: string;

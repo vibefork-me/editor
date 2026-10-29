@@ -57,6 +57,7 @@ export const es419: TranslationSchema = {
     nothingFound: "No se encontró nada",
     claudeDescription: "Suscripción Claude Pro o Max (Anthropic).",
     codexDescription: "Suscripción ChatGPT Plus o Pro (OpenAI).",
+    copilotDescription: "Un plan de GitHub Copilot, también Copilot Free (GitHub).",
     moreAction: "Más",
     replaceKeyAction: "Cambiar la clave",
     close: "Cerrar",
@@ -235,6 +236,8 @@ export const es419: TranslationSchema = {
     notEnoughResources: "Esta computadora no tiene suficiente memoria o espacio en disco para la compilación",
     buildStartFailed: "No se pudo iniciar la compilación",
     startNotConfirmed: "La tarea no empezó: no se confirmó el trabajo en el proyecto en la ventana de Vibefork de tu computadora",
+    copilotUnavailable: "GitHub Copilot no está disponible para esta cuenta de GitHub. Revisa github.com/settings/copilot o elige otra IA.",
+    copilotLimit: "Se agotó el límite de GitHub Copilot. Elige otra IA o espera a que se renueve el límite.",
   },
   toolErrors: {
     unsupportedPlatform: "{tool} no se puede instalar en el sistema de esta computadora",
