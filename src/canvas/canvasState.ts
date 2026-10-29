@@ -78,12 +78,24 @@ export interface CanvasState {
   history: CanvasHistoryItem[];
   /** Messages of the person the agent has taken into account. */
   notesTaken: { noteId: string; related: string[]; reply: string; at: number }[];
+  /** Questions the agent answered in words (nothing changed), oldest first; `answer` is absent while it
+   * answers, its `code` says why there is no text. */
+  explanations: Explanation[];
   /** Parts the agent has been in (looked at, thought about, moved through), first visit first. */
   visited: string[];
   /** The person paused the task; it goes on after resume. */
   paused: boolean;
   /** Files the agent changed in this stream, with their part; the latest change first. */
   changedFiles: { path: string; node: string; at: number }[];
+}
+
+/** A question to the agent and its answer in words. */
+export interface Explanation {
+  question: string;
+  /** The part it is about; absent for the whole project. */
+  id?: string;
+  at: number;
+  answer?: { text: string; code?: string; at: number };
 }
 
 export const initialCanvasState: CanvasState = {
@@ -107,6 +119,7 @@ export const initialCanvasState: CanvasState = {
   eta: null,
   history: [],
   notesTaken: [],
+  explanations: [],
   visited: [],
   paused: false,
   changedFiles: [],
@@ -273,6 +286,16 @@ export function applyCanvasEvent(state: CanvasState, ev: CanvasEvent, at: number
       return { ...s, paused: true };
     case "resumed":
       return { ...s, paused: false };
+    case "question":
+      return { ...s, explanations: [...s.explanations, { question: ev.text, id: ev.id ?? undefined, at }] };
+    case "explained": {
+      // The answer belongs to the last question still waiting for one.
+      let i = s.explanations.length - 1;
+      while (i >= 0 && s.explanations[i]?.answer) i--;
+      if (i < 0) return s;
+      const answer = { text: ev.text, code: ev.code ?? undefined, at };
+      return { ...s, explanations: s.explanations.map((e, j) => (j === i ? { ...e, answer } : e)) };
+    }
     case "note.taken":
       return { ...s, notesTaken: [...s.notesTaken, { noteId: ev.noteId, related: ev.related, reply: ev.reply, at }] };
     case "result": {

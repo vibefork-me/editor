@@ -1,5 +1,6 @@
 import type { NoteAttachment } from "../../client/protocol.generated.ts";
-import type { CanvasState } from "../canvasState.ts";
+import type { TranslationKey } from "../../i18n/types.ts";
+import type { CanvasState, Explanation } from "../canvasState.ts";
 
 /** Text longer than this, pasted into the field, goes as an attachment. */
 export const LONG_TEXT = 2000;
@@ -17,30 +18,80 @@ export interface PersonMessage {
   attachments: string[];
   /** Unix ms. */
   at: number;
-  /** `task`: it started a task; `note`: it went to the agent during one. */
-  kind: "task" | "note";
+  /** `task`: it started a task; `note`: it went to the agent during one; `explain`: a question the agent
+   * did not take (the ones it takes come back in the session stream). */
+  kind: "task" | "note" | "explain";
   /** How many notes the agent had taken when this one was sent: its answer is a later one. */
   takenBefore: number;
   /** The agent did not take it (an agent without notes answers `not_supported`). */
   failed?: boolean;
+  /** Why the agent did not take a question (`explain`). */
+  reason?: TranslationKey;
 }
 
-export type MessageStatus = "task" | "waiting" | "taken" | "failed";
+/** `unanswered`: a question the agent did not take; the agent's line under it says why. */
+export type MessageStatus = "task" | "waiting" | "taken" | "failed" | "explaining" | "explained" | "unanswered";
 
-/** One line of the conversation above the field. */
+/** One line of the conversation above the field. An agent line without an answer has `reason`: why. */
 export type ConversationItem =
   | { who: "person"; id: string; text: string; attachments: string[]; status: MessageStatus; at: number }
-  | { who: "agent"; id: string; text: string; related: string[]; at: number };
+  | { who: "agent"; id: string; text: string; related: string[]; at: number; reason?: TranslationKey };
+
+/** What the person reads when the agent could not explain: by the agent's code. */
+export function explainReason(code: string | null | undefined): TranslationKey {
+  switch (code) {
+    case "no_models":
+      return "messages.explainNoModels";
+    case "cancelled":
+      return "messages.explainCancelled";
+    case "task_already_running":
+    case "explain_already_running":
+      return "messages.explainBusy";
+    case "not_found":
+      return "messages.explainNotFound";
+    case "project_forbidden":
+      return "messages.explainForbidden";
+    case "not_supported":
+      return "messages.explainNotSupported";
+    case "bad_prompt":
+      return "messages.explainBadPrompt";
+  }
+  return "messages.explainFailed";
+}
+
+/** Questions of the session stream and the agent's answers in words. */
+function explained(explanations: Explanation[]): ConversationItem[] {
+  const items: ConversationItem[] = [];
+  explanations.forEach((e, i) => {
+    const answer = e.answer;
+    items.push({ who: "person", id: `q${i}-${e.at}`, text: e.question, attachments: [], status: answer ? "explained" : "explaining", at: e.at });
+    if (!answer) return;
+    const related = e.id ? [e.id] : [];
+    const at = Math.max(answer.at, e.at);
+    if (answer.text) items.push({ who: "agent", id: `a${i}-${e.at}`, text: answer.text, related, at });
+    else items.push({ who: "agent", id: `a${i}-${e.at}`, text: "", related, at, reason: explainReason(answer.code) });
+  });
+  return items;
+}
 
 /**
  * The person's messages with the agent's answers. Notes are taken in the order they were sent, so each one
  * gets the first `note.taken` after the ones the agent had already taken when it was sent. Answers to
  * notes of earlier visits stand on their own.
  */
-export function conversation(messages: PersonMessage[], notesTaken: CanvasState["notesTaken"]): ConversationItem[] {
+export function conversation(
+  messages: PersonMessage[],
+  notesTaken: CanvasState["notesTaken"],
+  explanations: Explanation[] = [],
+): ConversationItem[] {
   const claimed = new Set<number>();
-  const items: ConversationItem[] = [];
+  const items: ConversationItem[] = explained(explanations);
   for (const m of messages) {
+    if (m.kind === "explain") {
+      items.push({ who: "person", id: m.id, text: m.text, attachments: [], status: "unanswered", at: m.at });
+      items.push({ who: "agent", id: `reply-${m.id}`, text: "", related: [], at: m.at, reason: m.reason ?? "messages.explainFailed" });
+      continue;
+    }
     let status: MessageStatus = m.kind === "task" ? "task" : m.failed ? "failed" : "waiting";
     let answer: ConversationItem | null = null;
     if (status === "waiting") {

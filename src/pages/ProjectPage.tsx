@@ -26,6 +26,7 @@ import { useLayoutStore, type PanelId } from "../stores/layoutStore.ts";
 import { useBuildStore } from "../stores/buildStore.ts";
 import { programFailed, useProgramStore } from "../stores/programStore.ts";
 import { useProjectShellSync } from "../hooks/useProjectShellSync.ts";
+import { useExplain } from "../hooks/useExplain.ts";
 import { useRollback } from "../hooks/useRollback.ts";
 import { useTranslation } from "../i18n/i18nStore.ts";
 import { getAgentTransport } from "../stores/agent-bridge.ts";
@@ -92,6 +93,9 @@ export function ProjectPage() {
   const taskRunning = isSending || taskControl !== null;
   const rollingBack = rollback.part?.status.state === "confirm" || rollback.version?.status.state === "confirm";
   const { loadVersions } = rollback;
+  // Answers in words about the project or a part; nothing changes, so only while no task runs.
+  const explainer = useExplain(currentProjectId, locale);
+  const explain = taskRunning ? undefined : explainer.explain;
 
   // `offer`: the task is what an offer of the analysis suggests; the agent takes its text itself.
   const startTask = useCallback(async (prompt: string, offer?: { index: number; title: string }) => {
@@ -197,6 +201,8 @@ export function ProjectPage() {
 
   const partActions: PartActions = {
     onAsk: handleAskAbout,
+    onExplain: explain && ((id) => void explain(t("card.explainQuestion", { label: canvas.nodes[id]?.label ?? id }), id)),
+    explaining: explainer.explaining,
     onShowChanges: (file) => void useViewerStore.getState().openDiff(file.path),
     onOpenFile: (path) => void useViewerStore.getState().openFile(path),
     onGoTo: (id) => {
@@ -320,10 +326,18 @@ export function ProjectPage() {
                 <MessagesDock
                   state={canvas}
                   running={taskControl !== null}
-                  messages={messages}
+                  messages={explainer.refused.length ? [...messages, ...explainer.refused] : messages}
                   draft={chatDraft}
                   onDraftChange={setChatDraft}
                   onSend={sendFromCanvas}
+                  onExplain={
+                    explain &&
+                    ((text) => {
+                      setChatDraft("");
+                      void explain(text);
+                    })
+                  }
+                  explaining={explainer.explaining}
                   onChooseOffer={chooseOffer}
                   onGoTo={partActions.onGoTo}
                   inputRef={chatInputRef}

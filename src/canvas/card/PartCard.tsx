@@ -18,6 +18,10 @@ const TONE: Record<Badge["tone"], string> = {
 export interface PartActions {
   /** Starts a message to the agent about the part. */
   onAsk: (prefix: string) => void;
+  /** Has the agent explain the part in words, changing nothing; absent while a task runs. */
+  onExplain?: (id: string) => void;
+  /** An explanation is under way: the button waits. */
+  explaining?: boolean;
   /** Opens a changed file's diff. */
   onShowChanges: (file: ArtifactFile) => void;
   /** Opens a file in the code viewer. */
@@ -75,6 +79,18 @@ function Related({ state, node, onGoTo }: { state: CanvasState; node: CanvasNode
 
 const actionClass =
   "flex items-center gap-1.5 rounded-lg border border-[#30363d] bg-[#1b1f28] px-2.5 py-1.5 text-left text-[12.5px] text-[#e6edf3] hover:border-[#58a6ff] disabled:cursor-wait disabled:opacity-60";
+
+/** "Explain this part": the answer comes in words in the conversation; nothing in the project changes. */
+function ExplainAction({ nodeId, actions }: { nodeId: string; actions: Pick<PartActions, "onExplain" | "explaining"> }) {
+  const { t } = useTranslation();
+  const onExplain = actions.onExplain;
+  if (!onExplain) return null;
+  return (
+    <button type="button" className={actionClass} disabled={actions.explaining} title={t("messages.explainHint")} onClick={() => onExplain(nodeId)}>
+      {t("card.explain")}
+    </button>
+  );
+}
 
 /** "Put it back as it was", and how the last try went: confirm in the agent's window, done, or why not. */
 function UndoAction({ undo }: { undo: PartUndo }) {
@@ -165,6 +181,7 @@ export function PartCallout({
         <button type="button" className={actionClass} onClick={() => actions.onAsk(t("card.askPrefix", { label: node.label }))}>
           {t("card.askAgent")}
         </button>
+        <ExplainAction nodeId={node.id} actions={actions} />
         {changes && (
           <button type="button" className={actionClass} onClick={() => changes.files[0] && actions.onShowChanges(changes.files[0])}>
             {t("card.showChanges")}
@@ -218,6 +235,7 @@ export function PartPanel({ state, nodeId, undo, ...actions }: PartActions & { s
       <button type="button" className={actionClass} onClick={() => actions.onAsk(t("card.askPrefix", { label: node.label }))}>
         {t("card.askAgent")}
       </button>
+      <ExplainAction nodeId={node.id} actions={actions} />
       {changes && (
         <section className="flex flex-col gap-1">
           <div className="text-[10.5px] uppercase tracking-wide text-[#8b93a7]">{t("card.showChanges")}</div>

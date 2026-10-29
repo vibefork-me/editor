@@ -18,6 +18,7 @@ function Dock({
   onSend = () => {},
   onGoTo,
   onChooseOffer,
+  onExplain,
 }: {
   state: CanvasState;
   running?: boolean;
@@ -25,6 +26,7 @@ function Dock({
   onSend?: (text: string, attachments: NoteAttachment[]) => void;
   onGoTo?: (id: string) => void;
   onChooseOffer?: (index: number, offer: Offer) => void;
+  onExplain?: (text: string) => void;
 }) {
   const [draft, setDraft] = useState("");
   return (
@@ -40,6 +42,13 @@ function Dock({
       }}
       onGoTo={onGoTo}
       onChooseOffer={onChooseOffer}
+      onExplain={
+        onExplain &&
+        ((text) => {
+          onExplain(text);
+          setDraft("");
+        })
+      }
     />
   );
 }
@@ -132,6 +141,42 @@ describe("messages dock", () => {
     fireEvent.change(field(), { target: { value: "Like this" } });
     fireEvent.keyDown(field(), { key: "Enter" });
     expect(onSend).toHaveBeenCalledWith("Like this", [{ name: "shot.png", mime: "image/png", data: "AQID" }]);
+  });
+
+  it("asks for an answer in words with Explain, only while no task runs", () => {
+    const onExplain = vi.fn();
+    const onSend = vi.fn();
+    const { unmount } = render(<Dock state={at(30)} running onExplain={onExplain} />);
+    expect(screen.queryByRole("button", { name: "Explain" })).toBeNull();
+    unmount();
+    render(<Dock state={at(30)} onSend={onSend} onExplain={onExplain} />);
+    const button = screen.getByRole("button", { name: "Explain" }) as HTMLButtonElement;
+    expect(button.disabled).toBe(true);
+    fireEvent.change(field(), { target: { value: "What does sync do?" } });
+    fireEvent.click(button);
+    expect(onExplain).toHaveBeenCalledWith("What does sync do?");
+    expect(onSend).not.toHaveBeenCalled();
+    expect(field().value).toBe("");
+  });
+
+  it("shows questions with the answers in words, and why one has none", () => {
+    const state: CanvasState = {
+      ...at(30),
+      explanations: [
+        { question: "Explain the part “Note storage”", id: "store", at: 1, answer: { text: "It keeps your notes on disk.", at: 2 } },
+        { question: "What is it?", at: 3, answer: { text: "", code: "no_models", at: 4 } },
+        { question: "And sync?", at: 5 },
+      ],
+    };
+    render(<Dock state={state} />);
+    const people = screen.getAllByTestId("person-message").map((li) => li.getAttribute("data-status"));
+    expect(people).toEqual(["explained", "explained", "explaining"]);
+    expect(screen.getAllByText("answered · nothing changed")).toHaveLength(2);
+    expect(screen.getByText("the agent is answering · nothing changes")).toBeTruthy();
+    const replies = screen.getAllByTestId("agent-reply").map((li) => li.textContent);
+    expect(replies[0]).toContain("It keeps your notes on disk.");
+    expect(replies[0]).toContain("Note storage");
+    expect(replies[1]).toContain("No AI is available now; connect one and ask again");
   });
 
   it("is called «Сообщение агенту» in Russian", () => {

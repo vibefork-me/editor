@@ -22,6 +22,7 @@ import {
   type ProgramOutcome,
   type ProjectMetadata,
   type RollbackPartOutcome,
+  type ExplainOutcome,
   type SaveProjectResult,
   type TaskControl,
 } from "./types.ts";
@@ -562,6 +563,25 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
         // The part is back once the agent reports the result on the canvas.
         if (msg.type === "canvas" && msg.ev.type === "result") return { kind: "done" } as const;
         if (msg.type === "error") return { kind: "error", error: msg.error, code: msg.code ?? undefined } as const;
+        return null;
+      });
+    },
+
+    explain(params, onMessage): Promise<ExplainOutcome> {
+      const start: ClientMessage = {
+        type: "explain",
+        project: params.projectId,
+        question: params.question,
+        part: params.part ?? null,
+        provider: params.provider ?? null,
+        model: params.model ?? null,
+        lang: params.lang ?? null,
+      };
+      return agentSession(start, onMessage, (msg) => {
+        if (msg.type === "canvas" && msg.ev.type === "explained") return { kind: "done" } as const;
+        if (msg.type === "error") return { kind: "error", error: msg.error, code: msg.code ?? undefined } as const;
+        // An agent that does not know the message echoes it back.
+        if (msg.type === "echo") return { kind: "error", error: "not supported by this version of the agent", code: "not_supported" } as const;
         return null;
       });
     },

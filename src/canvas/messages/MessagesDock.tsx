@@ -8,6 +8,7 @@ import {
   conversation,
   isImage,
   overLimit,
+  promptWithText,
   readAttachment,
   textAttachment,
   waitingCount,
@@ -32,6 +33,10 @@ export interface MessagesDockProps {
   onChooseOffer?: (index: number, offer: Offer) => void;
   /** Moves to a part named in an answer of the agent. */
   onGoTo?: (id: string) => void;
+  /** Has the agent answer the text in words, changing nothing; absent while a task runs. */
+  onExplain?: (text: string) => void;
+  /** An explanation is under way: the button waits. */
+  explaining?: boolean;
   inputRef?: Ref<HTMLTextAreaElement>;
   /** Shown above everything else (e.g. the banner of a paused task). */
   children?: ReactNode;
@@ -41,10 +46,24 @@ export interface MessagesDockProps {
  * Bottom center of the canvas: what can be done (offers of the agent), the conversation with the agent
  * (folds), and the field to write to it.
  */
-export function MessagesDock({ state, running, messages, draft, onDraftChange, onSend, onChooseOffer, onGoTo, inputRef, children }: MessagesDockProps) {
+export function MessagesDock({
+  state,
+  running,
+  messages,
+  draft,
+  onDraftChange,
+  onSend,
+  onChooseOffer,
+  onGoTo,
+  onExplain,
+  explaining,
+  inputRef,
+  children,
+}: MessagesDockProps) {
   const { t } = useTranslation();
-  const items = conversation(messages, state.notesTaken);
+  const items = conversation(messages, state.notesTaken, state.explanations);
   const waiting = waitingCount(items);
+  const answering = items.some((i) => i.who === "person" && i.status === "explaining");
   const [open, setOpen] = useState(true);
   const [attachments, setAttachments] = useState<NoteAttachment[]>([]);
   const [problem, setProblem] = useState<string | null>(null);
@@ -53,8 +72,8 @@ export function MessagesDock({ state, running, messages, draft, onDraftChange, o
 
   // A new note while folded opens the conversation: its status is what the person waits for.
   useEffect(() => {
-    if (waiting > 0) setOpen(true);
-  }, [waiting]);
+    if (waiting > 0 || answering || explaining) setOpen(true);
+  }, [waiting, answering, explaining]);
 
   useLayoutEffect(() => {
     const el = fieldRef.current;
@@ -109,6 +128,15 @@ export function MessagesDock({ state, running, messages, draft, onDraftChange, o
     if (!running && attachments.some(isImage)) setProblem(t("messages.imagesNeedTask"));
     else setProblem(null);
     onSend(text, attachments);
+    setAttachments([]);
+  };
+
+  // A question answered in words: pictures cannot go with it, pasted text goes into it.
+  const explain = () => {
+    const text = draft.trim();
+    if (!onExplain || (!text && attachments.length === 0)) return;
+    setProblem(attachments.some(isImage) ? t("messages.imagesNeedTask") : null);
+    onExplain(promptWithText(text, attachments));
     setAttachments([]);
   };
 
@@ -230,6 +258,17 @@ export function MessagesDock({ state, running, messages, draft, onDraftChange, o
             onPaste={onPaste}
             className="block max-h-[200px] min-h-9 w-full resize-none rounded-lg bg-transparent px-2 py-2 text-sm text-[#f4f5f8] placeholder:text-[#6e7681] focus-visible:outline-none"
           />
+          {onExplain && !running && (
+            <button
+              type="button"
+              onClick={explain}
+              title={t("messages.explainHint")}
+              disabled={explaining || (!draft.trim() && attachments.length === 0)}
+              className="h-9 shrink-0 rounded-lg border border-[#30363d] bg-[#1b1f28] px-3 text-sm font-semibold text-[#e6edf3] hover:border-[#58a6ff] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {t("messages.explain")}
+            </button>
+          )}
           <button
             type="submit"
             disabled={!draft.trim() && attachments.length === 0}
@@ -252,9 +291,9 @@ function ConversationLine({ item, state, onGoTo }: { item: ConversationItem; sta
   const { t } = useTranslation();
   if (item.who === "agent") {
     return (
-      <li className="text-[13px] text-[#c9d1d9]" data-testid="agent-reply">
+      <li className="whitespace-pre-wrap break-words text-[13px] text-[#c9d1d9]" data-testid="agent-reply">
         <span className="font-semibold text-[#79c0ff]">{t("messages.agent")}: </span>
-        {item.text}
+        {item.reason ? <span className="text-[#e3b341]">{t(item.reason)}</span> : item.text}
         {item.related.map((id) => (
           <button key={id} type="button" onClick={() => onGoTo?.(id)} className="ml-1.5 rounded border border-[#30363d] px-1.5 text-[12px] text-[#58a6ff] hover:border-[#58a6ff]">
             {state.nodes[id]?.label ?? id}
@@ -268,13 +307,16 @@ function ConversationLine({ item, state, onGoTo }: { item: ConversationItem; sta
     waiting: t("messages.statusWaiting"),
     taken: t("messages.statusTaken"),
     failed: t("messages.statusFailed"),
+    explaining: t("messages.statusExplaining"),
+    explained: t("messages.statusExplained"),
+    unanswered: "",
   }[item.status];
   const color = item.status === "failed" ? "text-[#f85149]" : item.status === "taken" ? "text-[#3fb950]" : "text-[#8b93a7]";
   return (
     <li className="text-[13px] text-[#f4f5f8]" data-testid="person-message" data-status={item.status}>
       <div className="whitespace-pre-wrap break-words">{item.text}</div>
       {item.attachments.length > 0 && <div className="flex items-center gap-1 text-[11px] text-[#8b93a7]"><IconClip />{item.attachments.join(", ")}</div>}
-      <div className={`text-[11px] ${color}`}>{status}</div>
+      {status && <div className={`text-[11px] ${color}`}>{status}</div>}
     </li>
   );
 }
