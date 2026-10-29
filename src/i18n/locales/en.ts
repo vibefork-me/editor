@@ -42,6 +42,8 @@ export const en: TranslationSchema = {
     pending: "Waiting for approval in the agent window…",
     denied: "The pairing request was declined or expired.",
     error: "Could not complete pairing. Check that the agent is available and try again.",
+    conflict: "Another program on this computer answers in place of Vibefork Agent, so pairing is not safe now. Restart the computer and try again.",
+    outdated: "This version of the agent cannot prove it is the real one. Update the agent and try again.",
     retry: "Try again",
   },
   connectAi: {

@@ -4,7 +4,11 @@
  * - Private key is non-extractable (mitigates XSS key theft).
  * - Public key is exported as JWK for /v1/pair/start.
  * - Paired keyId persists across page reloads so re-pairing is not needed.
+ * - The agent's public key from pairing is kept next to it: the editor talks only to an agent that
+ *   proves it holds the private part.
  */
+
+import type { AgentPublicKey } from "../client/agent-base-url.ts";
 
 const DB_NAME = "vibefork_keystore";
 const STORE_NAME = "identity";
@@ -15,6 +19,7 @@ export interface StoredIdentity {
   keyPair: CryptoKeyPair;
   keyId?: string;
   pairedAt?: string;
+  agentKey?: AgentPublicKey;
 }
 
 function openDb(): Promise<IDBDatabase> {
@@ -104,14 +109,15 @@ export async function signNonce(
 }
 
 /**
- * Save the keyId returned by the agent after successful pairing.
+ * Save the keyId and the agent's public key returned by the agent after successful pairing.
  */
-export async function savePairedKeyId(keyId: string): Promise<void> {
+export async function savePairedKeyId(keyId: string, agentKey: AgentPublicKey): Promise<void> {
   const db = await openDb();
   try {
     const existing = await readIdentity(db);
     if (!existing) throw new Error("No identity to update");
     existing.keyId = keyId;
+    existing.agentKey = { kty: agentKey.kty, crv: agentKey.crv, x: agentKey.x, y: agentKey.y };
     existing.pairedAt = new Date().toISOString();
     await writeIdentity(db, existing);
   } finally {
@@ -127,6 +133,19 @@ export async function getPairedKeyId(): Promise<string | null> {
   try {
     const existing = await readIdentity(db);
     return existing?.keyId ?? null;
+  } finally {
+    db.close();
+  }
+}
+
+/**
+ * The agent's public key from pairing, or `null` when the browser is not paired with one.
+ */
+export async function getPairedAgentKey(): Promise<AgentPublicKey | null> {
+  const db = await openDb();
+  try {
+    const existing = await readIdentity(db);
+    return existing?.keyId && existing.agentKey ? existing.agentKey : null;
   } finally {
     db.close();
   }
