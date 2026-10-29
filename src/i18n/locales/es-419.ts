@@ -328,6 +328,8 @@ export const es419: TranslationSchema = {
     describingMap: "Dibujando el mapa del proyecto…",
     partsFailed: "No se pudo dividir el proyecto en partes — se muestran las carpetas.",
     partsRetry: "Intentar de nuevo",
+    partsNoModels: "Conecta una IA para dividir el proyecto en partes — se muestran las carpetas.",
+    partsNoFiles: "El proyecto aún no tiene archivos, así que no hay partes que mostrar.",
     reconnectingNotice: "Reconectando con el agente…",
     emptyCanvasTitle: "Todavía no hay mapa",
     emptyCanvasDescription: "El agente armará el mapa de las partes mientras explora el proyecto.",

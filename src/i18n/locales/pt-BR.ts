@@ -327,6 +327,8 @@ export const ptBR: TranslationSchema = {
     describingMap: "Desenhando o mapa do projeto…",
     partsFailed: "Não foi possível dividir o projeto em partes — mostrando as pastas.",
     partsRetry: "Tentar de novo",
+    partsNoModels: "Conecte uma IA para dividir o projeto em partes — mostrando as pastas.",
+    partsNoFiles: "O projeto ainda não tem arquivos, então não há partes para mostrar.",
     reconnectingNotice: "Reconectando ao agente…",
     emptyCanvasTitle: "Nenhum mapa ainda",
     emptyCanvasDescription: "O agente vai montar o mapa das partes enquanto explora o projeto.",

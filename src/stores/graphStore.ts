@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { GraphEdge, GraphNode, GraphResponse, GraphSnapshot, GraphSource } from "../client/types.ts";
+import { AgentApiError, type GraphEdge, type GraphNode, type GraphResponse, type GraphSnapshot, type GraphSource } from "../client/types.ts";
 import { getAgentTransport } from "./agent-bridge.ts";
 import { useCanvasStore } from "./canvasStore.ts";
 import { translate, useI18nStore } from "../i18n/i18nStore.ts";
@@ -8,7 +8,11 @@ import type { GraphPhase } from "./types.ts";
 export type GraphViewMode = "parts" | "folders";
 
 /** Why the map shows folders although parts were asked for. */
-export type MapNotice = { kind: "failed"; reason: string };
+/**
+ * Why folders are shown instead of parts: the agent's reason and, from a newer agent, its code
+ * (`no_models`, `project_empty`, `map_failed`).
+ */
+export type MapNotice = { kind: "failed"; reason: string; code?: string };
 
 export const initialGraphState = {
   revision: 0 as number | string,
@@ -141,7 +145,11 @@ export const useGraphStore = create<GraphState>((set, get) => ({
               // Folders are shown: the switch says so, and the notice says why.
               set({
                 currentView: "folders",
-                mapNotice: { kind: "failed", reason: err instanceof Error ? err.message : String(err) },
+                mapNotice: {
+                  kind: "failed",
+                  reason: err instanceof Error ? err.message : String(err),
+                  ...(err instanceof AgentApiError && err.code ? { code: err.code } : {}),
+                },
               });
               get().applyResponse(res);
             }

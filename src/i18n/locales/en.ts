@@ -325,6 +325,8 @@ export const en: TranslationSchema = {
     describingMap: "Drawing project map…",
     partsFailed: "Could not split the project into parts — showing folders.",
     partsRetry: "Try again",
+    partsNoModels: "Connect an AI to split the project into parts — showing folders.",
+    partsNoFiles: "The project has no files yet, so there are no parts to show.",
     reconnectingNotice: "Reconnecting to the agent…",
     emptyCanvasTitle: "No map yet",
     emptyCanvasDescription: "The agent draws the map of the parts as it explores the project.",
