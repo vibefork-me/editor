@@ -28,7 +28,7 @@ export function TaskPanel({ state }: { state: CanvasState }) {
   if (!state.task || state.result || (state.stage && !TASK_STAGES.includes(state.stage))) return null;
   const finishing = state.stage === "check" || state.stage === "done";
   return (
-    <section aria-label={t("taskView.task")} data-testid="task-panel" className={`${panel} flex max-h-[42vh] w-80 flex-col gap-2 overflow-y-auto p-3.5`}>
+    <section aria-label={t("taskView.task")} data-testid="task-panel" className={`${panel} flex max-h-[42vh] w-80 flex-col max-sm:max-h-[28vh] max-sm:w-auto gap-2 overflow-y-auto p-3.5`}>
       <div className={caption}>{t("taskView.task")}</div>
       <div className="text-[13.5px] text-[#f4f5f8]">{state.task.text}</div>
       {state.plan.length > 0 && (

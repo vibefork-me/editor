@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ClipboardEvent, type KeyboardEvent, type ReactNode, type Ref } from "react";
-import type { NoteAttachment, Offer } from "../../client/protocol.generated.ts";
+import type { NoteAttachment, Offer, OfferSourceKind, Stage } from "../../client/protocol.generated.ts";
 import { useTranslation } from "../../i18n/i18nStore.ts";
+import type { TranslationKey } from "../../i18n/types.ts";
 import type { CanvasState } from "../canvasState.ts";
 import {
   LONG_TEXT,
@@ -18,6 +19,14 @@ import {
 
 // The field grows with its text up to this height, then scrolls.
 const MAX_FIELD_PX = 200;
+
+// What people typically tell the agent at a stage of a task: one click sends it.
+const HINTS: Partial<Record<Stage, TranslationKey[]>> = {
+  understand: ["messages.hintCopyFirst", "messages.hintSimpler"],
+  plan: ["messages.hintCopyFirst", "messages.hintSimpler"],
+  change: ["messages.hintKeepLook", "messages.hintShowChanges"],
+  check: ["messages.hintCheckAgain", "messages.hintShowReport"],
+};
 
 export interface MessagesDockProps {
   state: CanvasState;
@@ -147,16 +156,30 @@ export function MessagesDock({
     }
   };
 
-  const placeholder = running ? t("messages.placeholderRunning") : state.result ? t("messages.placeholderNext") : t("messages.placeholderTask");
-  const offers = running ? [] : state.offers;
+  // A task of the stream is under way (maybe from another tab): its offers wait for its end.
+  const offers = running || (state.task && !state.result) ? [] : state.offers;
+  const placeholder = running
+    ? t("messages.placeholderRunning")
+    : state.result
+      ? t("messages.placeholderNext")
+      : offers.length > 0
+        ? t("messages.placeholderOffers")
+        : t("messages.placeholderTask");
+  const hints = running && draft === "" && attachments.length === 0 && state.stage ? (HINTS[state.stage] ?? []) : [];
 
   return (
     <div className="pointer-events-auto flex w-full max-w-[640px] flex-col gap-2" data-testid="messages-dock">
       {children}
       {offers.length > 0 && (
-        <section aria-label={state.result ? t("messages.offersNext") : t("messages.offersTitle")} className="rounded-xl border border-[#30363d] bg-[rgba(22,27,34,0.95)] p-2">
-          <div className="px-1 pb-1 text-[12px] font-semibold text-[#8b93a7]">{state.result ? t("messages.offersNext") : t("messages.offersTitle")}</div>
-          <div className="flex flex-wrap gap-1.5">
+        <section
+          aria-label={state.result ? t("messages.offersNext") : t("messages.offersTitle")}
+          className="flex animate-slide-up flex-col gap-2 rounded-[14px] border border-[#30363d] bg-[rgba(20,22,29,0.96)] p-2.5"
+        >
+          <div className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.5px] text-[#8b93a7]">
+            <IconSparkles />
+            {state.result ? t("messages.offersNext") : t("messages.offersTitle")}
+          </div>
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-2">
             {offers.map((o, i) => (
               <button
                 key={o.title}
@@ -170,28 +193,34 @@ export function MessagesDock({
                   onDraftChange(o.text);
                   fieldRef.current?.focus();
                 }}
-                className="flex max-w-[200px] flex-col items-start rounded-lg border border-[#30363d] bg-[#1b1f28] px-2.5 py-1.5 text-left hover:border-[#58a6ff]"
+                className="flex flex-col items-start gap-1 rounded-[10px] border border-[#30363d] bg-[#1b1f28] px-[11px] py-2.5 text-left hover:border-[#58a6ff]"
               >
-                <span className="text-[13px] font-semibold text-[#f4f5f8]">{o.title}</span>
-                {o.source && <span className="text-[11px] text-[#8b93a7]">{o.source.text}</span>}
+                <span className="text-[13px] font-semibold text-[#e6edf3]">{o.title}</span>
+                {o.text && <span className="flex-1 text-[11.5px] leading-[1.4] text-[#8b93a7]">{o.text}</span>}
+                {o.source && (
+                  <span className="mt-0.5 flex items-center gap-1 text-[10.5px] text-[#79c0ff]">
+                    <SourceIcon kind={o.source.kind} />
+                    {o.source.text}
+                  </span>
+                )}
               </button>
             ))}
           </div>
         </section>
       )}
       {items.length > 0 && (
-        <section aria-label={t("messages.title")} className="rounded-xl border border-[#30363d] bg-[rgba(22,27,34,0.95)]">
+        <section aria-label={t("messages.title")} className="rounded-xl border border-[#262b36] bg-[rgba(20,22,29,0.94)] backdrop-blur-[10px]">
           <button
             type="button"
             aria-expanded={open}
             onClick={() => setOpen(!open)}
-            className="flex w-full items-center justify-between px-3 py-1.5 text-[12px] font-semibold text-[#8b93a7]"
+            className="flex w-full items-center justify-between px-2.5 pb-1.5 pt-2 text-[10.5px] font-semibold uppercase tracking-[0.5px] text-[#8b93a7]"
           >
             <span>{t("messages.title")}</span>
             <span>{open ? t("messages.hideConversation") : t("messages.showConversation", { count: items.length })}</span>
           </button>
           {open && (
-            <ol className="max-h-[220px] space-y-1.5 overflow-y-auto px-3 pb-2" aria-live="polite" data-testid="conversation">
+            <ol className="flex max-h-[220px] flex-col gap-1.5 overflow-y-auto px-2.5 pb-2.5" aria-live="polite" data-testid="conversation">
               {items.map((item) => (
                 <ConversationLine key={item.id} item={item} state={state} onGoTo={onGoTo} />
               ))}
@@ -204,8 +233,22 @@ export function MessagesDock({
           e.preventDefault();
           send();
         }}
-        className="flex flex-col gap-1.5 rounded-xl border border-[#30363d] bg-[rgba(22,27,34,0.97)] p-2 shadow-2xl"
+        className="flex flex-col gap-1.5 rounded-[14px] border border-[#30363d] bg-[rgba(20,22,29,0.96)] p-2 shadow-[0_10px_30px_rgba(0,0,0,0.35)]"
       >
+        {hints.length > 0 && (
+          <div className="flex flex-wrap gap-1.5" data-testid="hints">
+            {hints.map((key) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => onSend(t(key), [])}
+                className="rounded-full border border-[#30363d] bg-[#1b1f28] px-2.5 py-[3px] text-[11.5px] text-[#c9d1d9] hover:border-[#58a6ff]"
+              >
+                {t(key)}
+              </button>
+            ))}
+          </div>
+        )}
         {attachments.length > 0 && (
           <ul className="flex flex-wrap gap-1.5" aria-label={t("messages.attach")}>
             {attachments.map((a, i) => (
@@ -224,13 +267,13 @@ export function MessagesDock({
             ))}
           </ul>
         )}
-        <div className="flex items-end gap-2">
+        <div className="flex items-end gap-1.5">
           <button
             type="button"
             aria-label={t("messages.attach")}
             title={t("messages.attach")}
             onClick={() => fileRef.current?.click()}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#30363d] bg-[#1b1f28] text-[#8b93a7]"
+            className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[9px] text-[#8b93a7] hover:bg-[#1b1f28] hover:text-[#c9d1d9]"
           >
             <IconClip />
           </button>
@@ -256,7 +299,7 @@ export function MessagesDock({
             onChange={(e) => onDraftChange(e.target.value)}
             onKeyDown={onKeyDown}
             onPaste={onPaste}
-            className="block max-h-[200px] min-h-9 w-full resize-none rounded-lg bg-transparent px-2 py-2 text-sm text-[#f4f5f8] placeholder:text-[#6e7681] focus-visible:outline-none"
+            className="block max-h-[200px] min-h-[34px] w-full min-w-0 flex-1 resize-none bg-transparent px-1 py-2 text-[13.5px] leading-[1.4] text-[#e6edf3] placeholder:text-[#6e7681] focus-visible:outline-none"
           />
           {onExplain && !running && (
             <button
@@ -264,17 +307,19 @@ export function MessagesDock({
               onClick={explain}
               title={t("messages.explainHint")}
               disabled={explaining || (!draft.trim() && attachments.length === 0)}
-              className="h-9 shrink-0 rounded-lg border border-[#30363d] bg-[#1b1f28] px-3 text-sm font-semibold text-[#e6edf3] hover:border-[#58a6ff] disabled:cursor-not-allowed disabled:opacity-50"
+              className="h-[34px] shrink-0 rounded-[9px] border border-[#30363d] bg-[#1b1f28] px-2.5 text-[12.5px] font-semibold text-[#c9d1d9] hover:border-[#58a6ff] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {t("messages.explain")}
             </button>
           )}
           <button
             type="submit"
+            aria-label={t("messages.send")}
+            title={t("messages.send")}
             disabled={!draft.trim() && attachments.length === 0}
-            className="h-9 shrink-0 rounded-lg bg-accent px-3 text-sm font-semibold text-surface disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[9px] bg-[#388bfd] text-white hover:bg-[#58a6ff] disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {t("messages.send")}
+            <IconSend />
           </button>
         </div>
         {problem && (
@@ -291,11 +336,19 @@ function ConversationLine({ item, state, onGoTo }: { item: ConversationItem; sta
   const { t } = useTranslation();
   if (item.who === "agent") {
     return (
-      <li className="whitespace-pre-wrap break-words text-[13px] text-[#c9d1d9]" data-testid="agent-reply">
-        <span className="font-semibold text-[#79c0ff]">{t("messages.agent")}: </span>
+      <li
+        className="max-w-[85%] self-start whitespace-pre-wrap break-words rounded-[10px_10px_10px_2px] border border-[#30363d] bg-[#1b1f28] px-2.5 py-[7px] text-[12.5px] leading-[1.6] text-[#c9d1d9]"
+        data-testid="agent-reply"
+      >
+        <span className="sr-only">{t("messages.agent")}: </span>
         {item.reason ? <span className="text-[#e3b341]">{t(item.reason)}</span> : item.text}
         {item.related.map((id) => (
-          <button key={id} type="button" onClick={() => onGoTo?.(id)} className="ml-1.5 rounded border border-[#30363d] px-1.5 text-[12px] text-[#58a6ff] hover:border-[#58a6ff]">
+          <button
+            key={id}
+            type="button"
+            onClick={() => onGoTo?.(id)}
+            className="mx-0.5 rounded-full border border-[rgba(247,120,186,0.5)] bg-[rgba(247,120,186,0.1)] px-[7px] text-[11.5px] text-[#f4b6d6] hover:border-[#f778ba]"
+          >
             {state.nodes[id]?.label ?? id}
           </button>
         ))}
@@ -311,13 +364,65 @@ function ConversationLine({ item, state, onGoTo }: { item: ConversationItem; sta
     explained: t("messages.statusExplained"),
     unanswered: "",
   }[item.status];
-  const color = item.status === "failed" ? "text-[#f85149]" : item.status === "taken" ? "text-[#3fb950]" : "text-[#8b93a7]";
+  const color = item.status === "failed" ? "text-[#f85149]" : item.status === "taken" ? "text-[#8fd19e]" : "text-[#f4b6d6]";
+  const waiting = item.status === "waiting";
   return (
-    <li className="text-[13px] text-[#f4f5f8]" data-testid="person-message" data-status={item.status}>
-      <div className="whitespace-pre-wrap break-words">{item.text}</div>
-      {item.attachments.length > 0 && <div className="flex items-center gap-1 text-[11px] text-[#8b93a7]"><IconClip />{item.attachments.join(", ")}</div>}
-      {status && <div className={`text-[11px] ${color}`}>{status}</div>}
+    <li
+      className={`flex max-w-[80%] flex-col gap-1 self-end rounded-[10px_10px_2px_10px] border bg-[rgba(247,120,186,0.16)] px-2.5 py-[7px] text-[12.5px] leading-[1.4] text-[#e6edf3] ${
+        waiting ? "border-dashed border-[rgba(247,120,186,0.7)]" : "border-[rgba(247,120,186,0.35)]"
+      }`}
+      data-testid="person-message"
+      data-status={item.status}
+    >
+      {item.text && <div className="whitespace-pre-wrap break-words">{item.text}</div>}
+      {item.attachments.length > 0 && <div className="flex items-center gap-1 text-[11.5px] text-[#c9d1d9]"><IconClip />{item.attachments.join(", ")}</div>}
+      {status && (
+        <div className={`flex items-center gap-[5px] text-[10.5px] ${color}`}>
+          {waiting && <span className="inline-block h-[9px] w-[14px] rounded-[5px] bg-[#f778ba]" />}
+          {status}
+        </div>
+      )}
     </li>
+  );
+}
+
+const svg = { width: 13, height: 13, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": true } as const;
+
+function IconSparkles() {
+  return (
+    <svg {...svg}>
+      <path d="M9.9 15.5a2 2 0 0 0-1.4-1.4l-6.1-1.6a.5.5 0 0 1 0-1l6.1-1.6a2 2 0 0 0 1.4-1.4l1.6-6.1a.5.5 0 0 1 1 0l1.6 6.1a2 2 0 0 0 1.4 1.4l6.1 1.6a.5.5 0 0 1 0 1l-6.1 1.6a2 2 0 0 0-1.4 1.4l-1.6 6.1a.5.5 0 0 1-1 0z" />
+    </svg>
+  );
+}
+
+function IconSend() {
+  return (
+    <svg {...svg} width={15} height={15}>
+      <path d="M3.7 3.7a.5.5 0 0 1 .7-.6l17 8.4a.5.5 0 0 1 0 1l-17 8.4a.5.5 0 0 1-.7-.6L6 12z" />
+      <path d="M6 12h16" />
+    </svg>
+  );
+}
+
+/** Where an offer comes from: found in the code, what people do with similar projects, the issues. */
+function SourceIcon({ kind }: { kind: OfferSourceKind }) {
+  return (
+    <svg {...svg} width={11} height={11}>
+      {kind === "analysis" && (
+        <>
+          <circle cx="11" cy="11" r="7" />
+          <path d="m20 20-4-4" />
+        </>
+      )}
+      {kind === "similar" && (
+        <>
+          <circle cx="9" cy="8" r="4" />
+          <path d="M2 21v-1a6 6 0 0 1 12 0v1M16 4a4 4 0 0 1 0 8M22 21v-1a6 6 0 0 0-4-5.7" />
+        </>
+      )}
+      {kind === "issues" && <path d="M14 9a2 2 0 0 1-2 2H6l-4 4V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2zM18 9h2a2 2 0 0 1 2 2v11l-4-4h-6a2 2 0 0 1-2-2v-1" />}
+    </svg>
   );
 }
 

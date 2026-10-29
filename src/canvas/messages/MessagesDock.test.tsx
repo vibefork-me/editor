@@ -89,8 +89,28 @@ describe("messages dock", () => {
   it("hides the offers while a task runs and asks what to do next after it", () => {
     const { rerender } = render(<Dock state={at(30)} running />);
     expect(screen.queryByText("What you can do")).toBeNull();
+    // A task of the stream started elsewhere (another tab, before a reload) hides them too.
+    rerender(<Dock state={at(30)} />);
+    expect(screen.queryByText("What you can do")).toBeNull();
     rerender(<Dock state={at(39)} />);
     expect(screen.getAllByText("What to do next?").length).toBeGreaterThan(0);
+  });
+
+  it("shows an offer with its text and asks for own words next to the offers", () => {
+    render(<Dock state={at(22)} />);
+    expect(screen.getByText("Add a dark look")).toBeTruthy();
+    expect(field().placeholder).toBe("Or describe in your own words what you need");
+  });
+
+  it("offers one-click hints for the stage of a running task", () => {
+    const onSend = vi.fn();
+    render(<Dock state={at(30)} running onSend={onSend} />);
+    const hints = screen.getByTestId("hints");
+    fireEvent.click(hints.querySelector("button")!);
+    expect(onSend).toHaveBeenCalledWith(hints.querySelector("button")!.textContent, []);
+    // They give way to what the person types.
+    fireEvent.change(field(), { target: { value: "x" } });
+    expect(screen.queryByTestId("hints")).toBeNull();
   });
 
   it("shows a note waiting, then taken with the agent's answer and its parts", () => {
@@ -124,7 +144,7 @@ describe("messages dock", () => {
     fireEvent.paste(field(), { clipboardData: { files: [], getData: () => long } });
     expect(field().value).toBe("");
     expect(screen.getByLabelText("Remove pasted-text.txt")).toBeTruthy();
-    fireEvent.click(screen.getByText("Send"));
+    fireEvent.click(screen.getByRole("button", { name: "Send" }));
     expect(onSend).toHaveBeenCalledWith("", [expect.objectContaining({ name: "pasted-text.txt", mime: "text/plain" })]);
   });
 

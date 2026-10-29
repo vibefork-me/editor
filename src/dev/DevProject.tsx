@@ -58,11 +58,14 @@ declare global {
   interface Window {
     /** The developer project page is ready for headless checks. */
     __vfDevProject?: { parts: number };
+    /** A session stream put in by a headless check before the page loads (`?session=injected`). */
+    __vfDevSession?: CanvasRecord[];
   }
 }
 
 /**
- * Developer view of the project page on a made-up agent (`/dev/notes-app?session=notes`, or `?size=259`;
+ * Developer view of the project page on a made-up agent (`/dev/notes-app?session=notes`, or `?size=259`,
+ * or `?session=injected` — the stream in `window.__vfDevSession`;
  * `&stream=0` — the map without a session stream; `&panels=files,code,journal`; `&file=<path>` opens a file,
  * `&diff=1` with its changes). Exists in development builds only.
  */
@@ -70,8 +73,12 @@ export default function DevProject() {
   const params = new URLSearchParams(window.location.search);
   const size = Number(params.get("size") ?? 26);
   const notes = params.get("session") === "notes";
+  const injected = params.get("session") === "injected" ? window.__vfDevSession : undefined;
   const withStream = params.get("stream") !== "0";
-  const records = useMemo(() => (notes ? notesSession : syntheticAnalysis(size, Number(params.get("seed") ?? 1), 1)), [notes, size]);
+  const records = useMemo(
+    () => injected ?? (notes ? notesSession : syntheticAnalysis(size, Number(params.get("seed") ?? 1), 1)),
+    [injected, notes, size],
+  );
   const transport = useMemo(() => devTransport(records, withStream), [records, withStream]);
 
   useEffect(() => {
