@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import glossary from "./glossary.json";
+import glossary from "./shared/glossary.json";
 import { en } from "./locales/en.ts";
 
 function texts(obj: Record<string, unknown>, out: string[] = []): string[] {

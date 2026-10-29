@@ -1,0 +1,30 @@
+{
+  "about": "Editor keys exempt from a term of the shared glossary (src/i18n/shared/glossary.json): `terms.<id>.keys.<language>` lists the keys whose text in that language does not have to say the term, `note` says why.",
+  "terms": {
+    "part": {
+      "note": "ru: the stage is named by what it finds out (\"Из чего состоит\").",
+      "keys": {
+        "ru": [
+          "stages.parts"
+        ]
+      }
+    },
+    "map": {
+      "note": "ru: says the agent works the project out, without the map.",
+      "keys": {
+        "ru": [
+          "files.treeEmpty"
+        ]
+      }
+    },
+    "model": {
+      "note": "ru: the AI connection screen speaks of AI and a neural network, not a model.",
+      "keys": {
+        "ru": [
+          "connectAi.title",
+          "connectAi.description"
+        ]
+      }
+    }
+  }
+}

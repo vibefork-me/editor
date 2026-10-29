@@ -33,9 +33,12 @@ part in the frame, no drift at rest and at least 45 frames per second; screensho
 
 ## Languages
 
-Interface texts live in `src/i18n/locales/<code>.ts`; the languages and their status are in `src/i18n/config.ts`
-(`ready` — fully translated, offered to people; `declared` — recognized from the browser, any missing text shown
-in English). The interface is in English, Russian, Brazilian Portuguese, Spanish of Spain (`es-ES`), Latin
+Interface texts live in `src/i18n/locales/<code>.ts`. The languages, their names, marks and status
+(`ready` — fully translated, offered to people; `planned` — recognized from the browser, any missing text shown
+in English, not offered) come from the language list shared by every Vibefork product: `src/i18n/shared` is a
+copy of `packages/i18n` of [vibefork-me/shared](https://github.com/vibefork-me/shared), with its commit and
+the sha256 of each file in `SOURCE.json`. `npm run sync:i18n [path]` copies it again (from `../shared` by
+default); the copy is never edited by hand. `src/i18n/config.ts` lists the codes for their types. The interface is in English, Russian, Brazilian Portuguese, Spanish of Spain (`es-ES`), Latin
 American Spanish (`es-419`) and German; each language is named in itself (`LOCALE_NAMES`), outside the
 dictionaries. A browser in `es-ES` gets Spain's Spanish, any other Spanish one Latin American Spanish; a choice
 stored as `es` by earlier versions is read as `es-419`. English is in the first-screen bundle, every other
@@ -44,11 +47,13 @@ Texts are ICU messages: `{name}`, `{n, number}`, `{n, plural, one {# file} other
 via `Intl.PluralRules`), `{kind, select, … other {…}}`. Numbers, sizes and dates go through `Intl`
 (`formatNumber`, `formatBytes`, `formatDate`).
 
-`check:i18n` fails when a ready language misses a key, any language has a key English lacks, or a text uses
-other values than the English one. It also holds every language to the product glossary
-(`src/i18n/glossary.json`: the terms, their agreed translations and the form of address — `você`, `tú`, `du`):
-where the English text has a term, the translation uses the agreed word, and no text uses a forbidden spelling
-such as `VibeFork`. On the dev server, `?pseudo` in the address shows every dictionary text
+`check:i18n` fails when the shared copy differs from its `SOURCE.json`, the languages of `config.ts` differ
+from the shared list, a ready language misses a key, any language has a key English lacks, or a text uses
+other values than the English one. It also holds every language to the shared product glossary
+(`src/i18n/shared/glossary.json`: the terms, their agreed translations and the form of address — `você`, `tú`,
+`du`): where the English text has a term, the translation uses the agreed word, and no text uses a forbidden
+spelling such as `VibeFork`. Editor keys exempt from a term, with the reason, are in
+`src/i18n/glossary.except.json`. On the dev server, `?pseudo` in the address shows every dictionary text
 accented, longer and in `⟦…⟧`: text without the brackets is written into the code.
 
 `npm run i18n:context` prints every text for review: its translations, where it is used (file, component), its
