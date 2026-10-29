@@ -230,6 +230,7 @@ export const ptBR: TranslationSchema = {
     noBuildRecipe: "O agente não sabe como compilar este projeto",
     notEnoughResources: "Este computador não tem memória ou espaço em disco suficiente para a compilação",
     buildStartFailed: "Não foi possível iniciar a compilação",
+    startNotConfirmed: "A tarefa não começou: o trabalho no projeto não foi confirmado na janela do Vibefork no seu computador",
   },
   toolErrors: {
     unsupportedPlatform: "{tool} não pode ser instalado no sistema deste computador",

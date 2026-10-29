@@ -231,6 +231,7 @@ export const es419: TranslationSchema = {
     noBuildRecipe: "El agente no sabe cómo compilar este proyecto",
     notEnoughResources: "Esta computadora no tiene suficiente memoria o espacio en disco para la compilación",
     buildStartFailed: "No se pudo iniciar la compilación",
+    startNotConfirmed: "La tarea no empezó: no se confirmó el trabajo en el proyecto en la ventana de Vibefork de tu computadora",
   },
   toolErrors: {
     unsupportedPlatform: "{tool} no se puede instalar en el sistema de esta computadora",

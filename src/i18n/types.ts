@@ -222,6 +222,7 @@ export interface TranslationSchema {
     noBuildRecipe: string;
     notEnoughResources: string;
     buildStartFailed: string;
+    startNotConfirmed: string;
   };
   toolErrors: {
     unsupportedPlatform: string;
