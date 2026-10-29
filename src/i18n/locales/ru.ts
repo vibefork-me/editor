@@ -486,5 +486,6 @@ export const ru: TranslationSchema = {
     programEmpty: "Программу отсюда ещё не запускали",
     checks: "Проверки последней задачи",
     error: "Есть ошибка",
+    changedPart: "Изменил: {part}",
   },
 };

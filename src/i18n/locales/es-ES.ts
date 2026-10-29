@@ -490,5 +490,6 @@ export const esES: TranslationSchema = {
     programEmpty: "El programa todavía no se ha ejecutado desde aquí",
     checks: "Comprobaciones de la última tarea",
     error: "Hay un error",
+    changedPart: "Cambiado: {part}",
   },
 };
