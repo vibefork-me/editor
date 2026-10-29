@@ -83,6 +83,46 @@ describe("feedLine", () => {
     });
   });
 
+  it("words GitHub Copilot's limit and its absence on the account, in every language", async () => {
+    const others = ["ru", "pt-BR", "es-ES", "es-419", "de"] as const;
+    await Promise.all(others.map((l) => loadLocale(l)));
+    // The agent's wording (vf-providers copilot.rs, explain_error).
+    const limit =
+      "the GitHub Copilot limit is used up; choose another AI or wait until it renews (You have exceeded your monthly quota)";
+    const denied =
+      "GitHub Copilot is not available for this GitHub account (check github.com/settings/copilot); choose another AI (Access denied)";
+    expect(line({ type: "evt", provider: "copilot", ev: { kind: "error", text: limit } })).toEqual({
+      kind: "error",
+      text: limit,
+      key: "agentErrors.copilotLimit",
+    });
+    expect(line({ type: "evt", provider: "copilot", ev: { kind: "error", text: denied } })).toEqual({
+      kind: "error",
+      text: denied,
+      key: "agentErrors.copilotUnavailable",
+    });
+    // A failed plan because of the limit says why, not only that planning failed.
+    expect(line({ type: "error", error: `planning failed: ${limit}`, code: "planning_failed" })?.key).toBe(
+      "agentErrors.copilotLimit",
+    );
+    expect(translate("ru", "agentErrors.copilotLimit")).toBe(
+      "Лимит GitHub Copilot исчерпан. Выберите другой ИИ или дождитесь обновления лимита.",
+    );
+    for (const key of ["agentErrors.copilotLimit", "agentErrors.copilotUnavailable"] as const) {
+      const en = translate("en", key);
+      for (const locale of others) {
+        const text = translate(locale, key);
+        expect(text).toContain("GitHub Copilot");
+        expect(text, `${locale} ${key}`).not.toBe(en);
+      }
+    }
+    // Any other error of the AI is shown as the agent sent it.
+    expect(line({ type: "evt", provider: "copilot", ev: { kind: "error", text: "GitHub Copilot: odd" } })).toEqual({
+      kind: "error",
+      text: "GitHub Copilot: odd",
+    });
+  });
+
   it("skips what the chat does not show", () => {
     expect(line({ type: "stderr", text: "noise" })).toBeNull();
     expect(line({ type: "evt", provider: "claude", ev: { kind: "init", cli: "claude" } })).toBeNull();

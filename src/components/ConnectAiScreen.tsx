@@ -16,6 +16,7 @@ export type ConnectAiScreenProps = {
 const DEFAULT_PROVIDERS: AiProvider[] = [
   { id: "claude", kind: "subscription", installed: true, installing: false, connected: "no" },
   { id: "codex", kind: "subscription", installed: true, installing: false, connected: "no" },
+  { id: "copilot", kind: "subscription", installed: true, installing: false, connected: "no" },
   { id: "custom", kind: "custom", installed: true, installing: false, connected: "no" },
   { id: "gemini", kind: "free", installed: true, installing: false, connected: "no" },
   { id: "openrouter", kind: "free", installed: true, installing: false, connected: "no" },
@@ -24,6 +25,7 @@ const DEFAULT_PROVIDERS: AiProvider[] = [
 const PROVIDER_NAMES: Record<string, string> = {
   claude: "Claude",
   codex: "ChatGPT (Codex)",
+  copilot: "GitHub Copilot",
   openrouter: "OpenRouter",
   gemini: "Google AI Studio (Gemini)",
 };
@@ -88,11 +90,13 @@ export function ConnectAiScreen({
       ? t("connectAi.claudeDescription")
       : p.id === "codex"
         ? t("connectAi.codexDescription")
-        : p.id === "custom"
-          ? t("connectAi.optionCustomDescription")
-          : p.id === "gemini"
-            ? t("connectAi.optionGeminiDescription")
-            : t("connectAi.optionOpenRouterDescription");
+        : p.id === "copilot"
+          ? t("connectAi.copilotDescription")
+          : p.id === "custom"
+            ? t("connectAi.optionCustomDescription")
+            : p.id === "gemini"
+              ? t("connectAi.optionGeminiDescription")
+              : t("connectAi.optionOpenRouterDescription");
   const busy = (p: AiProvider) => connectingProvider === p.id || isChecking;
 
   const connected = list.filter((p) => p.connected === "yes");

@@ -55,6 +55,7 @@ export const ru: TranslationSchema = {
     nothingFound: "Ничего не найдено",
     claudeDescription: "Подписка Claude Pro или Max (Anthropic).",
     codexDescription: "Подписка ChatGPT Plus или Pro (OpenAI).",
+    copilotDescription: "План GitHub Copilot, в том числе бесплатный Copilot Free (GitHub).",
     moreAction: "Подробнее",
     replaceKeyAction: "Заменить ключ",
     close: "Закрыть",
@@ -232,6 +233,8 @@ export const ru: TranslationSchema = {
     notEnoughResources: "Для сборки на этом компьютере не хватает памяти или места на диске",
     buildStartFailed: "Сборку не удалось запустить",
     startNotConfirmed: "Задача не началась: работу над проектом не подтвердили в окне Vibefork на компьютере",
+    copilotUnavailable: "GitHub Copilot недоступен для этого аккаунта GitHub. Проверьте github.com/settings/copilot или выберите другой ИИ.",
+    copilotLimit: "Лимит GitHub Copilot исчерпан. Выберите другой ИИ или дождитесь обновления лимита.",
   },
   toolErrors: {
     unsupportedPlatform: "{tool} не устанавливается на систему этого компьютера",

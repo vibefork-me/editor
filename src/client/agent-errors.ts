@@ -40,3 +40,18 @@ export function agentErrorKey(code: string | null | undefined): TranslationKey |
 export function toolErrorKey(code: string | null | undefined): TranslationKey | undefined {
   return known(TOOL_ERRORS, code);
 }
+
+/**
+ * Phrases of an AI's own errors the agent sends as text without a code, found by the agent's
+ * fixed English wording (lower case).
+ */
+const PROVIDER_ERRORS: [string, TranslationKey][] = [
+  ["github copilot is not available for this github account", "agentErrors.copilotUnavailable"],
+  ["the github copilot limit is used up", "agentErrors.copilotLimit"],
+];
+
+/** The phrase for an AI's error in the agent's text; none for any other text: show it as is. */
+export function providerErrorKey(text: string | null | undefined): TranslationKey | undefined {
+  const lower = text?.toLowerCase() ?? "";
+  return PROVIDER_ERRORS.find(([phrase]) => lower.includes(phrase))?.[1];
+}

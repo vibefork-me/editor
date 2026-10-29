@@ -56,6 +56,7 @@ export const de: TranslationSchema = {
     nothingFound: "Nichts gefunden",
     claudeDescription: "Ein Abo für Claude Pro oder Max (Anthropic).",
     codexDescription: "Ein Abo für ChatGPT Plus oder Pro (OpenAI).",
+    copilotDescription: "Ein GitHub-Copilot-Plan, auch Copilot Free (GitHub).",
     moreAction: "Mehr",
     replaceKeyAction: "Schlüssel ersetzen",
     close: "Schließen",
@@ -234,6 +235,8 @@ export const de: TranslationSchema = {
     notEnoughResources: "Dieser Computer hat nicht genug Arbeitsspeicher oder Speicherplatz für den Build",
     buildStartFailed: "Der Build konnte nicht starten",
     startNotConfirmed: "Die Aufgabe hat nicht begonnen: Die Arbeit am Projekt wurde im Vibefork-Fenster auf deinem Computer nicht bestätigt",
+    copilotUnavailable: "GitHub Copilot ist für dieses GitHub-Konto nicht verfügbar. Prüfe github.com/settings/copilot oder wähle eine andere KI.",
+    copilotLimit: "Das Limit von GitHub Copilot ist aufgebraucht. Wähle eine andere KI oder warte, bis sich das Limit erneuert.",
   },
   toolErrors: {
     unsupportedPlatform: "{tool} lässt sich auf dem System dieses Computers nicht installieren",
