@@ -43,6 +43,8 @@ export interface TranslationSchema {
     pending: string;
     denied: string;
     error: string;
+    conflict: string;
+    outdated: string;
     retry: string;
   };
   connectAi: {

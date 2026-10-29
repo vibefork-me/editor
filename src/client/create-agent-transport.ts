@@ -1,5 +1,7 @@
 import {
   discoverAgentBaseUrl,
+  discoverTrustedAgent,
+  type AgentPublicKey,
   fetchAgentHello,
   probeAgentBaseUrl,
   reconnectDelayMs,
@@ -57,6 +59,11 @@ export type AgentTransportDeps = {
   fetch?: typeof fetch;
   WebSocket?: typeof WebSocket;
   getKeyId?: (clientKey: CryptoKey) => Promise<string>;
+  /** The agent key kept from pairing; `null` while not paired. Discovery talks only to an agent
+   * that proves it holds this key; without one, only to the single program that answers. */
+  getAgentKey?: () => Promise<AgentPublicKey | null>;
+  /** This page's origin, signed by the agent in its identity proof. */
+  origin?: string;
   signNonce?: (clientKey: CryptoKey, nonce: string) => Promise<string>;
   schedule?: (fn: () => void, delayMs: number) => number;
   clearSchedule?: (id: number) => void;
@@ -92,10 +99,15 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
       return baseUrl;
     }
     if (deps.discover) {
-      const found = await discoverAgentBaseUrl(fetchFn);
+      const agentKey = deps.getAgentKey ? await deps.getAgentKey() : null;
+      const found = await discoverTrustedAgent(fetchFn, {
+        agentKey,
+        origin: deps.origin ?? globalThis.location?.origin ?? "",
+      });
       if (found) {
-        baseUrl = found;
-        return baseUrl;
+        // Only a verified agent is remembered; while pairing every call looks again.
+        if (agentKey) baseUrl = found;
+        return found;
       }
     }
     throw new Error("agent base URL is not configured");
@@ -274,12 +286,13 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
   const transport: AgentTransport = {
     async getHealth(): Promise<AgentHealth> {
       try {
-        if (!baseUrl && deps.discover !== false) {
-          const found = await discoverAgentBaseUrl(fetchFn);
-          if (found) baseUrl = found;
+        // Health only asks `/v1/hello`; a port found here is not trusted for anything else.
+        let base = baseUrl;
+        if (!base && deps.discover !== false) {
+          base = (await discoverAgentBaseUrl(fetchFn)) ?? "";
         }
-        if (!baseUrl) return { ok: false };
-        const hello = await fetchAgentHello(fetchFn, baseUrl);
+        if (!base) return { ok: false };
+        const hello = await fetchAgentHello(fetchFn, base);
         if (!hello) return { ok: false };
         return {
           ok: true,

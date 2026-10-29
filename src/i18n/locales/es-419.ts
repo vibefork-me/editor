@@ -44,6 +44,8 @@ export const es419: TranslationSchema = {
     pending: "Esperando la aprobación en la ventana del agente…",
     denied: "La solicitud de conexión se rechazó o caducó.",
     error: "No se pudo completar la conexión. Comprueba que el agente esté disponible e inténtalo de nuevo.",
+    conflict: "En esta computadora otro programa responde en lugar del agente Vibefork, así que ahora no es seguro conectar. Reinicia la computadora e inténtalo de nuevo.",
+    outdated: "Esta versión del agente no puede demostrar que es la verdadera. Actualiza el agente e inténtalo de nuevo.",
     retry: "Intentar de nuevo",
   },
   connectAi: {
