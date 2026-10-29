@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AgentTransport } from "../client/types.ts";
 import type { CanvasState } from "../canvas/canvasState.ts";
 import { useI18nStore } from "../i18n/i18nStore.ts";
@@ -26,6 +26,11 @@ vi.mock("../canvas/graph/GraphCanvas.tsx", () => ({
 }));
 
 import { ProjectPage } from "./ProjectPage.tsx";
+
+// The canvas is a lazy chunk of the page; load it before the tests, so they wait for a render, not an import.
+beforeAll(async () => {
+  await import("../canvas/graph/GraphCanvas.tsx");
+});
 
 function renderPage() {
   return render(

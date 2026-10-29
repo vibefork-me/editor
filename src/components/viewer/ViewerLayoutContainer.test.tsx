@@ -1,10 +1,27 @@
 // @vitest-environment jsdom
 import { fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { useViewerStore } from "../../stores/viewerStore.ts";
 import { ViewerLayoutContainer } from "./ViewerLayoutContainer.tsx";
 
+// jsdom has no layout for the real editor: the view keeps its text fallback, whatever the machine's speed.
+vi.mock("monaco-editor", () => ({
+  editor: {
+    create: () => {
+      throw new Error("no editor in jsdom");
+    },
+    createDiffEditor: () => {
+      throw new Error("no editor in jsdom");
+    },
+  },
+}));
+
 describe("ViewerLayoutContainer", () => {
+  // The editor view is a lazy chunk; load it before the tests, so they wait for a render, not an import.
+  beforeAll(async () => {
+    await import("./MonacoEditorView.tsx");
+  });
+
   beforeEach(() => {
     useViewerStore.getState().resetViewer();
   });

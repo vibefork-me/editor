@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildCanvasState } from "../canvasState.ts";
+import { applyCanvasEvent, buildCanvasState, initialCanvasState } from "../canvasState.ts";
 import { stream } from "../testSessions.ts";
 import { drawData, MORE } from "./drawData.ts";
 import { nodeRadius } from "./paint.ts";
@@ -12,8 +12,13 @@ const analysisOf = (size: number) => buildCanvasState(syntheticAnalysis(size, si
 function grown(size: number) {
   const records = syntheticAnalysis(size, size);
   const stable = new StableGraph(() => 0, seeded(7));
-  // Feed the state event by event, so every node is placed next to an already placed parent.
-  for (let i = 1; i <= records.length; i++) stable.sync(drawData(buildCanvasState(records.slice(0, i)), new Set(), false));
+  // Feed the state event by event, so every node is placed next to an already placed parent;
+  // the state grows by one event each step instead of being rebuilt from the start.
+  let state = initialCanvasState;
+  for (const r of records) {
+    state = applyCanvasEvent(state, r.ev, r.at);
+    stable.sync(drawData(state, new Set(), false));
+  }
   return stable;
 }
 
@@ -73,14 +78,16 @@ describe("layout", () => {
       }
       expect(stable.nodes.size).toBe(size);
       expect(treeCrossings(stable.nodes.values(), stable.links.values())).toBe(0);
-      // No pile: no two bodies touch.
+      // No pile: no two bodies touch. One assertion over all pairs, not one per pair.
       const placed = [...stable.nodes.values()];
+      const touching: string[] = [];
       for (let i = 0; i < placed.length; i++)
         for (let j = i + 1; j < placed.length; j++) {
           const a = placed[i]!;
           const b = placed[j]!;
-          expect(Math.hypot((a.x ?? 0) - (b.x ?? 0), (a.y ?? 0) - (b.y ?? 0))).toBeGreaterThan(nodeRadius(a) + nodeRadius(b));
+          if (Math.hypot((a.x ?? 0) - (b.x ?? 0), (a.y ?? 0) - (b.y ?? 0)) <= nodeRadius(a) + nodeRadius(b)) touching.push(`${a.id}~${b.id}`);
         }
+      expect(touching).toEqual([]);
     });
   }
 
