@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { createAgentTransport } from "./create-agent-transport.ts";
 import { buildLogLine } from "../pages/OpenPage.tsx";
+import { loadLocale, useI18nStore } from "../i18n/i18nStore.ts";
 import type { BuildMessage } from "./types.ts";
 
 const BASE = "http://127.0.0.1:47801";
@@ -138,6 +139,16 @@ describe("buildLogLine", () => {
       "java@21: failed — no space",
     );
     expect(line({ type: "build_done", code: 0 })).toBeNull();
+  });
+
+  it("words a tool that was not installed by its code in the person's language", async () => {
+    const line = (m: Record<string, unknown>) => buildLogLine(m as BuildMessage);
+    const failed = { type: "toolchain", tool: "java@21", status: "failed", error: "timed out", code: "timed_out" };
+    await loadLocale("de");
+    useI18nStore.getState().setLocale("de");
+    expect(line(failed)).toBe("Die Installation von java@21 hat zu lange gedauert und wurde gestoppt");
+    useI18nStore.getState().setLocale("en");
+    expect(line(failed)).toBe("Installing java@21 took too long and was stopped");
   });
 });
 

@@ -16,7 +16,26 @@ const AGENT_ERRORS: Record<string, TranslationKey> = {
   build_start_failed: "agentErrors.buildStartFailed",
 };
 
+/** Codes of a tool that could not be prepared for a task or a build; each phrase takes `{tool}`. */
+const TOOL_ERRORS: Record<string, TranslationKey> = {
+  unsupported_platform: "toolErrors.unsupportedPlatform",
+  download_failed: "toolErrors.downloadFailed",
+  install_failed: "toolErrors.installFailed",
+  timed_out: "toolErrors.timedOut",
+  cancelled: "toolErrors.cancelled",
+  not_allowed: "toolErrors.notAllowed",
+};
+
+function known(codes: Record<string, TranslationKey>, code: string | null | undefined): TranslationKey | undefined {
+  return code && Object.prototype.hasOwnProperty.call(codes, code) ? codes[code] : undefined;
+}
+
 /** The phrase for an agent error code; none for an unknown code (an older or newer agent): show its text. */
 export function agentErrorKey(code: string | null | undefined): TranslationKey | undefined {
-  return code && Object.prototype.hasOwnProperty.call(AGENT_ERRORS, code) ? AGENT_ERRORS[code] : undefined;
+  return known(AGENT_ERRORS, code);
+}
+
+/** The phrase for a tool's error code; none for an unknown code: show the agent's text. */
+export function toolErrorKey(code: string | null | undefined): TranslationKey | undefined {
+  return known(TOOL_ERRORS, code);
 }

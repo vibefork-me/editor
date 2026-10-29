@@ -231,6 +231,14 @@ export const es419: TranslationSchema = {
     notEnoughResources: "Esta computadora no tiene suficiente memoria o espacio en disco para la compilación",
     buildStartFailed: "No se pudo iniciar la compilación",
   },
+  toolErrors: {
+    unsupportedPlatform: "{tool} no se puede instalar en el sistema de esta computadora",
+    downloadFailed: "No se pudo descargar el instalador de herramientas, así que {tool} no está instalado. Revisa la conexión a internet",
+    installFailed: "No se pudo instalar {tool}",
+    timedOut: "La instalación de {tool} tardó demasiado y se detuvo",
+    cancelled: "Se canceló la instalación de {tool}",
+    notAllowed: "{tool} no se instaló: no lo permitiste",
+  },
   stages: {
     download: "Descarga",
     downloadLong: "Descargando el proyecto",

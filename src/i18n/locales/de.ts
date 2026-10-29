@@ -230,6 +230,14 @@ export const de: TranslationSchema = {
     notEnoughResources: "Dieser Computer hat nicht genug Arbeitsspeicher oder Speicherplatz für den Build",
     buildStartFailed: "Der Build konnte nicht starten",
   },
+  toolErrors: {
+    unsupportedPlatform: "{tool} lässt sich auf dem System dieses Computers nicht installieren",
+    downloadFailed: "Das Installationsprogramm für Werkzeuge konnte nicht heruntergeladen werden, daher ist {tool} nicht installiert. Prüfe die Internetverbindung",
+    installFailed: "{tool} konnte nicht installiert werden",
+    timedOut: "Die Installation von {tool} hat zu lange gedauert und wurde gestoppt",
+    cancelled: "Die Installation von {tool} wurde abgebrochen",
+    notAllowed: "{tool} wurde nicht installiert: Du hast es nicht erlaubt",
+  },
   stages: {
     download: "Download",
     downloadLong: "Das Projekt wird heruntergeladen",

@@ -228,6 +228,14 @@ export const ru: TranslationSchema = {
     notEnoughResources: "Для сборки на этом компьютере не хватает памяти или места на диске",
     buildStartFailed: "Сборку не удалось запустить",
   },
+  toolErrors: {
+    unsupportedPlatform: "{tool} не устанавливается на систему этого компьютера",
+    downloadFailed: "Не удалось скачать установщик инструментов, поэтому {tool} не установлен. Проверьте подключение к интернету",
+    installFailed: "Не удалось установить {tool}",
+    timedOut: "Установка {tool} шла слишком долго и остановлена",
+    cancelled: "Установка {tool} отменена",
+    notAllowed: "{tool} не установлен: вы не разрешили установку",
+  },
   stages: {
     download: "Скачивание",
     downloadLong: "Скачиваю проект",
