@@ -113,7 +113,7 @@ export type ImportRequest = { ref?: string | null; repo: string; upstream?: stri
 export type ImportResponse = { commit: string; foreign?: ForeignChanges | null; project: string; upstream: string };
 
 /** One journal entry: a task or a plan step. */
-export type JournalEntry = { artifacts?: (Artifact)[]; at: string; commit?: string | null; commits?: (string)[]; costUsd?: number | null; files?: string; handoff?: boolean; model: string; ms?: number | null; prompt: string; promptVersion?: string | null; provider: string; session?: string | null; summary?: string; usage?: Usage | null };
+export type JournalEntry = { artifacts?: (Artifact)[]; at: string; cliConfig?: (string)[]; commit?: string | null; commits?: (string)[]; costUsd?: number | null; files?: string; handoff?: boolean; model: string; ms?: number | null; prompt: string; promptVersion?: string | null; provider: string; session?: string | null; summary?: string; usage?: Usage | null };
 
 /** Response of `GET /v1/journal?project=…`. */
 export type JournalResponse = { entries: (JournalEntry)[] };
@@ -139,20 +139,26 @@ export type OfferSource = { kind: OfferSourceKind; text: string };
 /** Why an offer is made. */
 export type OfferSourceKind = "analysis" | "similar" | "issues";
 
+/** `POST /v1/pair/code`: the code the user read in the agent's dialog. */
+export type PairCodeRequest = { code: string; pairId: string };
+
+/** Response of `POST /v1/pair/code`. */
+export type PairCodeResponse = { accepted: boolean; status: PairState };
+
 /** One paired browser in `GET /v1/pairs`. */
 export type PairInfo = { created: number; keyId: string; name: string; origin: string; projects?: (string)[] };
 
 /** `POST /v1/pair/start`. */
 export type PairStartRequest = { name?: string | null; publicKeyJwk: PublicJwk };
 
-/** Response of `POST /v1/pair/start`. */
-export type PairStartResponse = { code: string; pairId: string };
+/** Response of `POST /v1/pair/start`. The pairing code is not in it: the agent shows the code only in its own dialog, and the user enters it on the page (`POST /v1/pair/code`). */
+export type PairStartResponse = { pairId: string };
 
 /** State of a pairing request. */
 export type PairState = "pending" | "approved" | "denied";
 
 /** Response of `GET /v1/pair/status`. */
-export type PairStatusResponse = { keyId?: string | null; status: PairState };
+export type PairStatusResponse = { codeAccepted?: boolean; keyId?: string | null; status: PairState };
 
 /** A plan step as shown to the user. */
 export type PlanStepInfo = { complexity: string; label: string; title: string };
@@ -194,7 +200,7 @@ export type RollbackResponse = { commit: string; project: string };
 export type SaveRequest = { copy?: string | null; project: string };
 
 /** Response of `POST /v1/save`. */
-export type SaveResponse = { commit?: string | null; copy?: string | null; files?: (string)[]; name?: string | null; next_url?: string | null; step: SaveStep; url?: string | null };
+export type SaveResponse = { commit?: string | null; copy?: string | null; files?: (string)[]; held_back?: (string)[]; name?: string | null; next_url?: string | null; step: SaveStep; url?: string | null };
 
 /** What "Save" did or what the user does next. */
 export type SaveStep = "saved" | "unchanged" | "connect_github" | "create_copy" | "create_repo" | "allow_app" | "narrow_access" | "conflict";

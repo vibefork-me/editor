@@ -35,6 +35,9 @@ export interface TranslationSchema {
     description: string;
     codeLabel: string;
     codeAccessibleLabel: string;
+    codeSubmit: string;
+    codeWrong: string;
+    codeAccepted: string;
     browserName: string;
     starting: string;
     pending: string;

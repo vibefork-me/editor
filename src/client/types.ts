@@ -104,12 +104,18 @@ export interface SaveProjectResult {
 
 export interface PairStartResult {
   pairId: string;
-  code: string;
 }
 
 export interface PairStatusResult {
   status: "pending" | "approved" | "denied";
   keyId?: string;
+  /** The right code was entered; the request may still wait for Allow in the agent window. */
+  codeAccepted?: boolean;
+}
+
+export interface PairCodeResult {
+  accepted: boolean;
+  status: "pending" | "approved" | "denied";
 }
 
 export interface Subscription {
@@ -209,6 +215,9 @@ export interface AgentTransport {
   authenticateSession(clientKey: CryptoKey): Promise<{ token: string }>;
   startPairing(params: { publicKeyJwk: JsonWebKey; name?: string }): Promise<PairStartResult>;
   getPairingStatus(pairId: string): Promise<PairStatusResult>;
+  /** Sends the code the user read in the agent window. `null`: this agent version takes no code
+   * (it approves on Allow alone). */
+  submitPairingCode(pairId: string, code: string): Promise<PairCodeResult | null>;
 
   getProject(projectId: string): Promise<ProjectMetadata>;
   listProjects(): Promise<ProjectSummary[]>;
