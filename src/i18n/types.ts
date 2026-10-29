@@ -222,6 +222,14 @@ export interface TranslationSchema {
     notEnoughResources: string;
     buildStartFailed: string;
   };
+  toolErrors: {
+    unsupportedPlatform: string;
+    downloadFailed: string;
+    installFailed: string;
+    timedOut: string;
+    cancelled: string;
+    notAllowed: string;
+  };
   stages: {
     download: string;
     downloadLong: string;

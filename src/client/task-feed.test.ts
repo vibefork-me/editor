@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { translate } from "../i18n/i18nStore.ts";
+import { loadLocale, translate } from "../i18n/i18nStore.ts";
 import { feedLine } from "./task-feed.ts";
 import type { ServerMessage } from "./protocol.generated.ts";
 
@@ -41,6 +41,41 @@ describe("feedLine", () => {
     expect(translate("ru", l!.key!)).toBe("Выбранная модель сейчас недоступна");
     // An unknown code (a newer agent) shows the agent's text.
     expect(line({ type: "error", error: "something new", code: "brand_new" })).toEqual({ kind: "error", text: "something new" });
+  });
+
+  it("words a tool that was not installed by its code, in every language, and keeps the agent's text", async () => {
+    const others = ["ru", "pt-BR", "es-ES", "es-419", "de"] as const;
+    await Promise.all(others.map((l) => loadLocale(l)));
+    const l = line({
+      type: "toolchain",
+      tool: "python@3.12",
+      status: "failed",
+      error: "not allowed by the person",
+      code: "not_allowed",
+    });
+    expect(l).toEqual({
+      kind: "error",
+      text: "python@3.12: failed — not allowed by the person",
+      key: "toolErrors.notAllowed",
+      params: { tool: "python@3.12" },
+    });
+    expect(translate("ru", l!.key!, l!.params)).toBe("python@3.12 не установлен: вы не разрешили установку");
+    const codes = ["unsupported_platform", "download_failed", "install_failed", "timed_out", "cancelled", "not_allowed"];
+    for (const code of codes) {
+      const key = line({ type: "toolchain", tool: "go@1.23", status: "failed", error: "x", code })!.key!;
+      const en = translate("en", key, { tool: "go@1.23" });
+      expect(en).toContain("go@1.23");
+      for (const locale of others) {
+        const text = translate(locale, key, { tool: "go@1.23" });
+        expect(text).toContain("go@1.23");
+        expect(text, `${locale} ${code}`).not.toBe(en);
+      }
+    }
+    // An unknown code (a newer agent) shows the agent's text.
+    expect(line({ type: "toolchain", tool: "go@1.23", status: "failed", error: "odd", code: "brand_new" })).toEqual({
+      kind: "error",
+      text: "go@1.23: failed — odd",
+    });
   });
 
   it("skips what the chat does not show", () => {

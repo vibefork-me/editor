@@ -1,5 +1,5 @@
 import type { TranslationKey, TranslationParams } from "../i18n/types.ts";
-import { agentErrorKey } from "./agent-errors.ts";
+import { agentErrorKey, toolErrorKey } from "./agent-errors.ts";
 import type { ServerMessage } from "./protocol.generated.ts";
 
 /**
@@ -28,8 +28,13 @@ export function feedLine(m: ServerMessage): FeedLine | null {
       return { kind: "status", text: "planning", key: "feed.planning" };
     case "plan":
       return { kind: "status", text: m.steps.map((s, i) => `${i + 1}. ${s.title}`).join("\n") };
-    case "toolchain":
-      return { kind: m.error ? "error" : "status", text: `${m.tool}: ${m.status}${m.error ? ` — ${m.error}` : ""}` };
+    case "toolchain": {
+      const text = `${m.tool}: ${m.status}${m.error ? ` — ${m.error}` : ""}`;
+      // A known code is worded in the person's language, with the agent's text under «Details».
+      const key = toolErrorKey(m.code);
+      if (key) return { kind: "error", text, key, params: { tool: m.tool } };
+      return { kind: m.error ? "error" : "status", text };
+    }
     case "started":
       return {
         kind: "status",
