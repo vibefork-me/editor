@@ -186,6 +186,7 @@ export const ru: TranslationSchema = {
     errorNotConfirmed: "Запуск не был разрешён в окне агента.",
     errorNoRecipe: "Агент не знает, как запустить этот проект.",
     errorNotSupported: "Эта версия агента не умеет запускать программы. Обновите агент.",
+    errorStartFailed: "Программа не запустилась. Соберите проект снова и попробуйте ещё раз.",
     errorGeneral: "Не удалось запустить программу.",
   },
   project: {

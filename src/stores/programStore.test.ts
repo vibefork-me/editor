@@ -54,6 +54,15 @@ describe("program store", () => {
     expect(programFailed(useProgramStore.getState())).toBe(true);
   });
 
+  it("a program that did not start and an unknown project have their own phrases", async () => {
+    bindAgentTransport(agent([], { kind: "error", error: "cannot start the program: x", code: "run_failed" }));
+    await useProgramStore.getState().start("notes-app");
+    expect(useProgramStore.getState().errorKey).toBe("startFailed");
+    bindAgentTransport(agent([], { kind: "error", error: "unknown project", code: "not_found" }));
+    await useProgramStore.getState().start("notes-app");
+    expect(useProgramStore.getState().errorKey).toBe("notFound");
+  });
+
   it("keeps only the latest lines", async () => {
     const many: ServerMessage[] = Array.from({ length: PROGRAM_LINES_KEPT + 5 }, (_, i) => ({ type: "program_log", stream: "stdout", text: `line ${i}` }));
     bindAgentTransport(agent(many, { kind: "done", code: 0, cut: false }));

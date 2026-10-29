@@ -7,7 +7,7 @@ import { useTranslation } from "../../i18n/i18nStore.ts";
 import type { TranslationKey } from "../../i18n/types.ts";
 import { useBuildStore } from "../../stores/buildStore.ts";
 import { useLayoutStore, type JournalTab } from "../../stores/layoutStore.ts";
-import { useProgramStore, type ProgramErrorKind } from "../../stores/programStore.ts";
+import { runProgramInJournal, useProgramStore, type ProgramErrorKind } from "../../stores/programStore.ts";
 import { useProjectStore } from "../../stores/projectStore.ts";
 import { FeedLineView } from "../chat/FeedLineView.tsx";
 import { IconCheck, IconTriangleAlert } from "../shell/icons.tsx";
@@ -65,6 +65,7 @@ function BuildSection({ state }: { state: CanvasState }) {
   const copied = useBuildStore((s) => s.copiedArtifacts);
   const startBuild = useBuildStore((s) => s.startBuild);
   const copyArtifactsPath = useBuildStore((s) => s.copyArtifactsPath);
+  const programLive = useProgramStore((s) => s.status === "starting" || s.status === "running");
   const end = useStickToEnd(log.length);
   const artifactsPath = outcome && outcome.kind === "done" ? outcome.artifacts : null;
 
@@ -86,6 +87,18 @@ function BuildSection({ state }: { state: CanvasState }) {
             <IconCheck className="size-3.5" />
             {t("build.succeeded")}
           </span>
+        )}
+        {status === "built" && (
+          <button
+            type="button"
+            data-testid="build-run"
+            disabled={!projectId || programLive}
+            title={t("program.confirmNote")}
+            onClick={() => projectId && void runProgramInJournal(projectId)}
+            className="rounded border border-accent/30 bg-accent/15 px-2.5 py-1 text-xs font-semibold text-accent hover:bg-accent/25 disabled:opacity-60"
+          >
+            {programLive ? t("program.running") : t("program.run")}
+          </button>
         )}
         {status === "cancelled" && <span className="text-xs text-text-muted">{t("build.cancelled")}</span>}
         {artifactsPath && (
@@ -148,6 +161,8 @@ const PROGRAM_ERRORS: Record<ProgramErrorKind, TranslationKey> = {
   notConfirmed: "program.errorNotConfirmed",
   noRecipe: "program.errorNoRecipe",
   notSupported: "program.errorNotSupported",
+  startFailed: "program.errorStartFailed",
+  notFound: "agentErrors.notFound",
   agentError: "program.errorGeneral",
 };
 
@@ -213,7 +228,7 @@ function ProgramSection() {
       {status === "failed" && (
         <div role="alert" className="flex items-center gap-2 rounded border border-danger/30 bg-danger/10 p-2 font-sans text-xs text-danger">
           <IconTriangleAlert className="size-4 shrink-0" />
-          <span>{errorKey === "agentError" && error ? error : t(PROGRAM_ERRORS[errorKey ?? "agentError"])}</span>
+          <span title={error ?? undefined}>{t(PROGRAM_ERRORS[errorKey ?? "agentError"])}</span>
         </div>
       )}
       <div ref={end} />

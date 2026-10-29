@@ -180,6 +180,7 @@ export interface TranslationSchema {
     errorNotConfirmed: string;
     errorNoRecipe: string;
     errorNotSupported: string;
+    errorStartFailed: string;
     errorGeneral: string;
   };
   project: {

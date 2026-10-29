@@ -188,6 +188,7 @@ export const de: TranslationSchema = {
     errorNotConfirmed: "Der Start wurde im Fenster des Agenten nicht erlaubt.",
     errorNoRecipe: "Der Agent weiß nicht, wie dieses Projekt gestartet wird.",
     errorNotSupported: "Diese Version des Agenten kann keine Programme starten. Aktualisiere den Agenten.",
+    errorStartFailed: "Das Programm ist nicht gestartet. Baue das Projekt neu und versuche es noch einmal.",
     errorGeneral: "Das Programm konnte nicht gestartet werden.",
   },
   project: {
