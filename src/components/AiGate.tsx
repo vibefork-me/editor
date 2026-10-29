@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { AgentApiError, type AiProvider } from "../client/types.ts";
+import { providerErrorKey } from "../client/agent-errors.ts";
 import { useAgentClient } from "../client/react/useAgentClient.ts";
 import { useI18n } from "../i18n/index.ts";
 import { useSessionStore } from "../stores/sessionStore.ts";
@@ -119,7 +120,8 @@ export function AiGate({ children, pollIntervalMs = POLL_INTERVAL_MS }: AiGatePr
         } else if (isBadKey) {
           setErrorMessage(t("connectAi.openRouterKeyRejected"));
         } else {
-          setErrorMessage(msg || t("connectAi.errorNotice"));
+          const key = providerErrorKey(msg);
+          setErrorMessage(key ? t(key) : msg || t("connectAi.errorNotice"));
         }
       }
     },

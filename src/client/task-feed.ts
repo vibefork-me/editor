@@ -1,5 +1,5 @@
 import type { TranslationKey, TranslationParams } from "../i18n/types.ts";
-import { agentErrorKey, toolErrorKey } from "./agent-errors.ts";
+import { agentErrorKey, providerErrorKey, toolErrorKey } from "./agent-errors.ts";
 import type { ServerMessage } from "./protocol.generated.ts";
 
 /**
@@ -46,8 +46,11 @@ export function feedLine(m: ServerMessage): FeedLine | null {
           return { kind: "agent", text: m.ev.text };
         case "tool":
           return { kind: "tool", text: `${m.ev.tool} ${m.ev.detail}`.trim() };
-        case "error":
-          return { kind: "error", text: m.ev.text };
+        case "error": {
+          // A known error of the AI (a Copilot limit, no Copilot) is worded in the person's language.
+          const key = providerErrorKey(m.ev.text);
+          return key ? { kind: "error", text: m.ev.text, key } : { kind: "error", text: m.ev.text };
+        }
         default:
           return null;
       }
@@ -66,7 +69,7 @@ export function feedLine(m: ServerMessage): FeedLine | null {
     }
     case "error": {
       // A known code is worded in the person's language, with the agent's text under «Details».
-      const key = agentErrorKey(m.code);
+      const key = providerErrorKey(m.error) ?? agentErrorKey(m.code);
       return key ? { kind: "error", text: m.error, key } : { kind: "error", text: m.error };
     }
     default:

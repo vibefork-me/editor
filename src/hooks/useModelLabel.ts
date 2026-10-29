@@ -8,6 +8,7 @@ export type ModelLabel = { name: string; model: string };
 const PROVIDER_NAMES: Record<string, string> = {
   claude: "Claude",
   codex: "ChatGPT",
+  copilot: "GitHub Copilot",
   openrouter: "OpenRouter",
 };
 
