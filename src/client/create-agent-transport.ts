@@ -19,6 +19,7 @@ import {
   type ModelInfo,
   type PairStartResult,
   type PairStatusResult,
+  type PairCodeResult,
   type ProgramOutcome,
   type ProjectMetadata,
   type RollbackPartOutcome,
@@ -323,6 +324,16 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
       const res = await apiFetch(`/v1/pair/status?id=${encodeURIComponent(pairId)}`);
       if (!res.ok) throw new Error("pairing status failed");
       return (await res.json()) as PairStatusResult;
+    },
+
+    async submitPairingCode(pairId, code) {
+      const res = await apiFetch("/v1/pair/code", {
+        method: "POST",
+        body: JSON.stringify({ pairId, code }),
+      });
+      if (res.status === 404 || res.status === 405) return null;
+      if (!res.ok) throw new Error("pairing code failed");
+      return (await res.json()) as PairCodeResult;
     },
 
     async listProjects() {

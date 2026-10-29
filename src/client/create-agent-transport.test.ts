@@ -131,13 +131,16 @@ describe("agent-client transport", () => {
     expect(JSON.parse(String(init.body))).toEqual({ project: "demo" });
   });
 
-  it("starts pairing and polls for its approval", async () => {
+  it("starts pairing, sends the code from the agent window and polls for approval", async () => {
     const calls: { url: string; init?: RequestInit }[] = [];
     const fetchMock = vi.fn(async (input: RequestInfo, init?: RequestInit) => {
       const url = String(input);
       calls.push({ url, init });
       if (url.endsWith("/v1/pair/start")) {
-        return jsonResponse({ pairId: "pair-1", code: "123-456" });
+        return jsonResponse({ pairId: "pair-1" });
+      }
+      if (url.endsWith("/v1/pair/code")) {
+        return jsonResponse({ accepted: true, status: "pending" });
       }
       if (url.endsWith("/v1/pair/status?id=pair-1")) {
         return jsonResponse({ status: "approved", keyId: "key-1" });
@@ -154,14 +157,29 @@ describe("agent-client transport", () => {
       publicKeyJwk: { kty: "EC", crv: "P-256", x: "x", y: "y" },
       name: "Editor",
     });
+    const entered = await client.submitPairingCode(pairing.pairId, "123-456");
     const status = await client.getPairingStatus(pairing.pairId);
 
-    expect(pairing).toEqual({ pairId: "pair-1", code: "123-456" });
+    expect(pairing).toEqual({ pairId: "pair-1" });
+    expect(entered).toEqual({ accepted: true, status: "pending" });
     expect(status).toEqual({ status: "approved", keyId: "key-1" });
     expect(JSON.parse(String(calls[0].init?.body))).toEqual({
       publicKeyJwk: { kty: "EC", crv: "P-256", x: "x", y: "y" },
       name: "Editor",
     });
+    expect(calls[1].init?.method).toBe("POST");
+    expect(JSON.parse(String(calls[1].init?.body))).toEqual({ pairId: "pair-1", code: "123-456" });
+  });
+
+  it("treats an agent without the code step as one that approves on Allow alone", async () => {
+    const fetchMock = vi.fn(async () => new Response("not found", { status: 404 }));
+    const client = createAgentTransport({
+      baseUrl: "http://127.0.0.1:47801",
+      fetch: fetchMock as typeof fetch,
+      WebSocket: MockWebSocket as unknown as typeof WebSocket,
+    });
+
+    expect(await client.submitPairingCode("pair-1", "123-456")).toBeNull();
   });
 
   it("probes loopback ports 47801 through 47805", async () => {
