@@ -38,6 +38,11 @@ describe("feedLine", () => {
   it("words a task error with a known code and keeps the agent's text", () => {
     const l = line({ type: "error", error: "model not available: codex gpt-x", code: "model_unavailable" });
     expect(l).toEqual({ kind: "error", text: "model not available: codex gpt-x", key: "agentErrors.modelUnavailable" });
+    expect(line({ type: "error", error: "start not confirmed", code: "start_not_confirmed" })).toEqual({
+      kind: "error",
+      text: "start not confirmed",
+      key: "agentErrors.startNotConfirmed",
+    });
     expect(translate("ru", l!.key!)).toBe("Выбранная модель сейчас недоступна");
     // An unknown code (a newer agent) shows the agent's text.
     expect(line({ type: "error", error: "something new", code: "brand_new" })).toEqual({ kind: "error", text: "something new" });

@@ -230,6 +230,7 @@ export const de: TranslationSchema = {
     noBuildRecipe: "Der Agent weiß nicht, wie dieses Projekt gebaut wird",
     notEnoughResources: "Dieser Computer hat nicht genug Arbeitsspeicher oder Speicherplatz für den Build",
     buildStartFailed: "Der Build konnte nicht starten",
+    startNotConfirmed: "Die Aufgabe hat nicht begonnen: Die Arbeit am Projekt wurde im Vibefork-Fenster auf deinem Computer nicht bestätigt",
   },
   toolErrors: {
     unsupportedPlatform: "{tool} lässt sich auf dem System dieses Computers nicht installieren",

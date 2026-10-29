@@ -14,6 +14,7 @@ const AGENT_ERRORS: Record<string, TranslationKey> = {
   no_build_recipe: "agentErrors.noBuildRecipe",
   not_enough_resources: "agentErrors.notEnoughResources",
   build_start_failed: "agentErrors.buildStartFailed",
+  start_not_confirmed: "agentErrors.startNotConfirmed",
 };
 
 /** Codes of a tool that could not be prepared for a task or a build; each phrase takes `{tool}`. */

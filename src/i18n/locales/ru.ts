@@ -228,6 +228,7 @@ export const ru: TranslationSchema = {
     noBuildRecipe: "Агент не знает, как собрать этот проект",
     notEnoughResources: "Для сборки на этом компьютере не хватает памяти или места на диске",
     buildStartFailed: "Сборку не удалось запустить",
+    startNotConfirmed: "Задача не началась: работу над проектом не подтвердили в окне Vibefork на компьютере",
   },
   toolErrors: {
     unsupportedPlatform: "{tool} не устанавливается на систему этого компьютера",
