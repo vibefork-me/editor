@@ -398,10 +398,10 @@ export function createAgentTransport(deps: AgentTransportDeps = {}): AgentTransp
         body: JSON.stringify(body),
       });
       if (!res.ok) {
-        const err = (await res.json().catch(() => ({}))) as { error?: string };
-        const error = new Error(err.error ?? `describe graph failed (${res.status})`);
-        (error as { status?: number }).status = res.status;
-        throw error;
+        const err = (await res.json().catch(() => ({}))) as { error?: string; code?: string };
+        throw new AgentApiError(err.error ?? `describe graph failed (${res.status})`, res.status, {
+          code: err.code,
+        });
       }
       return (await res.json()) as GraphResponse;
     },

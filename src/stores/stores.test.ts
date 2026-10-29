@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AgentTransport, GraphSnapshot } from "../client/types.ts";
+import { AgentApiError, type AgentTransport, type GraphSnapshot } from "../client/types.ts";
 import { bindAgentTransport } from "./agent-bridge.ts";
 import {
   useGraphStore,
@@ -434,5 +434,21 @@ describe("parts map that the model could not draw", () => {
     expect(useGraphStore.getState().currentView).toBe("parts");
     expect(useGraphStore.getState().source).toBe("model");
     expect(useGraphStore.getState().mapNotice).toBeNull();
+  });
+
+  it("keeps the agent's code of why", async () => {
+    bindAgentTransport({
+      getGraph: vi.fn(async () => ({ source: "folders" as const, revision: "r1", nodes: [], edges: [] })),
+      describeGraph: vi.fn(async () => {
+        throw new AgentApiError("Connect an AI to split the project into parts", 400, { code: "no_models" });
+      }),
+    } as unknown as AgentTransport);
+
+    await useProjectStore.getState().selectProject("no-ai-map");
+    expect(useGraphStore.getState().mapNotice).toEqual({
+      kind: "failed",
+      reason: "Connect an AI to split the project into parts",
+      code: "no_models",
+    });
   });
 });
