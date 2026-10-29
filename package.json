@@ -1,6 +1,7 @@
 {
   "name": "@vibefork.me/editor",
   "private": true,
+  "license": "FSL-1.1-MIT",
   "version": "0.0.0",
   "type": "module",
   "description": "Web editor for Vibefork.",
