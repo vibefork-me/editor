@@ -59,6 +59,7 @@ export function ProjectPage() {
   const programBad = useProgramStore(programFailed);
   const chatInputRef = useRef<HTMLTextAreaElement>(null);
   const stream = useCanvasStore((s) => s.canvas);
+  const records = useCanvasStore((s) => s.records);
   const projectMeta = useProjectStore((s) => s.projectMeta);
   const foreign = useProjectStore((s) => s.foreignChanges);
   const clearForeignChanges = useProjectStore((s) => s.clearForeignChanges);
@@ -304,7 +305,7 @@ export function ProjectPage() {
               {selectedPart && !partPanel && (
                 <PartCallout state={canvas} nodeId={selectedPart} api={graphApi} onMore={() => setPartPanel(true)} undo={partUndo(selectedPart)} {...partActions} />
               )}
-              {selectedPart && partPanel && <PartPanel state={canvas} nodeId={selectedPart} undo={partUndo(selectedPart)} {...partActions} />}
+              {selectedPart && partPanel && <PartPanel state={canvas} nodeId={selectedPart} records={records} undo={partUndo(selectedPart)} {...partActions} />}
               <TaskLayer
                 state={canvas}
                 history={historyOpen}

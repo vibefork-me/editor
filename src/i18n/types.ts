@@ -295,6 +295,16 @@ export interface TranslationSchema {
     rollbackBusy: string;
     rollbackForbidden: string;
     rollbackFailed: string;
+    belongsTo: string;
+    inside: string;
+    agentLinked: string;
+    history: string;
+    histFound: string;
+    histLinked: string;
+    histThought: string;
+    histChanged: string;
+    histFailed: string;
+    histInsight: string;
   };
   taskView: {
     task: string;
