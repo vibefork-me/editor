@@ -106,6 +106,7 @@ export function OpenPage() {
   const [phase, setPhase] = useState<Phase>({ kind: "ready" });
   const [copied, setCopied] = useState(false);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const stopPolling = () => {
     if (pollTimerRef.current) {
@@ -117,6 +118,7 @@ export function OpenPage() {
   useEffect(() => {
     return () => {
       stopPolling();
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
     };
   }, []);
 
@@ -208,7 +210,8 @@ export function OpenPage() {
     try {
       await navigator.clipboard.writeText(code);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+      copiedTimerRef.current = setTimeout(() => setCopied(false), 2000);
     } catch {
       // ignore
     }
