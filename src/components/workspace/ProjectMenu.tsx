@@ -59,10 +59,15 @@ export function ProjectMenu({ onHistory }: ProjectMenuProps) {
       <Menu.Trigger
         data-testid="project-plate"
         aria-label={`${t("workspace.menu")}: ${projectLabel}`}
-        className="pointer-events-auto flex h-9 max-w-[18rem] items-center gap-2 rounded-lg border border-border bg-surface-elevated/95 px-3 text-sm text-text shadow-lg backdrop-blur hover:border-accent data-[popup-open]:border-accent"
+        className="pointer-events-auto flex h-10 max-w-[18rem] items-center gap-2 rounded-[10px] border border-[#30363d] bg-[rgba(20,22,29,0.94)] py-1.5 pl-1.5 pr-2.5 text-[13.5px] text-[#f4f5f8] shadow-lg backdrop-blur hover:border-accent data-[popup-open]:border-accent"
       >
-        <span className={`inline-block size-2 shrink-0 rounded-full ${conn.dotClass} ${conn.pulse ? "animate-status-reconnect" : ""}`} aria-hidden="true" />
-        <span className="truncate font-semibold">{projectLabel}</span>
+        <span className="relative flex size-6 shrink-0 items-center justify-center rounded-[7px] bg-[linear-gradient(135deg,#388bfd,#a855f7)] text-[13px] font-extrabold text-white" aria-hidden="true">
+          V
+          {connectionStatus !== "connected" && (
+            <span className={`absolute -bottom-0.5 -right-0.5 size-2 rounded-full ring-2 ring-[#14161d] ${conn.dotClass} ${conn.pulse ? "animate-status-reconnect" : ""}`} />
+          )}
+        </span>
+        <span className="truncate font-semibold max-sm:hidden">{projectLabel}</span>
         <IconChevronDown className="size-3.5 shrink-0 text-text-muted" />
       </Menu.Trigger>
       <Menu.Portal>

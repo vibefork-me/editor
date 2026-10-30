@@ -1,5 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { CanvasState } from "../../canvas/canvasState.ts";
+import type { CanvasRecord } from "../../client/protocol.generated.ts";
+import { useCanvasStore } from "../../stores/canvasStore.ts";
 import { checkText } from "../../canvas/outcomeText.ts";
 import { agentErrorKey } from "../../client/agent-errors.ts";
 import type { FeedLine } from "../../client/task-feed.ts";
@@ -38,12 +40,55 @@ function useStickToEnd(count: number) {
   return end;
 }
 
-function AgentSection({ feed, status }: { feed: FeedLine[]; status: string | null }) {
-  const { t } = useTranslation();
-  const end = useStickToEnd(feed.length);
-  if (feed.length === 0 && !status) return <p className="text-text-muted">{t("journal.agentEmpty")}</p>;
+type StepKind = "stage" | "think" | "insight" | "change" | "check" | "failed";
+
+/** What the agent did, from the session stream: stages, thoughts, findings, changes, checks. */
+export function agentSteps(records: CanvasRecord[], t: ReturnType<typeof useTranslation>["t"], label: (id: string) => string) {
+  const steps: { at: number; kind: StepKind; text: string }[] = [];
+  for (const { at, ev } of records) {
+    if (ev.type === "stage") steps.push({ at, kind: "stage", text: t(`stages.${ev.id}Long`) });
+    else if (ev.type === "think") steps.push({ at, kind: "think", text: `${t("stages.thinking")}: ${ev.text}` });
+    else if (ev.type === "insight") steps.push({ at, kind: "insight", text: ev.text });
+    else if (ev.type === "change") steps.push({ at, kind: "change", text: t("journal.changedPart", { part: label(ev.id) }) });
+    else if (ev.type === "check") steps.push({ at, kind: ev.ok ? "check" : "failed", text: checkText(t, { ok: ev.ok, text: ev.text, kind: ev.kind ?? null, exit: ev.exit ?? null }) });
+  }
+  return steps;
+}
+
+const STEP_TYPES = new Set(["stage", "think", "insight", "change", "check"]);
+
+const STEP_COLOR: Record<StepKind, string> = {
+  stage: "text-[#79c0ff]",
+  think: "text-[#8b93a7]",
+  insight: "text-[#e3c77a]",
+  change: "text-[#f2cc60]",
+  check: "text-[#7ee787]",
+  failed: "text-[#ff7b72]",
+};
+const STEP_MARK: Record<StepKind, string> = { stage: "⚑", think: "…", insight: "💡", change: "✎", check: "✓", failed: "!" };
+
+function AgentSection({ feed, status, state }: { feed: FeedLine[]; status: string | null; state: CanvasState }) {
+  const { t, locale } = useTranslation();
+  const records = useCanvasStore((s) => s.records);
+  const steps = agentSteps(records, t, (id) => state.nodes[id]?.label ?? id);
+  const end = useStickToEnd(feed.length + steps.length);
+  if (feed.length === 0 && !status && steps.length === 0) return <p className="text-text-muted">{t("journal.agentEmpty")}</p>;
+  const clock = (at: number) => new Date(at).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
   return (
     <div className="space-y-1.5" aria-live="polite" data-testid="task-feed">
+      {steps.length > 0 && (
+        <ol className="space-y-1 font-sans text-[12.5px]" data-testid="agent-steps">
+          {steps.map((s, i) => (
+            <li key={i} className="flex items-start gap-2">
+              <span className="w-11 shrink-0 tabular-nums text-[#6e7681]">{clock(s.at)}</span>
+              <span aria-hidden="true" className={`w-3.5 shrink-0 text-center ${STEP_COLOR[s.kind]}`}>
+                {STEP_MARK[s.kind]}
+              </span>
+              <span className={s.kind === "stage" ? "font-semibold text-[#79c0ff]" : "text-[#c9d1d9]"}>{s.text}</span>
+            </li>
+          ))}
+        </ol>
+      )}
       {feed.map((line, i) => (
         <FeedLineView key={i} line={line} />
       ))}
@@ -251,6 +296,13 @@ export function JournalPanel({ feed, taskStatus, state, errors }: JournalPanelPr
   const setTab = useLayoutStore((s) => s.setJournalTab);
   const setOpen = useLayoutStore((s) => s.setOpen);
   const name = t("workspace.journalPanel");
+  // How much each section has: the agent's steps in the stream; the checks of the last task when all passed.
+  const steps = useCanvasStore((s) => s.records.filter(({ ev }) => STEP_TYPES.has(ev.type)).length);
+  const counts: Record<JournalTab, string | null> = {
+    agent: steps > 0 ? String(steps) : null,
+    build: state.checks.length > 0 && state.checks.every((c) => c.ok) ? "OK" : null,
+    program: null,
+  };
 
   return (
     <section aria-label={name} className="flex min-h-0 flex-1 flex-col bg-surface font-sans" data-testid="journal-panel">
@@ -267,6 +319,7 @@ export function JournalPanel({ feed, taskStatus, state, errors }: JournalPanelPr
               className="flex items-center gap-1.5 rounded px-2 py-1 text-xs text-text-muted hover:text-text aria-selected:bg-surface aria-selected:text-text"
             >
               {t(key)}
+              {counts[id] && !errors[id] && <span className="rounded-full bg-[#262b36] px-1.5 text-[10.5px] tabular-nums text-[#8b93a7]">{counts[id]}</span>}
               {errors[id] && <span className="size-1.5 rounded-full bg-danger" title={t("journal.error")} />}
             </button>
           ))}
@@ -281,7 +334,7 @@ export function JournalPanel({ feed, taskStatus, state, errors }: JournalPanelPr
         </button>
       </div>
       <div role="tabpanel" className="min-h-0 flex-1 overflow-y-auto p-3 text-sm">
-        {tab === "agent" && <AgentSection feed={feed} status={taskStatus} />}
+        {tab === "agent" && <AgentSection feed={feed} status={taskStatus} state={state} />}
         {tab === "build" && <BuildSection state={state} />}
         {tab === "program" && <ProgramSection />}
       </div>

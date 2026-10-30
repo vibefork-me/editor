@@ -490,5 +490,6 @@ export const es419: TranslationSchema = {
     programEmpty: "El programa todavía no se ejecutó desde aquí",
     checks: "Comprobaciones de la última tarea",
     error: "Hay un error",
+    changedPart: "Cambiado: {part}",
   },
 };

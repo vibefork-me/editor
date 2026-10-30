@@ -489,5 +489,6 @@ export const ptBR: TranslationSchema = {
     programEmpty: "O programa ainda não foi executado daqui",
     checks: "Verificações da última tarefa",
     error: "Há um erro",
+    changedPart: "Alterado: {part}",
   },
 };

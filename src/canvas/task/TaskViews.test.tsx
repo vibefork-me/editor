@@ -34,6 +34,8 @@ describe("task views", () => {
     const onClose = vi.fn();
     render(<ResultScreen state={at(39)} onOpen={onOpen} onClose={onClose} />);
     expect(screen.getByText("The dark theme is added")).toBeTruthy();
+    // The parts it changed, by their names.
+    expect(screen.getByTestId("result-changed").textContent).toMatch(/Editor screen.*Note storage|Note storage.*Editor screen/);
     fireEvent.click(screen.getByRole("button", { name: /Changes/ }));
     expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ kind: "changes" }));
     fireEvent.click(screen.getByRole("button", { name: "Close" }));

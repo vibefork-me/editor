@@ -179,7 +179,8 @@ export function MessagesDock({
             <IconSparkles />
             {state.result ? t("messages.offersNext") : t("messages.offersTitle")}
           </div>
-          <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-2">
+          {/* After a result the offers are what else can be done: short, under its screen. */}
+          <div className={state.result ? "flex flex-wrap gap-1.5" : "grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-2"}>
             {offers.map((o, i) => (
               <button
                 key={o.title}
@@ -193,15 +194,26 @@ export function MessagesDock({
                   onDraftChange(o.text);
                   fieldRef.current?.focus();
                 }}
-                className="flex flex-col items-start gap-1 rounded-[10px] border border-[#30363d] bg-[#1b1f28] px-[11px] py-2.5 text-left hover:border-[#58a6ff]"
+                title={state.result ? o.text : undefined}
+                className={
+                  state.result
+                    ? "rounded-full border border-[#30363d] bg-[#1b1f28] px-2.5 py-[3px] text-[11.5px] text-[#c9d1d9] hover:border-[#58a6ff]"
+                    : "flex flex-col items-start gap-1 rounded-[10px] border border-[#30363d] bg-[#1b1f28] px-[11px] py-2.5 text-left hover:border-[#58a6ff]"
+                }
               >
-                <span className="text-[13px] font-semibold text-[#e6edf3]">{o.title}</span>
-                {o.text && <span className="flex-1 text-[11.5px] leading-[1.4] text-[#8b93a7]">{o.text}</span>}
-                {o.source && (
-                  <span className="mt-0.5 flex items-center gap-1 text-[10.5px] text-[#79c0ff]">
-                    <SourceIcon kind={o.source.kind} />
-                    {o.source.text}
-                  </span>
+                {state.result ? (
+                  o.title
+                ) : (
+                  <>
+                    <span className="text-[13px] font-semibold text-[#e6edf3]">{o.title}</span>
+                    {o.text && <span className="flex-1 text-[11.5px] leading-[1.4] text-[#8b93a7]">{o.text}</span>}
+                    {o.source && (
+                      <span className="mt-0.5 flex items-center gap-1 text-[10.5px] text-[#79c0ff]">
+                        <SourceIcon kind={o.source.kind} />
+                        {o.source.text}
+                      </span>
+                    )}
+                  </>
                 )}
               </button>
             ))}

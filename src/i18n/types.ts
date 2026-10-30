@@ -480,6 +480,7 @@ export interface TranslationSchema {
     programEmpty: string;
     checks: string;
     error: string;
+    changedPart: string;
   };
 }
 

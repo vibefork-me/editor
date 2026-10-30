@@ -486,5 +486,6 @@ export const en: TranslationSchema = {
     programEmpty: "The program has not been started from here yet",
     checks: "Checks of the last task",
     error: "There is an error",
+    changedPart: "Changed: {part}",
   },
 };

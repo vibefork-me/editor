@@ -148,9 +148,16 @@ export function StageRail({ state, now, onStop }: StageRailProps) {
         >
           {state.thinking ? (
             <>
-              <span className="h-2 w-2 animate-pulse rounded-full bg-[#a5b4fc]" />
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" strokeWidth="2" strokeLinejoin="round" aria-hidden="true" className="shrink-0 animate-pulse">
+                <path d="M9.9 15.5a2 2 0 0 0-1.4-1.4l-6.1-1.6a.5.5 0 0 1 0-1l6.1-1.6a2 2 0 0 0 1.4-1.4l1.6-6.1a.5.5 0 0 1 1 0l1.6 6.1a2 2 0 0 0 1.4 1.4l6.1 1.6a.5.5 0 0 1 0 1l-6.1 1.6a2 2 0 0 0-1.4 1.4l-1.6 6.1a.5.5 0 0 1-1 0z" />
+              </svg>
               <span className="font-semibold text-[#a5b4fc]">{t("stages.thinking")}</span>
               <span className="truncate text-[#f0f3f6]">{state.thinking.text}</span>
+              <span aria-hidden="true" className="flex gap-0.5">
+                {[0, 1, 2].map((i) => (
+                  <span key={i} className="h-1 w-1 animate-pulse rounded-full bg-[#a5b4fc]" style={{ animationDelay: `${i * 0.2}s` }} />
+                ))}
+              </span>
             </>
           ) : (
             <>
