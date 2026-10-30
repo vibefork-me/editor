@@ -370,6 +370,13 @@ export interface TranslationSchema {
     placeholderTask: string;
     placeholderRunning: string;
     placeholderNext: string;
+    placeholderOffers: string;
+    hintCopyFirst: string;
+    hintSimpler: string;
+    hintKeepLook: string;
+    hintShowChanges: string;
+    hintCheckAgain: string;
+    hintShowReport: string;
     send: string;
     explain: string;
     explainHint: string;

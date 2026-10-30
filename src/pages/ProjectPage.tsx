@@ -322,7 +322,7 @@ export function ProjectPage() {
                 <StageRail state={canvas} now={now} onStop={taskControl ? () => taskControl.stop() : undefined} />
               </div>
               <NoteCapsule api={graphApi} nodeId={canvas.focusedId} count={waitingNotes} />
-              <div className="pointer-events-none absolute inset-x-0 bottom-4 z-10 flex justify-center px-16">
+              <div className="pointer-events-none absolute inset-x-0 bottom-4 z-10 flex justify-center pl-3 pr-14 sm:px-16">
                 <MessagesDock
                   state={canvas}
                   running={taskControl !== null}

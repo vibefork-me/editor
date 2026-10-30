@@ -35,7 +35,8 @@ export function TaskLayer({
 
   return (
     <>
-      <div className="absolute bottom-6 left-6 z-10">
+      {/* On a narrow screen the message field takes the bottom: the task goes under the stage rail. */}
+      <div className="absolute bottom-6 left-6 z-10 max-sm:inset-x-3 max-sm:bottom-auto max-sm:top-36">
         <TaskPanel state={state} />
       </div>
       {state.result && resultAt !== closedAt && !open && !history && (
