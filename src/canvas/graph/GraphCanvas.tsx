@@ -145,7 +145,7 @@ export function GraphCanvas({ state, selectedId = null, onSelect, clock = Date.n
       if (!nodes.some((n) => typeof n.x === "number")) return;
       graph.zoomToFit(900, 100);
       // A few parts are shown close, but must not fill the screen.
-      const limit = fitZoomLimit(nodes.length);
+      const limit = fitZoomLimit(nodes.length, el.clientWidth);
       setTimeout(() => graph.zoom() > limit && graph.zoom(limit, 400), 950);
     };
     onGraph?.(graph, stable);

@@ -115,10 +115,14 @@ describe("layout", () => {
 
 describe("camera", () => {
   it("shows a small graph closer the fewer parts it has, never closer than 2.7× and never limited below 1.5×", () => {
-    const limits = [1, 2, 5, 8, 20, 200].map(fitZoomLimit);
+    const limits = [1, 2, 5, 8, 20, 200].map((n) => fitZoomLimit(n, 1440));
     expect(limits[0]).toBeCloseTo(2.7);
     for (let i = 1; i < limits.length; i++) expect(limits[i]).toBeLessThanOrEqual(limits[i - 1]);
     expect(limits[2]).toBeGreaterThan(1.8);
     expect(limits[5]).toBe(1.5);
+  });
+
+  it("keeps a small graph at 1.5× on a narrow screen", () => {
+    expect(fitZoomLimit(1, 390)).toBe(1.5);
   });
 });

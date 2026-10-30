@@ -304,7 +304,11 @@ export function treeCrossings(nodes: Iterable<DrawNode>, links: Iterable<DrawLin
   return count;
 }
 
-/** How far fitting may zoom in on a graph of `n` nodes: closer the fewer there are (2.7× for one), never below 1.5×. */
-export function fitZoomLimit(n: number): number {
+/**
+ * How far fitting may zoom in on a graph of `n` nodes on a canvas `width` px wide: closer the fewer there are
+ * (2.7× for one), never limited below 1.5×; 1.5× on a narrow canvas, where the growing layout would leave the screen.
+ */
+export function fitZoomLimit(n: number, width: number): number {
+  if (width < 640) return 1.5;
   return Math.max(1.5, 2.7 / Math.pow(Math.max(1, n), 0.22));
 }
