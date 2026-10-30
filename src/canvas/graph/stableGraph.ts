@@ -303,3 +303,8 @@ export function treeCrossings(nodes: Iterable<DrawNode>, links: Iterable<DrawLin
   }
   return count;
 }
+
+/** How far fitting may zoom in on a graph of `n` nodes: closer the fewer there are (2.7× for one), never below 1.5×. */
+export function fitZoomLimit(n: number): number {
+  return Math.max(1.5, 2.7 / Math.pow(Math.max(1, n), 0.22));
+}

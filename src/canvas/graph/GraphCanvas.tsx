@@ -5,7 +5,7 @@ import type { CanvasState } from "../canvasState.ts";
 import { partBadges } from "../card/partInfo.ts";
 import { drawData, MORE, type DrawLink, type DrawNode } from "./drawData.ts";
 import { BACKGROUND, nodeRadius, paintCallout, paintHoverTip, paintLabels, paintNode, type PaintText } from "./paint.ts";
-import { StableGraph, calmForce, forceStrengths, linkPresence, relaxForce, ringForce } from "./stableGraph.ts";
+import { StableGraph, calmForce, fitZoomLimit, forceStrengths, linkPresence, relaxForce, ringForce } from "./stableGraph.ts";
 
 type Graph = ForceGraph<DrawNode, DrawLink>;
 
@@ -36,7 +36,7 @@ const QUIET_MS = 1500;
 const DOUBLE_CLICK_MS = 350;
 // After the person moves the camera, automatic fitting leaves it alone for this long.
 const MANUAL_CAMERA_MS = 20000;
-// Fitting a small graph never zooms in further than this.
+// Fitting the parts a task touched never zooms in further than this.
 const MAX_FIT_ZOOM = 1.5;
 
 /**
@@ -144,8 +144,9 @@ export function GraphCanvas({ state, selectedId = null, onSelect, clock = Date.n
       const nodes = graph.graphData().nodes;
       if (!nodes.some((n) => typeof n.x === "number")) return;
       graph.zoomToFit(900, 100);
-      // A few parts must not fill the screen.
-      setTimeout(() => graph.zoom() > MAX_FIT_ZOOM && graph.zoom(MAX_FIT_ZOOM, 400), 950);
+      // A few parts are shown close, but must not fill the screen.
+      const limit = fitZoomLimit(nodes.length);
+      setTimeout(() => graph.zoom() > limit && graph.zoom(limit, 400), 950);
     };
     onGraph?.(graph, stable);
     onReady?.({
