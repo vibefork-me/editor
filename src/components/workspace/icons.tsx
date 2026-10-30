@@ -72,3 +72,42 @@ export function IconFolder(props: IconProps) {
     </Svg>
   );
 }
+
+/** An idea: a light bulb. */
+export function IconLightbulb(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M6 12.25h4M6.5 14.25h3M5.25 10a4.25 4.25 0 1 1 5.5 0c-.5.45-.75.95-.75 1.5v.75H6v-.75c0-.55-.25-1.05-.75-1.5z" />
+    </Svg>
+  );
+}
+
+/** Links: three joined dots. */
+export function IconNetwork(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="8" cy="3.25" r="1.75" />
+      <circle cx="3.25" cy="12.5" r="1.75" />
+      <circle cx="12.75" cy="12.5" r="1.75" />
+      <path d="M7.1 4.75 4.15 11M8.9 4.75 11.85 11M5 12.5h6" />
+    </Svg>
+  );
+}
+
+/** What happened: a pulse line. */
+export function IconActivity(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M14.25 8h-2.5l-1.75 5.25-4-10.5L4.25 8h-2.5" />
+    </Svg>
+  );
+}
+
+/** Code for developers: angle brackets. */
+export function IconCode(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="m5.5 5.5-2.5 2.5 2.5 2.5M10.5 5.5l2.5 2.5-2.5 2.5" />
+    </Svg>
+  );
+}

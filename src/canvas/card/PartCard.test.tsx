@@ -5,7 +5,7 @@ import { useI18nStore } from "../../i18n/i18nStore.ts";
 import { buildCanvasState, canvasNodes } from "../canvasState.ts";
 import { after, stream } from "../testSessions.ts";
 import { PartCallout, PartPanel } from "./PartCard.tsx";
-import { changesOf, partBadges, relatedParts } from "./partInfo.ts";
+import { changesOf, partBadges, partHistory, relatedGroups, relatedParts } from "./partInfo.ts";
 
 const at = (n: number) => buildCanvasState(stream, after(n));
 const node = (n: number, id: string) => canvasNodes(at(n)).find((x) => x.id === id)!;
@@ -19,6 +19,19 @@ describe("what the card knows about a part", () => {
 
   it("finds the parts next to it: parent, children, and those the agent linked it with", () => {
     expect(relatedParts(at(16), "store").map((n) => n.id)).toEqual(["root", "sync", "ui"]);
+    const groups = relatedGroups(at(16), "store");
+    expect(groups.parent?.id).toBe("root");
+    expect(groups.children.map((n) => n.id)).toEqual(["sync"]);
+    expect(groups.linked.map((n) => n.id)).toEqual(["ui"]);
+  });
+
+  it("tells what happened to it in the session, once per link and per insight", () => {
+    useI18nStore.getState().setLocale("en");
+    const { t } = useI18nStore.getState();
+    const history = partHistory(stream.filter((r) => r.at <= after(39)), "ui", t, (id) => ({ store: "Note storage" })[id] ?? id);
+    expect(history.map((h) => h.kind)).toEqual(["found", "think", "insight", "link", "change", "failed", "change"]);
+    expect(history.map((h) => h.text)).toContain("Linked it with “Note storage”");
+    expect(history.map((h) => h.text)).toContain("Thought: What does the editor screen do?");
   });
 
   it("finds the files a task changed in it", () => {
@@ -60,8 +73,14 @@ describe("part card", () => {
 
   it("in the panel: everything about the part, files for developers open in the code viewer", () => {
     const a = actions();
-    render(<PartPanel state={at(39)} nodeId="ui" {...a} />);
+    render(<PartPanel state={at(39)} nodeId="ui" records={stream.filter((r) => r.at <= after(39))} {...a} />);
     expect(screen.getByText("What the agent understood")).toBeTruthy();
+    expect(screen.getByText("Belongs to")).toBeTruthy();
+    expect(screen.getByText("The agent linked it with")).toBeTruthy();
+    expect(screen.getByText("What happened to this part")).toBeTruthy();
+    expect(screen.getByTestId("part-history").textContent).toContain("A check failed here");
+    fireEvent.click(screen.getByRole("button", { name: "Note storage" }));
+    expect(a.onGoTo).toHaveBeenCalledWith("store");
     fireEvent.click(screen.getByText("For developers"));
     fireEvent.click(screen.getByRole("button", { name: "src/ui/editor.tsx" }));
     expect(a.onOpenFile).toHaveBeenCalledWith("src/ui/editor.tsx");

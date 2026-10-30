@@ -1,6 +1,9 @@
-import type { Artifact, ArtifactFile } from "../../client/protocol.generated.ts";
+import type { Artifact, ArtifactFile, CanvasRecord } from "../../client/protocol.generated.ts";
+import type { useTranslation } from "../../i18n/i18nStore.ts";
 import type { TranslationKey } from "../../i18n/types.ts";
 import { canvasNodes, type CanvasNodeView, type CanvasState } from "../canvasState.ts";
+
+type Translate = ReturnType<typeof useTranslation>["t"];
 
 /** A state worth a badge on a part. */
 export interface Badge {
@@ -23,21 +26,54 @@ export function partBadges(
   return out;
 }
 
-/** The parts next to this one: what it belongs to, what is inside it, and what the agent linked it with. */
-export function relatedParts(state: CanvasState, id: string): CanvasNodeView[] {
+/** The parts next to this one, by how they are linked: what it belongs to, what is inside it, and what the agent linked it with. */
+export function relatedGroups(state: CanvasState, id: string): { parent: CanvasNodeView | null; children: CanvasNodeView[]; linked: CanvasNodeView[] } {
   const nodes = canvasNodes(state);
   const byId = new Map(nodes.map((n) => [n.id, n]));
   const self = byId.get(id);
-  const out: CanvasNodeView[] = [];
-  const add = (n: CanvasNodeView | undefined) => {
-    if (n && n.id !== id && !out.includes(n)) out.push(n);
-  };
-  add(self?.parent ? byId.get(self.parent) : undefined);
-  for (const n of nodes) if (n.parent === id && n.kind !== "project") add(n);
+  const parent = (self?.parent && byId.get(self.parent)) || null;
+  const children = nodes.filter((n) => n.parent === id && n.kind !== "project" && n.id !== id);
+  const linked: CanvasNodeView[] = [];
   for (const l of Object.values(state.links)) {
     if (l.hierarchy) continue;
-    if (l.source === id) add(byId.get(l.target));
-    else if (l.target === id) add(byId.get(l.source));
+    const other = l.source === id ? byId.get(l.target) : l.target === id ? byId.get(l.source) : undefined;
+    if (other && other.id !== id && other !== parent && !children.includes(other) && !linked.includes(other)) linked.push(other);
+  }
+  return { parent, children, linked };
+}
+
+/** The parts next to this one, in one list: parent, children, linked. */
+export function relatedParts(state: CanvasState, id: string): CanvasNodeView[] {
+  const { parent, children, linked } = relatedGroups(state, id);
+  return [...(parent ? [parent] : []), ...children, ...linked];
+}
+
+/** One thing that happened to a part. */
+export interface PartEvent {
+  at: number;
+  kind: "found" | "link" | "insight" | "think" | "change" | "failed";
+  text: string;
+}
+
+/** What the agent did with one part, from the session stream: found it, linked it, understood, thought, changed, a check failed. */
+export function partHistory(records: CanvasRecord[], id: string, t: Translate, label: (id: string) => string): PartEvent[] {
+  const out: PartEvent[] = [];
+  const linked = new Set<string>();
+  const insights = new Set<string>();
+  for (const { at, ev } of records) {
+    if ((ev.type === "project" || ev.type === "found" || ev.type === "subsystem") && ev.id === id) out.push({ at, kind: "found", text: t("card.histFound") });
+    else if (ev.type === "touch") {
+      const other = ev.from === id ? ev.to : ev.to === id ? ev.from : null;
+      if (other && other !== id && !linked.has(other)) {
+        linked.add(other);
+        out.push({ at, kind: "link", text: t("card.histLinked", { label: label(other) }) });
+      }
+    } else if (ev.type === "insight" && ev.id === id && !insights.has(ev.text)) {
+      insights.add(ev.text);
+      out.push({ at, kind: "insight", text: `“${ev.text}”` });
+    } else if (ev.type === "think" && ev.id === id) out.push({ at, kind: "think", text: t("card.histThought", { text: ev.text }) });
+    else if (ev.type === "change" && ev.id === id) out.push({ at, kind: "change", text: t("card.histChanged") });
+    else if (ev.type === "check" && !ev.ok && ev.id === id) out.push({ at, kind: "failed", text: t("card.histFailed") });
   }
   return out;
 }

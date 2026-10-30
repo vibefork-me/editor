@@ -1,10 +1,11 @@
-import { useEffect, useRef } from "react";
-import type { ArtifactFile } from "../../client/protocol.generated.ts";
+import { useEffect, useRef, type ReactNode } from "react";
+import type { ArtifactFile, CanvasRecord } from "../../client/protocol.generated.ts";
+import { IconActivity, IconChevronDown, IconClose, IconCode, IconFile, IconLightbulb, IconNetwork } from "../../components/workspace/icons.tsx";
 import type { RollbackStatus } from "../../hooks/useRollback.ts";
 import { useTranslation } from "../../i18n/i18nStore.ts";
 import { canvasNodes, type CanvasNodeView, type CanvasState } from "../canvasState.ts";
 import type { GraphApi } from "../graph/GraphCanvas.tsx";
-import { changesOf, partBadges, relatedParts, type Badge } from "./partInfo.ts";
+import { changesOf, partBadges, partHistory, relatedGroups, relatedParts, type Badge, type PartEvent } from "./partInfo.ts";
 
 const TONE: Record<Badge["tone"], string> = {
   agent: "text-[#79c0ff] border-[#79c0ff66]",
@@ -197,74 +198,155 @@ export function PartCallout({
   );
 }
 
-/** Everything about the part, in a panel on the right; its files for developers open in the code viewer. */
-export function PartPanel({ state, nodeId, undo, ...actions }: PartActions & { state: CanvasState; nodeId: string; undo?: PartUndo }) {
-  const { t } = useTranslation();
+const HISTORY_COLOR: Record<PartEvent["kind"], string> = {
+  found: "text-[#8b93a7]",
+  link: "text-[#8b93a7]",
+  insight: "text-[#e3b341]",
+  think: "text-[#79c0ff]",
+  change: "text-[#f2cc60]",
+  failed: "text-[#ff7b72]",
+};
+
+const captionClass = "flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-wide text-[#8b93a7]";
+
+function Section({ icon, title, children }: { icon: ReactNode; title: string; children: ReactNode }) {
+  return (
+    <section className="flex flex-col gap-1.5">
+      <div className={captionClass}>
+        {icon}
+        {title}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function LinkGroup({ title, parts, onGoTo }: { title: string; parts: CanvasNodeView[]; onGoTo: (id: string) => void }) {
+  if (parts.length === 0) return null;
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-[11px] text-[#6e7681]">{title}</span>
+      <div className="flex flex-wrap gap-1">
+        {parts.map((n) => (
+          <button
+            key={n.id}
+            type="button"
+            onClick={() => onGoTo(n.id)}
+            className="rounded-full border border-[#30363d] bg-[#14161d] px-2 py-0.5 text-[11.5px] text-[#c9d1d9] hover:border-[#58a6ff]"
+          >
+            {n.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Everything about the part, in a card at the right edge: what the agent understood, the parts it is linked with
+ * by how, what happened to it in the session, its changes; its files for developers open in the code viewer.
+ */
+export function PartPanel({
+  state,
+  nodeId,
+  records = [],
+  undo,
+  ...actions
+}: PartActions & { state: CanvasState; nodeId: string; records?: CanvasRecord[]; undo?: PartUndo }) {
+  const { t, locale } = useTranslation();
   const node = canvasNodes(state).find((n) => n.id === nodeId);
   if (!node) return null;
   const changes = changesOf(state, node.id);
+  const rel = relatedGroups(state, node.id);
+  const history = partHistory(records, node.id, t, (id) => state.nodes[id]?.label ?? id);
+  const clock = (at: number) => new Date(at).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
   return (
     <aside
       aria-label={node.label}
       data-testid="part-panel"
-      className="absolute bottom-4 right-4 top-20 z-20 flex w-[340px] flex-col gap-3 overflow-y-auto rounded-xl border border-[#30363d] bg-[rgba(22,27,34,0.98)] p-4 shadow-2xl"
+      className="absolute right-6 top-1/2 z-20 flex max-h-[76vh] w-[340px] -translate-y-1/2 flex-col rounded-[14px] border border-[#30363d] bg-[rgba(22,27,34,0.98)] shadow-[0_20px_60px_rgba(0,0,0,0.5)] max-sm:inset-x-3 max-sm:w-auto"
     >
-      <div className="flex items-start gap-2">
-        <h2 className="min-w-0 flex-1 text-base font-bold text-[#f4f5f8]">{node.label}</h2>
+      <div className="flex items-start gap-2.5 border-b border-[#262b36] px-3.5 pb-2.5 pt-3.5">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-base font-bold text-[#f4f5f8]">{node.label}</h2>
+          {node.summary && <p className="mt-0.5 text-[13px] leading-snug text-[#c9d1d9]">{node.summary}</p>}
+        </div>
         <button
           type="button"
           onClick={actions.onClose}
           aria-label={t("card.close")}
-          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-[#30363d] bg-[#1b1f28] text-[#8b93a7]"
+          className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-[#30363d] bg-[#1b1f28] text-[#8b93a7] hover:text-[#f4f5f8]"
         >
-          ×
+          <IconClose className="size-[15px]" />
         </button>
       </div>
-      {node.summary && <p className="text-[13px] leading-snug text-[#c9d1d9]">{node.summary}</p>}
-      <Badges node={node} />
-      {node.insights.length > 0 && (
-        <section>
-          <div className="mb-1 text-[10.5px] uppercase tracking-wide text-[#8b93a7]">{t("card.understood")}</div>
-          <ul className="flex flex-col gap-1 text-[12.5px] text-[#e3c77a]">
+      <div className="flex flex-col gap-3.5 overflow-y-auto p-3.5">
+        <Badges node={node} />
+        {node.insights.length > 0 && (
+          <Section icon={<IconLightbulb className="size-[13px]" />} title={t("card.understood")}>
             {node.insights.map((i) => (
-              <li key={i}>💡 {i}</li>
+              <p key={i} className="text-[12.5px] leading-snug text-[#e3c77a]">
+                {i}
+              </p>
             ))}
-          </ul>
-        </section>
-      )}
-      <button type="button" className={actionClass} onClick={() => actions.onAsk(t("card.askPrefix", { label: node.label }))}>
-        {t("card.askAgent")}
-      </button>
-      <ExplainAction nodeId={node.id} actions={actions} />
-      {changes && (
-        <section className="flex flex-col gap-1">
-          <div className="text-[10.5px] uppercase tracking-wide text-[#8b93a7]">{t("card.showChanges")}</div>
-          {changes.files.map((f) => (
-            <button key={f.path} type="button" className={actionClass} onClick={() => actions.onShowChanges(f)}>
-              {f.note ?? f.path}
-            </button>
-          ))}
-        </section>
-      )}
-      {undo && <UndoAction undo={undo} />}
-      <Related state={state} node={node} onGoTo={actions.onGoTo} />
-      <details className="text-[12.5px] text-[#c9d1d9]">
-        <summary className="cursor-pointer select-none text-[#8b93a7]">{t("card.forDevelopers")}</summary>
-        <div className="mt-2 text-[10.5px] uppercase tracking-wide text-[#8b93a7]">{t("card.files")}</div>
-        {node.files.length === 0 ? (
-          <p className="text-[#6e7681]">{t("card.noFiles")}</p>
-        ) : (
-          <ul className="mt-1 flex flex-col gap-0.5 font-mono text-xs">
-            {node.files.map((f) => (
-              <li key={f}>
-                <button type="button" className="text-left text-[#79c0ff] hover:underline" onClick={() => actions.onOpenFile(f)}>
-                  {f}
-                </button>
-              </li>
-            ))}
-          </ul>
+          </Section>
         )}
-      </details>
+        <div className="flex flex-col gap-1">
+          <button type="button" className={actionClass} onClick={() => actions.onAsk(t("card.askPrefix", { label: node.label }))}>
+            {t("card.askAgent")}
+          </button>
+          <ExplainAction nodeId={node.id} actions={actions} />
+          {undo && <UndoAction undo={undo} />}
+        </div>
+        {changes && (
+          <Section icon={<IconFile className="size-[13px]" />} title={t("card.showChanges")}>
+            {changes.files.map((f) => (
+              <button key={f.path} type="button" className={actionClass} onClick={() => actions.onShowChanges(f)}>
+                {f.note ?? f.path}
+              </button>
+            ))}
+          </Section>
+        )}
+        {(rel.parent || rel.children.length > 0 || rel.linked.length > 0) && (
+          <Section icon={<IconNetwork className="size-[13px]" />} title={t("card.relatedTo")}>
+            <LinkGroup title={t("card.belongsTo")} parts={rel.parent ? [rel.parent] : []} onGoTo={actions.onGoTo} />
+            <LinkGroup title={t("card.inside")} parts={rel.children} onGoTo={actions.onGoTo} />
+            <LinkGroup title={t("card.agentLinked")} parts={rel.linked} onGoTo={actions.onGoTo} />
+          </Section>
+        )}
+        {history.length > 0 && (
+          <Section icon={<IconActivity className="size-[13px]" />} title={t("card.history")}>
+            <ol className="flex flex-col gap-1" data-testid="part-history">
+              {history.map((h, i) => (
+                <li key={i} className={`flex gap-2 text-xs leading-snug ${HISTORY_COLOR[h.kind]}`}>
+                  <span className="shrink-0 tabular-nums text-[#6e7681]">{clock(h.at)}</span>
+                  <span>{h.text}</span>
+                </li>
+              ))}
+            </ol>
+          </Section>
+        )}
+        <details className="group text-[12.5px] text-[#c9d1d9]">
+          <summary className={`${captionClass} cursor-pointer select-none list-none`}>
+            <IconCode className="size-[13px]" />
+            {t("card.forDevelopers")}
+            <IconChevronDown className="ml-auto size-[13px] transition-transform group-open:rotate-180" />
+          </summary>
+          {node.files.length === 0 ? (
+            <p className="mt-2 text-[#6e7681]">{t("card.noFiles")}</p>
+          ) : (
+            <ul className="mt-2 flex flex-col gap-1 font-mono text-[11.5px]">
+              {node.files.map((f) => (
+                <li key={f}>
+                  <button type="button" className="rounded-md bg-[#0d1117] px-1.5 py-0.5 text-left text-[#79c0ff] hover:underline" onClick={() => actions.onOpenFile(f)}>
+                    {f}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </details>
+      </div>
     </aside>
   );
 }

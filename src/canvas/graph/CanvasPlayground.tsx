@@ -111,7 +111,7 @@ export default function CanvasPlayground() {
             onClose: () => setSelected(null),
           };
           return panel ? (
-            <PartPanel state={state} nodeId={selected} {...actions} />
+            <PartPanel state={state} nodeId={selected} records={records.filter((r) => r.at <= now)} {...actions} />
           ) : (
             <PartCallout state={state} nodeId={selected} api={api} onMore={() => setPanel(true)} {...actions} />
           );
