@@ -70,7 +70,7 @@ export function partHistory(records: CanvasRecord[], id: string, t: Translate, l
       }
     } else if (ev.type === "insight" && ev.id === id && !insights.has(ev.text)) {
       insights.add(ev.text);
-      out.push({ at, kind: "insight", text: `“${ev.text}”` });
+      out.push({ at, kind: "insight", text: t("card.histInsight", { text: ev.text }) });
     } else if (ev.type === "think" && ev.id === id) out.push({ at, kind: "think", text: t("card.histThought", { text: ev.text }) });
     else if (ev.type === "change" && ev.id === id) out.push({ at, kind: "change", text: t("card.histChanged") });
     else if (ev.type === "check" && !ev.ok && ev.id === id) out.push({ at, kind: "failed", text: t("card.histFailed") });

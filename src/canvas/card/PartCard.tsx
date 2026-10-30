@@ -207,6 +207,14 @@ const HISTORY_COLOR: Record<PartEvent["kind"], string> = {
   failed: "text-[#ff7b72]",
 };
 
+/** Time since the session began: m:ss, h:mm:ss after an hour. */
+export function sinceStart(ms: number): string {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const h = Math.floor(s / 3600);
+  return h > 0 ? `${h}:${pad(Math.floor(s / 60) % 60)}:${pad(s % 60)}` : `${pad(Math.floor(s / 60))}:${pad(s % 60)}`;
+}
+
 const captionClass = "flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-wide text-[#8b93a7]";
 
 function Section({ icon, title, children }: { icon: ReactNode; title: string; children: ReactNode }) {
@@ -253,13 +261,13 @@ export function PartPanel({
   undo,
   ...actions
 }: PartActions & { state: CanvasState; nodeId: string; records?: CanvasRecord[]; undo?: PartUndo }) {
-  const { t, locale } = useTranslation();
+  const { t } = useTranslation();
   const node = canvasNodes(state).find((n) => n.id === nodeId);
   if (!node) return null;
   const changes = changesOf(state, node.id);
+  const start = records[0]?.at ?? 0;
   const rel = relatedGroups(state, node.id);
   const history = partHistory(records, node.id, t, (id) => state.nodes[id]?.label ?? id);
-  const clock = (at: number) => new Date(at).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
   return (
     <aside
       aria-label={node.label}
@@ -319,7 +327,7 @@ export function PartPanel({
             <ol className="flex flex-col gap-1" data-testid="part-history">
               {history.map((h, i) => (
                 <li key={i} className={`flex gap-2 text-xs leading-snug ${HISTORY_COLOR[h.kind]}`}>
-                  <span className="shrink-0 tabular-nums text-[#6e7681]">{clock(h.at)}</span>
+                  <span className="shrink-0 tabular-nums text-[#6e7681]">{sinceStart(h.at - start)}</span>
                   <span>{h.text}</span>
                 </li>
               ))}

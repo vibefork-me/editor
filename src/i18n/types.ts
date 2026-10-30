@@ -304,6 +304,7 @@ export interface TranslationSchema {
     histThought: string;
     histChanged: string;
     histFailed: string;
+    histInsight: string;
   };
   taskView: {
     task: string;

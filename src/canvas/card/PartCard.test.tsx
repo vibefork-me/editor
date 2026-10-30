@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useI18nStore } from "../../i18n/i18nStore.ts";
 import { buildCanvasState, canvasNodes } from "../canvasState.ts";
 import { after, stream } from "../testSessions.ts";
-import { PartCallout, PartPanel } from "./PartCard.tsx";
+import { PartCallout, PartPanel, sinceStart } from "./PartCard.tsx";
 import { changesOf, partBadges, partHistory, relatedGroups, relatedParts } from "./partInfo.ts";
 
 const at = (n: number) => buildCanvasState(stream, after(n));
@@ -32,6 +32,13 @@ describe("what the card knows about a part", () => {
     expect(history.map((h) => h.kind)).toEqual(["found", "think", "insight", "link", "change", "failed", "change"]);
     expect(history.map((h) => h.text)).toContain("Linked it with “Note storage”");
     expect(history.map((h) => h.text)).toContain("Thought: What does the editor screen do?");
+    expect(history.map((h) => h.text)).toContain("“Notes are written in Markdown”");
+  });
+
+  it("counts the time from the start of the session", () => {
+    expect(sinceStart(7_400)).toBe("00:07");
+    expect(sinceStart(754_000)).toBe("12:34");
+    expect(sinceStart(3_723_000)).toBe("1:02:03");
   });
 
   it("finds the files a task changed in it", () => {
@@ -75,8 +82,9 @@ describe("part card", () => {
     const a = actions();
     render(<PartPanel state={at(39)} nodeId="ui" records={stream.filter((r) => r.at <= after(39))} {...a} />);
     expect(screen.getByText("What the agent understood")).toBeTruthy();
-    expect(screen.getByText("Belongs to")).toBeTruthy();
-    expect(screen.getByText("The agent linked it with")).toBeTruthy();
+    expect(screen.getByText("belongs to")).toBeTruthy();
+    expect(screen.getByText("the agent linked it with")).toBeTruthy();
+    expect(screen.getByTestId("part-history").textContent).toContain("00:07Found this part");
     expect(screen.getByText("What happened to this part")).toBeTruthy();
     expect(screen.getByTestId("part-history").textContent).toContain("A check failed here");
     fireEvent.click(screen.getByRole("button", { name: "Note storage" }));
