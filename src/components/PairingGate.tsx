@@ -1,5 +1,6 @@
 import { Dialog } from "@base-ui/react/dialog";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { AgentConflictError } from "../client/agent-base-url.ts";
 import { useAgentClient } from "../client/react/useAgentClient.ts";
 import {
   clearIdentity,
@@ -10,7 +11,9 @@ import {
 import { useTranslation } from "../i18n/i18nStore.ts";
 import { useSessionStore } from "../stores/sessionStore.ts";
 
-type PairingPhase = "starting" | "pending" | "denied" | "error" | "ready";
+/** `conflict`: two or more programs answer as the agent before pairing; `outdated`: the agent
+ * cannot prove itself later (no key of its own), so the editor does not pair with it. */
+type PairingPhase = "starting" | "pending" | "denied" | "error" | "conflict" | "outdated" | "ready";
 /** The code the user types from the agent window: the agent never sends it to the page. */
 type CodeState = "idle" | "sending" | "wrong" | "accepted";
 
@@ -41,6 +44,11 @@ export function PairingGate({ children }: { children: ReactNode }) {
       try {
         let identity = await getOrCreateIdentity();
         if (cancelled) return;
+        if (identity.keyId && !identity.agentKey) {
+          // Paired before agents had keys: nothing proves which program that pairing was with.
+          await clearIdentity();
+          identity = await getOrCreateIdentity();
+        }
         if (identity.keyId) {
           try {
             const { token } = await client.authenticateSession(identity.keyPair.privateKey);
@@ -80,7 +88,11 @@ export function PairingGate({ children }: { children: ReactNode }) {
           if (status.codeAccepted && !cancelled) setCodeState("accepted");
           if (status.status === "approved") {
             if (!status.keyId) throw new Error("Approved pairing did not return a key id");
-            await savePairedKeyId(status.keyId);
+            if (!status.agentKey) {
+              if (!cancelled) setPhase("outdated");
+              return;
+            }
+            await savePairedKeyId(status.keyId, status.agentKey);
             const { token } = await client.authenticateSession(identity.keyPair.privateKey);
             useSessionStore.getState().setBearerToken(token);
             if (!cancelled) setPhase("ready");
@@ -88,8 +100,8 @@ export function PairingGate({ children }: { children: ReactNode }) {
           }
           await waitForNextPoll();
         }
-      } catch {
-        if (!cancelled) setPhase("error");
+      } catch (error) {
+        if (!cancelled) setPhase(error instanceof AgentConflictError ? "conflict" : "error");
       }
     }
 
@@ -132,7 +144,11 @@ export function PairingGate({ children }: { children: ReactNode }) {
         ? t("pairing.denied")
         : phase === "error"
           ? t("pairing.error")
-          : t("pairing.starting");
+          : phase === "conflict"
+            ? t("pairing.conflict")
+            : phase === "outdated"
+              ? t("pairing.outdated")
+              : t("pairing.starting");
 
   return (
     <Dialog.Root open>
@@ -168,7 +184,7 @@ export function PairingGate({ children }: { children: ReactNode }) {
             </form>
           )}
           <p role="status" aria-live="polite" className="text-sm text-text-muted">{statusMessage}</p>
-          {(phase === "denied" || phase === "error") && (
+          {(phase === "denied" || phase === "error" || phase === "conflict" || phase === "outdated") && (
             <button
               type="button"
               onClick={() => setAttempt((value) => value + 1)}

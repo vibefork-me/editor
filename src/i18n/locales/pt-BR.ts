@@ -43,6 +43,8 @@ export const ptBR: TranslationSchema = {
     pending: "Aguardando a aprovação na janela do agente…",
     denied: "O pedido de conexão foi recusado ou expirou.",
     error: "Não foi possível concluir a conexão. Verifique se o agente está disponível e tente de novo.",
+    conflict: "Neste computador outro programa responde no lugar do agente Vibefork, então conectar agora não é seguro. Reinicie o computador e tente de novo.",
+    outdated: "Esta versão do agente não consegue provar que é a verdadeira. Atualize o agente e tente de novo.",
     retry: "Tentar de novo",
   },
   connectAi: {

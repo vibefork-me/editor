@@ -20,7 +20,13 @@ export type {
 export {
   AGENT_LOOPBACK_HOSTS,
   AGENT_LOOPBACK_PORTS,
+  AgentConflictError,
+  AgentNotVerifiedError,
   discoverAgentBaseUrl,
+  discoverTrustedAgent,
+  findAnsweringAgents,
+  verifyAgentIdentity,
+  type AgentPublicKey,
   probeAgentBaseUrl,
   reconnectDelayMs,
   resolveAgentBaseUrlFromLocation,

@@ -2,6 +2,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PairingGate } from "./PairingGate.tsx";
+import { AgentConflictError } from "../client/agent-base-url.ts";
 import { useSessionStore } from "../stores/sessionStore.ts";
 
 const mocks = vi.hoisted(() => ({
@@ -32,6 +33,8 @@ const identity = {
   id: "default",
   keyPair: { privateKey: { key: "private" }, publicKey: { key: "public" } },
 } as unknown as CryptoKeyPair;
+
+const agentKey = { kty: "EC", crv: "P-256", x: "agent-x", y: "agent-y" };
 
 describe("PairingGate", () => {
   beforeEach(() => {
@@ -101,14 +104,43 @@ describe("PairingGate", () => {
     expect(screen.getByRole("status").textContent).toMatch(/отклон|declined/i);
   });
 
-  it("stores the approved key and authenticates before rendering the editor", async () => {
-    mocks.client.getPairingStatus.mockResolvedValue({ status: "approved", keyId: "paired-key" });
+  it("stores the approved key with the agent's key and authenticates before rendering the editor", async () => {
+    mocks.client.getPairingStatus.mockResolvedValue({ status: "approved", keyId: "paired-key", agentKey });
     render(<PairingGate><p>Protected editor</p></PairingGate>);
 
     expect(await screen.findByText("Protected editor")).toBeTruthy();
-    expect(mocks.savePairedKeyId).toHaveBeenCalledWith("paired-key");
+    expect(mocks.savePairedKeyId).toHaveBeenCalledWith("paired-key", agentKey);
     expect(mocks.client.authenticateSession).toHaveBeenCalledWith(identity.privateKey);
     expect(useSessionStore.getState().bearerToken).toBe("session");
+  });
+
+  it("does not pair with an agent that has no key of its own", async () => {
+    mocks.client.getPairingStatus.mockResolvedValue({ status: "approved", keyId: "paired-key" });
+    render(<PairingGate><p>Protected editor</p></PairingGate>);
+
+    await waitFor(() => expect(screen.getByRole("status").textContent).toMatch(/обновите|update the agent/i));
+    expect(mocks.savePairedKeyId).not.toHaveBeenCalled();
+    expect(mocks.client.authenticateSession).not.toHaveBeenCalled();
+    expect(screen.queryByText("Protected editor")).toBeNull();
+  });
+
+  it("does not pair while two programs answer as the agent", async () => {
+    mocks.client.startPairing.mockRejectedValue(new AgentConflictError());
+    render(<PairingGate><p>Protected editor</p></PairingGate>);
+
+    await waitFor(() => expect(screen.getByRole("status").textContent).toMatch(/ещё одна программа|another program/i));
+    expect(screen.queryByRole("textbox")).toBeNull();
+  });
+
+  it("pairs again when the stored pairing has no agent key", async () => {
+    mocks.getOrCreateIdentity
+      .mockResolvedValueOnce({ id: "default", keyPair: identity, keyId: "old-key" })
+      .mockResolvedValue({ id: "default", keyPair: identity });
+    render(<PairingGate><p>Protected editor</p></PairingGate>);
+
+    expect(await screen.findByRole("textbox")).toBeTruthy();
+    expect(mocks.clearIdentity).toHaveBeenCalled();
+    expect(mocks.client.authenticateSession).not.toHaveBeenCalled();
   });
 
   it("authenticates an already-paired browser without starting a new request", async () => {
@@ -116,6 +148,7 @@ describe("PairingGate", () => {
       id: "default",
       keyPair: identity,
       keyId: "paired-key",
+      agentKey,
     });
     render(<PairingGate><p>Protected editor</p></PairingGate>);
 

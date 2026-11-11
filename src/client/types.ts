@@ -111,6 +111,8 @@ export interface PairStatusResult {
   keyId?: string;
   /** The right code was entered; the request may still wait for Allow in the agent window. */
   codeAccepted?: boolean;
+  /** The agent's public key once approved; an agent without it cannot prove itself later. */
+  agentKey?: { kty: string; crv: string; x: string; y: string } | null;
 }
 
 export interface PairCodeResult {

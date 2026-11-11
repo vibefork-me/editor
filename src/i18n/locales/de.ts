@@ -43,6 +43,8 @@ export const de: TranslationSchema = {
     pending: "Warten auf die Bestätigung im Fenster des Agenten…",
     denied: "Die Verbindungsanfrage wurde abgelehnt oder ist abgelaufen.",
     error: "Die Verbindung konnte nicht hergestellt werden. Prüfe, ob der Agent erreichbar ist, und versuche es noch einmal.",
+    conflict: "Auf diesem Computer antwortet noch ein anderes Programm anstelle des Vibefork-Agenten, deshalb ist das Verbinden gerade nicht sicher. Starte den Computer neu und versuche es noch einmal.",
+    outdated: "Diese Version des Agenten kann nicht nachweisen, dass sie echt ist. Aktualisiere den Agenten und versuche es noch einmal.",
     retry: "Noch einmal versuchen",
   },
   connectAi: {
